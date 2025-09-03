@@ -1,0 +1,79 @@
+output: IMAGE.t3x
+atlas: true
+maxsize: 1024x1024
+miplevels: 1
+format: rgba8
+wrapS: clamp
+wrapT: clamp
+filterMin: linear
+filterMag: linear
+allowRotate: false
+trim: false
+files:
+  - out_slices/IMAGE/yellow_brick.png
+  - out_slices/IMAGE/green_brick.png
+  - out_slices/IMAGE/cyan_brick.png
+  - out_slices/IMAGE/tan_brick.png
+  - out_slices/IMAGE/purple_brick.png
+  - out_slices/IMAGE/red_brick.png
+  - out_slices/IMAGE/life_brick.png
+  - out_slices/IMAGE/slow_brick.png
+  - out_slices/IMAGE/fast_brick.png
+  - out_slices/IMAGE/skull_brick.png
+  - out_slices/IMAGE/b_brick.png
+  - out_slices/IMAGE/o_brick.png
+  - out_slices/IMAGE/n_brick.png
+  - out_slices/IMAGE/u_brick.png
+  - out_slices/IMAGE/s_brick.png
+  - out_slices/IMAGE/batsmall_brick.png
+  - out_slices/IMAGE/batbig_brick.png
+  - out_slices/IMAGE/another_ball.png
+  - out_slices/IMAGE/indestructible_brick.png
+  - out_slices/IMAGE/rewind_brick.png
+  - out_slices/IMAGE/reverse_brick.png
+  - out_slices/IMAGE/islow_brick.png
+  - out_slices/IMAGE/ifast_brick.png
+  - out_slices/IMAGE/bat_normal.png
+  - out_slices/IMAGE/bat_big.png
+  - out_slices/IMAGE/bat_small.png
+  - out_slices/IMAGE/ball_sprite.png
+  - out_slices/IMAGE/murderball_sprite.png
+  - out_slices/IMAGE/letterb.png
+  - out_slices/IMAGE/lettero.png
+  - out_slices/IMAGE/lettern.png
+  - out_slices/IMAGE/letteru.png
+  - out_slices/IMAGE/letters.png
+  - out_slices/IMAGE/lives_1.png
+  - out_slices/IMAGE/lives_2.png
+  - out_slices/IMAGE/lives_3.png
+  - out_slices/IMAGE/lives_more.png
+  - out_slices/IMAGE/reverse_bar.png
+  - out_slices/IMAGE/button_plus.png
+  - out_slices/IMAGE/button_minus.png
+  - out_slices/IMAGE/button_exit.png
+  - out_slices/IMAGE/button_save.png
+  - out_slices/IMAGE/button_quit.png
+  - out_slices/IMAGE/button_clear.png
+  - out_slices/IMAGE/button_levelname.png
+  - out_slices/IMAGE/mouse_cursor.png
+  - out_slices/IMAGE/laser_sprite.png
+  - out_slices/IMAGE/laser_indicator.png
+  - out_slices/IMAGE/forward_brick.png
+  - out_slices/IMAGE/laser_brick.png
+  - out_slices/IMAGE/murderball_brick.png
+  - out_slices/IMAGE/bonus_brick.png
+  - out_slices/IMAGE/fivehit_brick.png
+  - out_slices/IMAGE/bomb_brick.png
+  - out_slices/IMAGE/offswitch_brick.png
+  - out_slices/IMAGE/onswitch_brick.png
+  - out_slices/IMAGE/sideslow_brick.png
+  - out_slices/IMAGE/sidehard_brick.png
+  - out_slices/IMAGE/designer_nobrick.png
+  - out_slices/IMAGE/exp1_brick.png
+  - out_slices/IMAGE/exp2_brick.png
+  - out_slices/IMAGE/exp3_brick.png
+  - out_slices/IMAGE/exp4_brick.png
+  - out_slices/IMAGE/exp5_brick.png
+  - out_slices/IMAGE/exp6_brick.png
+  - out_slices/IMAGE/exp7_brick.png
+  - out_slices/IMAGE/test_level.png

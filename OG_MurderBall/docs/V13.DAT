@@ -1,0 +1,72 @@
+
+VID_MODE=13  B_START=0000  B_SIZE=2000   Flg89=11  Pts=8  Port=03D4
+COLUMNS=40  ROWS=25  
+
+*** EXTERNAL REGISTERS
+
+Misc. Output (R/W=3CC/3C2) = 63 => SYNC=01 PgBit=1 Dsbl=0 ClkS=00
+				   EnaR=1 IOAddr=1
+Feature Ctl  (R/W=3CA/3DA) = 00 => (0000) VSS=0 (0) FC1=0 FC0=0
+Input Status #0    (R=3C2) = 00 => VRInt=0 FStat1=0 Fstat0=0 SwSense=0 (0000)
+Input Status #1    (R=3DA) = 30 => (00) Diag=11 VertRetr=0 (00) HorRetr=0
+
+*** SEQUENCER (3C4/5)
+
+ 00 Reset    03
+ 01 ClkMode  01 => (00)  SO=0  S4=0  DotClk=0  ShfLd=0  Bwidth=0  8/9=1
+ 02 WPlanes  07 => (0000) 0111
+ 03 CharMap  00 => (00) 0 0 00 00
+ 04 MemMode  06 => (0000)  Chain4=0  Odd/Even=1  ExtMem=1  Alfa/Gr=0
+
+*** CRT CONTROLLER (3D4/5,3B4/5) r3=82 r11=8E
+
+ 00 H Total      5F  100
+ 01 H Dsp End    4F   79
+ 02 Start H Blnk 50   80
+ 03 End H Blank  82   98 => CompRd=1  DspEnaSkew=00 (00010)
+ 04 Start H Retr 54   84
+ 05 End H Retr   80   96 => EHB_6=1  HRDly=00 (00000)
+ 06 V Total      BF  447 = 1BF
+ 07 Overflow     1F  => VRS=0 VDE=0 VT1=0 LC8=1 VBS=1 VRS=1 VDE=1 VT=1
+ 08 Set Row Scan 00    0 => (0) BytePan=00 RowSCn=00000
+ 09 Max Scan Ln  41    1 =>  2T4=0  LC9=1  VBS9=0  (00001)
+ 0A Cursor Start 00    0  COO=00
+ 0B Cursor End   00    0  Crs Skew=00
+
+ 0C Strt Addr_H  3E  16000
+ 0D Strt Addr_L  80
+ 0E Curs Pos_H   00  0
+ 0F Curs Pos_L   00
+ 10 V Retr Strt  9C  412 = 19C
+ 11 V Retr End   0E  414 => PR=0 BWd=0 DsbVInt=0 ClrVInt=0  (1110)
+ 12 V Dsply End  8F  399 = 18F
+ 13 Offset       28   40
+ 14 Underln Pos  00    0 => 0 Dword=0 CntBy4=0 UndLoc=00000 
+ 15 V Blan Strt  96  406 = 196
+ 16 V Blank End  B9  441 
+ 17 Mode Contrl  E3  => HwRst=1 W/B=1 AdrWrp=1 OC=0 CntBy2=0 HRS=0 SRS=1 CMS=1
+ 18 Line Compar  FF  1023 = 3FF
+
+
+*** GRAPHICS CONTROLLER (3CE/F)
+
+ 00 Set/Reset    00  => (0000) S/R=0000
+ 01 Enb Set/Rst  00  => (0000) ESR=0000
+ 02 Color Compar 00  => (0000)  CC=0000
+ 03 Data Rotate  00  => (00) FuncSel=00  RotCnt=0000
+ 04 Read Map Sel 00  =  0
+ 05 Rd/Wr Mode   41  => (0) ShfReg=10 Odd/Evn=0 RdM=0 Tst=0 WrM=01
+ 06 Miscellan.   05  => (0000) MemMap=01 Chain O/E=0 Graph/Alfa=1
+ 07 Col DontCare 0F  => (0000) CDC=1111
+ 08 BitMask (Wr) FF  => 1111 1111
+
+
+*** ATTRIBUTE CONTROLLER (3C0/3C1)
+
+Palette: 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F 11:Border
+         00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F 00
+
+10 Mode Control  41 => IPS=0 PCS=1 PPC=0 (0) Blnk=0 LnGr=0 Mono=0 Gr/Alf=1
+12 Col PlaneEna  0F => (00) VSM=00 ColPlane=1111
+13 Hor Pixl Pan  00 
+14 Colr Set Sel  00 => (0000) C67=00 C45=00
