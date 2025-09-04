@@ -1,0 +1,13 @@
+output: DESIGNER.t3x
+atlas: true
+maxsize: 1024x1024
+miplevels: 1
+format: rgba8
+wrapS: clamp
+wrapT: clamp
+filterMin: linear
+filterMag: linear
+allowRotate: false
+trim: false
+files:
+  - images/DESIGNER.png

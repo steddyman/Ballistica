@@ -1,0 +1,79 @@
+output: IMAGE.t3x
+atlas: true
+maxsize: 1024x1024
+miplevels: 1
+format: rgba8
+wrapS: clamp
+wrapT: clamp
+filterMin: linear
+filterMag: linear
+allowRotate: false
+trim: false
+files:
+  - images/yellow_brick.png
+  - images/green_brick.png
+  - images/cyan_brick.png
+  - images/tan_brick.png
+  - images/purple_brick.png
+  - images/red_brick.png
+  - images/life_brick.png
+  - images/slow_brick.png
+  - images/fast_brick.png
+  - images/skull_brick.png
+  - images/b_brick.png
+  - images/o_brick.png
+  - images/n_brick.png
+  - images/u_brick.png
+  - images/s_brick.png
+  - images/batsmall_brick.png
+  - images/batbig_brick.png
+  - images/another_ball.png
+  - images/indestructible_brick.png
+  - images/rewind_brick.png
+  - images/reverse_brick.png
+  - images/islow_brick.png
+  - images/ifast_brick.png
+  - images/bat_normal.png
+  - images/bat_big.png
+  - images/bat_small.png
+  - images/ball_sprite.png
+  - images/murderball_sprite.png
+  - images/letterb.png
+  - images/lettero.png
+  - images/lettern.png
+  - images/letteru.png
+  - images/letters.png
+  - images/lives_1.png
+  - images/lives_2.png
+  - images/lives_3.png
+  - images/lives_more.png
+  - images/reverse_bar.png
+  - images/button_plus.png
+  - images/button_minus.png
+  - images/button_exit.png
+  - images/button_save.png
+  - images/button_quit.png
+  - images/button_clear.png
+  - images/button_levelname.png
+  - images/mouse_cursor.png
+  - images/laser_sprite.png
+  - images/laser_indicator.png
+  - images/forward_brick.png
+  - images/laser_brick.png
+  - images/murderball_brick.png
+  - images/bonus_brick.png
+  - images/fivehit_brick.png
+  - images/bomb_brick.png
+  - images/offswitch_brick.png
+  - images/onswitch_brick.png
+  - images/sideslow_brick.png
+  - images/sidehard_brick.png
+  - images/designer_nobrick.png
+  - images/exp1_brick.png
+  - images/exp2_brick.png
+  - images/exp3_brick.png
+  - images/exp4_brick.png
+  - images/exp5_brick.png
+  - images/exp6_brick.png
+  - images/exp7_brick.png
+  - images/test_level.png
