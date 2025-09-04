@@ -1,0 +1,13 @@
+{
+    "folders": [
+		{
+			"path": "../3ds-examples"
+		},
+		{
+			"path": "."
+		},
+		{
+			"path": "../../../../../opt/devkitpro"
+		}
+	]
+}
