@@ -110,7 +110,9 @@ levels.o: /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/levels.cpp \
  /opt/devkitpro/libctru/include/c2d/text.h \
  /opt/devkitpro/libctru/include/c2d/font.h \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/hardware.hpp \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/IMAGE.h
+ /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/IMAGE.h \
+ /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/brick.hpp \
+ /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/levels.hpp
 /opt/devkitpro/libctru/include/3ds.h:
 /opt/devkitpro/libctru/include/3ds/types.h:
 /opt/devkitpro/libctru/include/3ds/result.h:
@@ -223,3 +225,5 @@ levels.o: /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/levels.cpp \
 /opt/devkitpro/libctru/include/c2d/font.h:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/hardware.hpp:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/IMAGE.h:
+/Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/brick.hpp:
+/Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/levels.hpp:

@@ -121,6 +121,8 @@ hardware_3ds.o: \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/INSTRUCT.h \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/DESIGNER_t3x.h \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/DESIGNER.h \
+ /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/HIGH_t3x.h \
+ /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/HIGH.h \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/sprite_indexes/image_indices.h
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/hardware.hpp:
 /opt/devkitpro/libctru/include/citro2d.h:
@@ -243,4 +245,6 @@ hardware_3ds.o: \
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/INSTRUCT.h:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/DESIGNER_t3x.h:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/DESIGNER.h:
+/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/HIGH_t3x.h:
+/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/HIGH.h:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/sprite_indexes/image_indices.h:
