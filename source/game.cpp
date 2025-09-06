@@ -29,6 +29,7 @@ namespace game {
 
     struct MovingBrickData { float pos; float dir; float minX; float maxX; };
     struct Particle { float x,y,vx,vy; int life; uint32_t color; };
+    struct BombEvent { int c; int r; int frames; }; // scheduled bomb trigger
 
     struct State {
         Bat bat{};
@@ -51,6 +52,7 @@ namespace game {
     std::vector<MovingBrickData> moving; // per-cell data (pos<0 => unused)
     // Particles (bomb / generic)
     std::vector<Particle> particles;
+    std::vector<BombEvent> bombEvents; // pending delayed explosions
     };
 
     static State G;
@@ -137,6 +139,37 @@ namespace game {
 
     static bool is_moving_type(int raw) { return raw==(int)BrickType::SS || raw==(int)BrickType::SF; }
 
+    static bool bomb_event_scheduled(int c,int r) {
+        for(const auto &e : G.bombEvents) {
+            if(e.c==c && e.r==r) return true;
+        }
+        return false;
+    }
+    static void schedule_neighbor_bombs(int c,int r,int delay) {
+        for(int dy=-1; dy<=1; ++dy) for(int dx=-1; dx<=1; ++dx) if(dx||dy) {
+            int nc=c+dx, nr=r+dy; int raw = levels_brick_at(nc,nr); if(raw == (int)BrickType::BO) {
+                if(!bomb_event_scheduled(nc,nr)) G.bombEvents.push_back({nc,nr,delay});
+            }
+        }
+    }
+    static void process_bomb_events() {
+        if(G.bombEvents.empty()) return;
+        const int ls=levels_left(), ts=levels_top(), cw=levels_brick_width(), ch=levels_brick_height();
+        for(auto &e : G.bombEvents) if(e.frames>0) --e.frames;
+        std::vector<size_t> toExplode; toExplode.reserve(G.bombEvents.size());
+        for(size_t i=0;i<G.bombEvents.size();++i) if(G.bombEvents[i].frames<=0) toExplode.push_back(i);
+        for(size_t idx : toExplode) {
+            if(idx >= G.bombEvents.size()) continue;
+            auto ev = G.bombEvents[idx];
+            int raw = levels_brick_at(ev.c, ev.r); if(raw != (int)BrickType::BO) continue;
+            levels_remove_brick(ev.c, ev.r);
+            apply_brick_effect(BrickType::BO, ls + ev.c*cw + cw/2, ts + ev.r*ch + ch/2, G.balls[0]);
+            for(int k=0;k<8;k++) { float angle=(float)k/8.f*6.28318f; float sp=0.6f+0.4f*(k%4); Particle p{ (float)(ls + ev.c*cw + cw/2), (float)(ts + ev.r*ch + ch/2), std::cos(angle)*sp, std::sin(angle)*sp, 32, C2D_Color32(255,200,50,255) }; G.particles.push_back(p); }
+            schedule_neighbor_bombs(ev.c, ev.r, 15); // 15 frame delay
+        }
+        G.bombEvents.erase(std::remove_if(G.bombEvents.begin(), G.bombEvents.end(), [](const BombEvent& e){return e.frames<=0;}), G.bombEvents.end());
+    }
+
     static void update_moving_bricks(); // fwd
 
     static void handle_ball_bricks(Ball &ball) {
@@ -168,18 +201,11 @@ namespace game {
                 if(bt == BrickType::T5) {
                     destroyed = levels_damage_brick(c,r);
                 } else if(bt == BrickType::BO) {
-                    std::vector<DestroyedBrick> destroyedList;
-                    levels_explode_bomb(c,r,&destroyedList);
-                    for(auto &db : destroyedList) {
-                        apply_brick_effect((BrickType)db.type, ls + db.col * cw + cw/2, ts + db.row * ch + ch/2, ball);
-                        // spawn particles
-                        for(int k=0;k<6;k++) {
-                            float angle = (float)k/6.0f * 6.28318f;
-                            float sp = 0.5f + 0.5f*(k%3);
-                            game::Particle p{ (float)(ls + db.col * cw + cw/2), (float)(ts + db.row * ch + ch/2), std::cos(angle)*sp, std::sin(angle)*sp, 30, C2D_Color32(255,200,50,255) };
-                            G.particles.push_back(p);
-                        }
-                    }
+                    // Immediate bomb: remove and schedule neighbors
+                    levels_remove_brick(c,r);
+                    apply_brick_effect(BrickType::BO, ls + c*cw + cw/2, ts + r*ch + ch/2, ball);
+                    for(int k=0;k<8;k++){float angle=(float)k/8.f*6.28318f;float sp=0.6f+0.4f*(k%4);Particle p{(float)(ls + c*cw + cw/2),(float)(ts + r*ch + ch/2),std::cos(angle)*sp,std::sin(angle)*sp,32,C2D_Color32(255,200,50,255)};G.particles.push_back(p);} 
+                    schedule_neighbor_bombs(c,r,15);
                 } else if(bt == BrickType::ID) {
                     destroyed = false; // no removal
                 } else {
@@ -228,16 +254,10 @@ namespace game {
                 if(bt == BrickType::T5) {
                     destroyed = levels_damage_brick(c,r);
                 } else if(bt == BrickType::BO) {
-                    std::vector<DestroyedBrick> destroyedList; levels_explode_bomb(c,r,&destroyedList);
-                    for(auto &db : destroyedList) {
-                        apply_brick_effect((BrickType)db.type, ls + db.col * cw + cw/2, ts + db.row * ch + ch/2, ball);
-                        for(int k=0;k<6;k++) {
-                            float angle = (float)k/6.0f * 6.28318f;
-                            float sp = 0.5f + 0.5f*(k%3);
-                            game::Particle p{ (float)(ls + db.col * cw + cw/2), (float)(ts + db.row * ch + ch/2), std::cos(angle)*sp, std::sin(angle)*sp, 30, C2D_Color32(255,200,50,255) };
-                            G.particles.push_back(p);
-                        }
-                    }
+                    levels_remove_brick(c,r);
+                    apply_brick_effect(BrickType::BO, ls + c*cw + cw/2, ts + r*ch + ch/2, ball);
+                    for(int k=0;k<8;k++){float angle=(float)k/8.f*6.28318f;float sp=0.6f+0.4f*(k%4);Particle p{(float)(ls + c*cw + cw/2),(float)(ts + r*ch + ch/2),std::cos(angle)*sp,std::sin(angle)*sp,32,C2D_Color32(255,200,50,255)};G.particles.push_back(p);} 
+                    schedule_neighbor_bombs(c,r,15);
                 } else if(bt == BrickType::ID) {
                     destroyed = false;
                 } else {
@@ -377,7 +397,9 @@ namespace game {
             }
         }
         #endif
-        // Stylus controls bat X
+    // Process bomb chain before physics so collisions see updated board
+    process_bomb_events();
+    // Stylus controls bat X
         if(in.touching) {
             float sx = static_cast<float>(in.stylusX);
             if(G.reverseTimer>0) sx = 320.0f - sx;
