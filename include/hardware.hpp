@@ -175,6 +175,7 @@ struct InputState {
 	bool touching = false;
 	bool fireHeld = false; // D-Pad Up
 	bool startPressed = false; // START key (edge)
+	bool selectPressed = false; // SELECT key (edge)
 	bool levelPrevPressed = false; // L edge (debug)
 	bool levelNextPressed = false; // R edge (debug)
 };
