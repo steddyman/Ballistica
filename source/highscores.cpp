@@ -32,7 +32,10 @@ namespace highscores {
             if(fread(&lvl, sizeof(lvl), 1, f)!=1) { ok=false; break; }
             int cpos=0; int ch; while(cpos < (int)sizeof(line)-1 && (ch=fgetc(f))!=EOF && ch!='\n') line[cpos++]=(char)ch; line[cpos]='\0';
             if(ch==EOF && i<NUM_SCORES-1) { ok=false; break; }
-            g_entries[i].score=sc; g_entries[i].level=lvl; std::strncpy(g_entries[i].name,line,MAX_NAME); g_entries[i].name[MAX_NAME]='\0';
+            g_entries[i].score=sc; g_entries[i].level=lvl; {
+                int k=0; for(; k<MAX_NAME && line[k]; ++k) g_entries[i].name[k]=line[k];
+                g_entries[i].name[k]='\0';
+            }
         }
         fclose(f);
         if(!ok) { set_default(); hw_log("scores corrupt reset\n"); }

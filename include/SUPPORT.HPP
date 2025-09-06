@@ -9,6 +9,15 @@
 #define __CPPARGS
 #endif
 
+// Enable runtime collision debug overlays by defining DEBUG as 1.
+// To activate, uncomment the next line:
+#define DEBUG 1
+
+// 3DS / modern compilers do not use memory model qualifiers; alias 'far' to nothing.
+#ifndef far
+#define far
+#endif
+
 
 // Setup global definitions
 

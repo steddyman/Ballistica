@@ -39,3 +39,6 @@ int levels_explode_bomb(int col,int row, std::vector<DestroyedBrick>* outDestroy
 
 // Get remaining HP for a brick (1 for normal breakables, 0 if empty/non-breakable, 1..5 for T5)
 int levels_brick_hp(int col,int row);
+
+// Reset (restore) a level's bricks/hp to original snapshot
+void levels_reset_level(int index);
