@@ -86,8 +86,7 @@ namespace game {
     static const SeqEntry kSequence[] = {
         {HwSheet::Title, TITLE_idx},
         {HwSheet::High, HIGH_idx},
-        {HwSheet::Instruct, INSTRUCT_idx},
-        {HwSheet::Break, BREAK_idx}
+        {HwSheet::Instruct, INSTRUCT_idx}
     };
     static int seqPos = 0;
     static int seqTimer = 0; // frames
@@ -338,11 +337,25 @@ namespace game {
                     }
                 }
             }
+            // Press START on any rotating title/high/instruction screen to begin immediately
+            if(in.startPressed) {
+                G.mode = Mode::Playing;
+                hw_log("start (START key)\n");
+                return;
+            }
             // Cycle sequence if user idle
             if(++seqTimer > kSeqDelayFrames) { seqTimer = 0; seqPos = (seqPos + 1) % (int)(sizeof(kSequence)/sizeof(kSequence[0])); }
             return;
         }
-    if(G.mode == Mode::Editor) { return; }
+    if(G.mode == Mode::Editor) {
+        // SELECT returns to title screen
+        if(in.selectPressed) {
+            G.mode = Mode::Title;
+            hw_log("editor->title (SELECT)\n");
+            return;
+        }
+        return;
+    }
         #if defined(DEBUG) && DEBUG
         // Debug level switching (L previous, R next)
         if(in.levelPrevPressed || in.levelNextPressed) {

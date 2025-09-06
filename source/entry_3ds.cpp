@@ -11,7 +11,8 @@ int main(int argc, char** argv) {
 
     while (aptMainLoop()) {
         InputState in; hw_poll_input(in);
-        if(in.startPressed) break;
+    // Exit application only if START+SELECT pressed together (avoid consuming START for game start)
+    if(in.startPressed && in.selectPressed) break;
         game_update(in);
         hw_begin_frame();
         game_render();
