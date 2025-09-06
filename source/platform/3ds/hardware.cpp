@@ -1,411 +1,109 @@
-/*
-	GRAPHICS FUNCTIONS FOR GAME SOURCE FILE
-	---------------------------------------
-
-	Creation Date:	24/01/93
-	Author:		Stephen Eddy
-
-	Revision History:
-
-
---------------------------------------------------------------------------
-*/
+// 3DS platform implementation (citro2d) replacing legacy DOS VGA routines.
+// Bottom screen (320x240) rendering only.
 
 #include "hardware.hpp"
-#include <dos.h>
-#include <string.h>
-#include <mem.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <io.h>
-#include <alloc.h>
-#include <iostream.h>
-#pragma inline
+#ifdef PLATFORM_3DS
+#include <3ds.h>
+#include <citro2d.h>
+#include <array>
 
-// Global declarations
-enum control { Joy1, Joy2, Key1, Key2 } P1Input, P2Input;
-int CurrentLevel;
-int P1Lives, P2Lives;
-struct JoystickPosition JoyPos[2];
-struct JoystickCalibrate JoyCal[2];
-struct KeyCodes KeyInput[2];
-uint FONTSEG;
-uint FONTOFF;			// pointer for font data
+// Include embedded atlases (.t3x turned into headers by Makefile)
+#include "IMAGE.h"      // main sprite sheet (bricks, bat, ball, etc.)
+#include "BREAK.h"      // title / break screen
+#include "DESIGNER.h"   // level designer background
+#include "INSTRUCT.h"   // instructions screen
+// #include "HIGH.h"       // (high score screen atlas not yet ported)
 
-extern int DisplayedPage, NonDisplayedPage;
-extern unsigned int PageOffsets[];
-// Function Definitions
+// Sprite index headers
+#include "sprite_indexes/image_indices.h"
+// Additional index headers (BREAK, DESIGNER, etc.) kept for completeness
+#include "sprite_indexes/break_indices.h"
+#include "sprite_indexes/designer_indices.h"
+#include "sprite_indexes/instruct_indices.h"
+#include "sprite_indexes/high_indices.h"
 
-// SetColour : Set Palette register to colours specified
-void SetColour(char pal_register, char red_val, char green_val, char blue_val)
-{
-	asm cli;	// Disable interupts
-	outportb(DacWrite, pal_register);	// Setup Palette register
-	outportb(DacData, red_val);
-	outportb(DacData, green_val);
-	outportb(DacData, blue_val);
-	asm sti;	// Enable interupts
-	return;
-}
+namespace {
+	C3D_RenderTarget* g_bottom = nullptr;
+	// Core sprite sheets (loaded from embedded memory)
+	C2D_SpriteSheet g_sheetImage = nullptr;
+	C2D_SpriteSheet g_sheetBreak = nullptr;
+	C2D_SpriteSheet g_sheetDesigner = nullptr;
+	C2D_SpriteSheet g_sheetInstruct = nullptr;
+	C2D_SpriteSheet g_sheetHigh = nullptr; // unused placeholder
 
-// Function to wait for vertical retrace interupt
-
-void WaitRetrace(void)
-{
-	asm mov dx,InputStatus;
-	WAITVBI1:
-	asm {
-		in	al,dx
-		and	al,VbiBit		// Check for Retrace signal
-		jnz	WAITVBI1
-	}
-	WAITVBI2:
-	asm {
-		in	al,dx
-		and	al,VbiBit
-		jz	WAITVBI2		// Test Retrace signal again
-	}
-	return;
-}
-
-// Function to switch to VGA mode 13, 320x200 256 colours
-void GraphicsMode(void)
-{
-	asm {
-		xor	ah,ah
-		mov	al,13h		// Mode 13
-		int	10h			// Video interupt
+	bool loadSheet(C2D_SpriteSheet& out, const u8* data, u32 size) {
+		out = C2D_SpriteSheetLoadFromMem(data, size);
+		return out != nullptr;
 	}
 }
 
-void SetVMode(char mode)    // Function to set video mode
-{
-	asm {
-	mov ah,0            // function 0 = set video mode
-	mov al,mode         // to the passed mode
-	int 10h
-	}
+bool hw_init() {
+	gfxInitDefault();
+	if (C3D_Init(C3D_DEFAULT_CMDBUF_SIZE) != 0) return false;
+	if (!C2D_Init(C2D_DEFAULT_MAX_OBJECTS)) return false;
+	C2D_Prepare();
+	g_bottom = C2D_CreateScreenTarget(GFX_BOTTOM, GFX_LEFT);
+	if(!g_bottom) return false;
+
+	// Load all required sprite sheets from embedded memory
+	if(!loadSheet(g_sheetImage, IMAGE_t3x, IMAGE_t3x_size)) return false;
+	if(!loadSheet(g_sheetBreak, BREAK_t3x, BREAK_t3x_size)) return false;
+	if(!loadSheet(g_sheetDesigner, DESIGNER_t3x, DESIGNER_t3x_size)) return false;
+	if(!loadSheet(g_sheetInstruct, INSTRUCT_t3x, INSTRUCT_t3x_size)) return false;
+	// High score sheet omitted (not available yet)
+	return true;
 }
 
-// Function to set mode to 4 plane 320x200 256 colour mode (modeX)
-void SetModeX(void)
-{
-	asm {
-		xor	ah,ah
-		mov	al,13h		// Mode 13
-		int	10h			// Video interupt
-		push es
-		push di
-		cli				// disable interupts
-		mov	dx,03c4h
-		mov	ax,0604h
-		out	dx,ax
-		mov	dx,03d4h
-		mov	al,014h
-		out	dx,al
-		inc	dx
-		in	al,dx
-		and al,0bfh
-		out	dx,al
-		mov	dx,03d4h
-		mov	al,17h
-		out	dx,al
-		inc	dx
-		in	al,dx
-		or	al,040h
-		out	dx,al
-		mov	al,5
-		mov	dx,03ceh
-		out	dx,al
-		inc	dx
-		in	al,dx
-		and al,0ech
-		out	dx,al
-		mov	dx,03ceh
-		mov	al,6
-		out	dx,al
-		inc	dx
-		in	al,dx
-		and al,0fdh
-		out	dx,al
-		mov	dx,03c4h
-		mov	ax,0f02h
-		out	dx,ax
-		mov ax,0A000h  	// Now clear all active memory
-		mov es,ax
-		xor di,di
-		xor ax,ax
-		mov cx,8000h    // all 256k memory
-		cld
-		rep stosw
-		pop di
-		pop es
-	}
+void hw_shutdown() {
+	if(g_sheetHigh) C2D_SpriteSheetFree(g_sheetHigh); g_sheetHigh=nullptr;
+	if(g_sheetInstruct) C2D_SpriteSheetFree(g_sheetInstruct); g_sheetInstruct=nullptr;
+	if(g_sheetDesigner) C2D_SpriteSheetFree(g_sheetDesigner); g_sheetDesigner=nullptr;
+	if(g_sheetBreak) C2D_SpriteSheetFree(g_sheetBreak); g_sheetBreak=nullptr;
+	if(g_sheetImage) C2D_SpriteSheetFree(g_sheetImage); g_sheetImage=nullptr;
+	if(g_bottom) { C2D_TargetDelete(g_bottom); g_bottom=nullptr; }
+	C2D_Fini();
+	C3D_Fini();
+	gfxExit();
 }
 
-
-// Function to set the plane write enable register in Graphics controller
-void WritePlaneEnable(char En)
-{
-	asm {
-		mov	dx,03ceh	// select plane enable register
-		mov	al,1
-		out	dx,al
-		inc	dx
-		mov	al,En
-		out	dx,al
+void hw_poll_input(InputState& out) {
+	hidScanInput();
+	u32 kHeld = hidKeysHeld();
+	touchPosition tp{};
+	out.touching = (kHeld & KEY_TOUCH) != 0;
+	if(out.touching) {
+		hidTouchRead(&tp);
+		out.stylusX = tp.px; // 0..319
+		out.stylusY = tp.py; // 0..239
+	} else {
+		out.stylusX = out.stylusY = -1;
 	}
+	out.fireHeld = (kHeld & KEY_DUP) != 0;
 }
 
-// Function to set read plane
-void ReadPlaneEnable(char En)
-{
-	asm {
-		mov	dx,03ceh
-		mov	al,4
-		out	dx,al
-		inc	dx
-		mov	al,En
-		out	dx,al
-	}
+void hw_begin_frame() {
+	C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
+	C2D_TargetClear(g_bottom, C2D_Color32(0,0,0,255));
+	C2D_SceneBegin(g_bottom);
 }
 
-// Function to set the write mode
-void WriteMode(char m)
-{
-	asm {
-		mov	dx,03ceh
-		mov	al,5		// select memory mode register
-		out	dx,al
-		inc	dx
-		in	al,dx
-		and	al,0fch
-		or	al,m
-		out	dx,al		// store to write mode register
-	}
+void hw_end_frame() {
+	C3D_FrameEnd(0);
 }
 
-// Routine to set VGA hardware to point to page specified in ModeX
-void xShowPage(void)
-{
-	xSetPage(PageOffsets[NonDisplayedPage]);
-	DisplayedPage=DisplayedPage ^ 1;
-	NonDisplayedPage=NonDisplayedPage ^ 1;
+void hw_draw_sprite(C2D_Image img, float x, float y, float z, float sx, float sy) {
+	C2D_DrawImageAt(img, x, y, z, nullptr, sx, sy);
 }
 
-// dummy function to swap value of pages.  used to properley erase moving objects
-void xSwapPage(void)
-{
-	DisplayedPage=DisplayedPage ^ 1;
-	NonDisplayedPage=NonDisplayedPage ^ 1;
-}
-// Function to switch to VGA text mode 3.
-void TextMode(void)
-{
-	asm {
-		xor	ah,ah
-		mov	al,03h		// Mode 03
-		int	10h			// Video interupt
-	}
+// Convenience accessor for default IMAGE sheet
+C2D_Image hw_image(int index) {
+	if(!g_sheetImage) return C2D_Image{};
+	return C2D_SpriteSheetGetImage(g_sheetImage, index);
 }
 
-// Function to load entire VGA 256 colour palette
-void LoadPalette(PalData *Palette)
-{
-	int i;
+#endif // PLATFORM_3DS
 
-	for(i=0;i<256;i++) {
-		outportb(DacWrite,i);
-		outportb(DacData,Palette->Red[i]);
-		outportb(DacData,Palette->Green[i]);
-		outportb(DacData,Palette->Blue[i]);
-	}
-	return;
-}
-
-// Function to display an image given a far pointer to 64000 bytes of
-// compressed image data.  Palette needs to be transferred seperately.
-void DisplayImage(char far *ImageData, char far *buffer)
-{
-	unsigned int NumBytes = 0;	// Byte Counter for screen
-	unsigned int InPointer = 0;
-	char far *ScrPointer;
-	unsigned char c;
-	unsigned char runlen = 0;
-
-	if(buffer==0) {
-		buffer=(char far *)0xa0000000L;	// Setup screen pointer
-	}
-	ScrPointer=buffer;
-	do {
-		c = ImageData[InPointer++];	// get first character
-		if((c & 0xc0) == 0xc0) {
-			runlen = (c & 0x3f);	// get runbytes
-			c = ImageData[InPointer++]; // get repeat character
-			while(runlen--) ScrPointer[NumBytes++]=c;
-		} else {
-			ScrPointer[NumBytes++]=c;
-		}
-	} while(NumBytes<64000);
-
-	return;
-}
-
-// Function to displau a Compressed PCX file in a selectable page on a
-// ModeX screen
-void DisplayImageX(char far *ImageData, int page)
-{
-	unsigned int NumBytes = 0;	// Byte Counter for screen
-	unsigned int InPointer = 0;
-	char far *ScrPointer;
-	unsigned char c;
-	unsigned char runlen = 0;
-
-	ScrPointer=(char far *)farmalloc(64000L);
-	if(ScrPointer==NULL) {	// no memory for tempoaray image
-		cout << "Not enough memory for image load" << endl;
-		return;
-	}
-	do {
-		c = ImageData[InPointer++];	// get first character
-		if((c & 0xc0) == 0xc0) {
-			runlen = (c & 0x3f);	// get runbytes
-			c = ImageData[InPointer++]; // get repeat character
-			while(runlen--) ScrPointer[NumBytes++]=c;
-		} else {
-			ScrPointer[NumBytes++]=c;
-		}
-	} while(NumBytes<64000);
-	xPutImage(ScrPointer, PageOffsets[page]);	// put to MODEX screen
-	farfree(ScrPointer);	// deallocate memory from temporary buffer
-	return;					// and return
-}
-
-// Function to read a PCX file and store in a PCX structure
-// Takes a path name and returns pointer to PCX structure or 0 on error
-PCX *ReadImage(char *fname)
-{
-	FILE *fptr;
-	PCX *PCXInfo = new PCX;
-	unsigned char far *paltemp = new char[769];	// allocate memory for palette
-	long ReadSize;
-	int i,t;
-
-	PCXInfo->ImageData=0L;
-	if((fptr=fopen(fname, "rb")) == 0) {delete PCXInfo;return NULL;}
-	if(fseek(fptr, -768L, SEEK_END) !=0 ) {
-		fclose(fptr);
-		delete PCXInfo;
-		return NULL;	// Return on errors;
-	}
-	if(fread(paltemp, 1, 768, fptr) != 768) {
-		fclose(fptr);
-		delete PCXInfo;
-		return NULL;
-	}
-	if(fseek(fptr, 128, SEEK_SET) !=0) {
-		fclose(fptr);
-		delete PCXInfo;
-		return NULL;
-	}
-	for(t=0;t<256;t++) {
-		PCXInfo->Palette->Red[t]=*(paltemp+(t*3))>>2;
-		PCXInfo->Palette->Green[t]=*(paltemp+(t*3)+1)>>2;
-		PCXInfo->Palette->Blue[t]=*(paltemp+(t*3)+2)>>2;
-	}
-	ReadSize=filelength(fileno(fptr))-(768+128);	// Get image size
-	if((PCXInfo->ImageData=new char[ReadSize]) == NULL) {	// allocate memory
-		fclose(fptr);
-		delete PCXInfo;
-		return NULL;
-	}
-	if(fread(PCXInfo->ImageData, 1, ReadSize, fptr) != ReadSize) {
-		fclose(fptr);
-		free(PCXInfo->ImageData);
-		PCXInfo->ImageData=0L;
-		delete PCXInfo;
-		return NULL;
-	}	// Read image data
-	fclose(fptr);	// close file
-	delete paltemp;	// delete temporary palette
-	return PCXInfo;	// Return new structure
-}
-
-// Function to fade from black to current palette colour
-void Fade2Palette(PalData *Palin)
-{
-	int i, n;
-	PalData *BPalette = new PalData;	// Black palette
-	PalData *Palette = new PalData;	  	// Colour palette
-
-	for(i=0;i<256; i++) {
-		BPalette->Red[i]=0;
-		BPalette->Green[i]=0;
-		BPalette->Blue[i]=0;
-	}
-	for(i=0;i<256;i++) {
-		Palette->Red[i]=Palin->Red[i]&0x3f;	// Strip of lower 6 bits
-		Palette->Green[i]=Palin->Green[i]&0x3f;
-		Palette->Blue[i]=Palin->Blue[i]&0x3f;
-	}
-	for(n=0;n<64;n++) {		// 64 step fade
-		WaitRetrace();		// Wait for vertical retrace
-		for(i=0;i<256;i++) {	// 256 colour palette
-			asm cli;
-			outportb(DacWrite, i);	// Select palette register
-			outportb(DacData, BPalette->Red[i]);	// now send colour
-			if((64-n) <= Palette->Red[i]) BPalette->Red[i]++;
-			outportb(DacData, BPalette->Green[i]);
-			if((64-n) <= Palette->Green[i]) BPalette->Green[i]++;
-			outportb(DacData, BPalette->Blue[i]);
-			if((64-n) <= Palette->Blue[i]) BPalette->Blue[i]++;
-			asm sti;
-		}
-	}
-	return;
-}
-
-// Function to clear colour palette to zero
-void ClearPalette(void)
-{
-	int i;
-
-	for(i=0;i<256;i++) {
-		outportb(DacWrite, i);	// Setup palette register
-		outportb(DacData, 0);	// Black
-		outportb(DacData, 0);	// Black
-		outportb(DacData, 0);	// Black
-	}
-	return;
-}
-
-// Function to fade from current palette colours to black
-void Fade2Black(PalData *Palin)
-{
-	int i, n;
-	PalData *Palette = new PalData;			// Colour palette
-
-	for(i=0;i<256;i++) {
-		Palette->Red[i]=Palin->Red[i]&0x3f;	// Strip of lower 6 bits
-		Palette->Green[i]=Palin->Green[i]&0x3f;
-		Palette->Blue[i]=Palin->Blue[i]&0x3f;
-	}
-	for(n=0;n<64;n++) {		// 64 step fade
-		WaitRetrace();		// Wait for vertical retrace
-		for(i=0;i<256;i++) {	// 256 colour palette
-			asm cli;
-			outportb(DacWrite, i);	// Select palette register
-			outportb(DacData, Palette->Red[i]);	// now send colour
-			if(Palette->Red[i] >0) Palette->Red[i]--;
-			outportb(DacData, Palette->Green[i]);
-			if(Palette->Green[i] >0) Palette->Green[i]--;
-			outportb(DacData, Palette->Blue[i]);
-			if(Palette->Blue[i] >0) Palette->Blue[i]--;
-			asm sti;
-		}
-	}
-	return;
-}
+#ifndef PLATFORM_3DS
 
 void Fade2Dark(PalData *Palette, PalData *Palin)
 {
@@ -1068,3 +766,5 @@ void ProgramTimer0(int val)			// used to set time interval for timer 0
 	outportb(0x40, char((val & 0xff00)>>8));	// high byte
 	enable();				// re-enable interupts
 }
+
+#endif // !PLATFORM_3DS
