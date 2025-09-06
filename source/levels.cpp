@@ -68,7 +68,7 @@ namespace levels {
     static void ensureOnSdmc() {
         mkdir(kSdDir, 0777); // ignore errors
         char sdPath[256]; snprintf(sdPath, sizeof(sdPath), "%s/%s", kSdDir, kLevelFile);
-        if(fileExists(sdPath)) return; // already copied
+        // if(fileExists(sdPath)) return; // already copied
         FILE* in = fopen("romfs:/LEVELS.DAT", "rb");
         if(!in) { hw_log("no romfs LEVELS.DAT\n"); return; }
         FILE* out = fopen(sdPath, "wb");
