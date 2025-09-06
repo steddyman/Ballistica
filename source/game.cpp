@@ -405,6 +405,13 @@ namespace game {
             if(b.y < 0) { b.y = 0; b.vy = -b.vy; }
             // bottom: lose life
             if(b.y > 240) {
+                // Only lose a life if this was the last active ball.
+                int activeCount = 0; for(const auto &bb : G.balls) if(bb.active) ++activeCount;
+                if(activeCount > 1) {
+                    // Deactivate this ball; others continue. No life lost.
+                    b.active = false;
+                    continue;
+                }
                 G.lives--; if(G.lives<=0) {
                     hw_log("GAME OVER\n");
                     int levelReached = levels_current()+1;
