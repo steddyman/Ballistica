@@ -77,12 +77,26 @@ namespace levels {
         fclose(in); fclose(out); hw_log("copied LEVELS.DAT -> sdmc\n");
     }
 
+    // Create a simple built-in default pattern (only used if no file present anywhere).
+    static void buildFallbackLevel() {
+        g_levelData.assign(NumBricks, 0);
+        // Color rows: Y,G,C,T,P,R repeating (indices 1..6 in our simplified brickMap)
+        for(int row=0; row<BricksY; ++row) {
+            int colorIdx = 1 + (row % 6); // cycle through first 6 colored bricks
+            for(int col=0; col<BricksX; ++col) {
+                int i = row * BricksX + col;
+                g_levelData[i] = (uint8_t)colorIdx;
+            }
+        }
+        g_loaded = true; g_maxLevel = 1; hw_log("fallback level generated\n");
+    }
+
     static void parseLevel1(FILE* f) {
         // crude parser: seek SPEED/NAME then read 143 tokens of brick shorthand (2+ chars)
         g_levelData.assign(NumBricks, 0);
-        char word[32]; int bricksRead=0; bool inBricks=false;
+        char word[32]; int bricksRead=0;
         while(fscanf(f, "%31s", word)==1) {
-            if(strcmp(word, "LEVEL")==0) { int lv; fscanf(f, "%d", &lv); if(lv==1) { bricksRead=0; inBricks=false; } }
+            if(strcmp(word, "LEVEL")==0) { int lv; fscanf(f, "%d", &lv); if(lv==1) { bricksRead=0; } }
             else if(strcmp(word, "SPEED")==0) { int sp; fscanf(f, "%d", &sp); }
             else if(strcmp(word, "NAME")==0) { fgets(word, sizeof word, f); }
             else if(isalpha((unsigned char)word[0])) {
@@ -116,7 +130,7 @@ namespace levels {
         ensureOnSdmc();
         char sdPath[256]; snprintf(sdPath, sizeof(sdPath), "%s/%s", kSdDir, kLevelFile);
         FILE* f = fopen(sdPath, "rb");
-        if(!f) { hw_log("open sd LEVELS fail\n"); return; }
+    if(!f) { hw_log("open sd LEVELS fail\n"); buildFallbackLevel(); return; }
         parseLevel1(f);
         fclose(f);
     }
