@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <alloc.h>
 #include "support.hpp"
-#include "video.hpp"
+#include "hardware.hpp"
 #include "sprcode.cpp"	// sprite code for graphics
 
 const int KEY_F1=0x3b00;
@@ -314,11 +314,6 @@ int check_highscore(unsigned long, int); // check and insert score entry
 int read_highscores(void);
 int write_highscores(void);
 void display_highscores(int);		// display high score table
-int above(int);
-int below(int);
-int toleft(int);
-int toright(int);
-
 
 // global variables
 int batreverse;		// flag to indicate bat movement reversed

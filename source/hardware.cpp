@@ -11,7 +11,7 @@
 --------------------------------------------------------------------------
 */
 
-#include "video.hpp"
+#include "hardware.hpp"
 #include <dos.h>
 #include <string.h>
 #include <mem.h>
@@ -75,6 +75,15 @@ void GraphicsMode(void)
 		xor	ah,ah
 		mov	al,13h		// Mode 13
 		int	10h			// Video interupt
+	}
+}
+
+void SetVMode(char mode)    // Function to set video mode
+{
+	asm {
+	mov ah,0            // function 0 = set video mode
+	mov al,mode         // to the passed mode
+	int 10h
 	}
 }
 
@@ -905,4 +914,157 @@ void ClearBox(int x, int y, int width, int height, char colour)
 		pop	es
 	}
 	return;
+}
+
+// Function to reset mouse and hide the cursor
+// returns 0 if OK 1 if failed
+int MouseReset(void)
+{
+	int retval;
+
+	asm {
+		mov	ax,21h			// software reset first
+		int	33h
+		mov     ax,0                    //Mouse reset code
+		int     33h                    //Perform mouse interupt
+		cmp     ax,-1                   //check for ok
+		jne     nomous                  //branch if mouse no found
+		push    ax
+		mov     ax,2                    //Hide cursor code
+		int     33h
+		pop     ax
+	}
+nomous: asm {
+		mov	retval,ax
+	}
+	return retval;
+}
+
+// Following routine will read the X motion counters and return
+// the value as an int
+int MouseMotionX(void)
+{
+	int retval;
+
+	asm {
+		mov     ax,0bh             //Mouse motion enquiry code
+		int     33h
+		mov     retval,cx          //Store motion for return value
+	}
+	return retval;
+}
+
+// Following routine will read the Y motion counters and return
+// the value as an int
+int MouseMotionY(void)
+{
+	int retval;
+
+	asm {
+		mov     ax,0bh             //Mouse motion enquiry code
+		int     33h
+		mov     retval,dx          //Store motion for return value
+	}
+	return retval;
+}
+
+// Routine to read x and y counters simultaneously and store
+// the values in motionx and montiony which are global variables
+// value returned is the button status
+int ReadMouse(int &x, int &y)
+{
+	int retval;
+	int ix, iy;
+
+	asm {
+		mov		ax,0bh
+		int		33h
+		mov		ix,cx
+		mov		iy,dx
+		mov		ax,03h
+		int		33h
+		mov     retval,bx
+	}
+	x=ix; y=iy;
+	return retval;
+}
+
+// The following routine will detect a button press
+// the button status is return in ax as an int
+int MouseButton(void)
+{
+	int retval;
+
+	asm {
+		mov     ax,03h              //Get button status code
+		int     33h
+		mov     retval,bx           //Put button status into ax
+	}
+	return retval;
+}
+
+void DoBeep(int tone, int del)	// Make a sound thru the speaker
+{
+	GlobalDelay=del>>2;	// reset global delay value to del/4.
+	GlobalTone=tone;
+	SoundFlag=1;
+}
+
+void NoBeep(void)	// turn off any pending sounds
+{
+	disable();
+	GlobalDelay=0;
+	SoundFlag=0;
+	nosound();
+	enable();
+}
+
+void interrupt timerhandler(__CPPARGS)	// timer interrupt routine
+{
+	if(SoundFlag) {
+		sound(GlobalTone);	// turn on sound
+		SoundFlag=0;		// mark no jobs pending
+	}
+	if(GlobalDelay) {			// if a sound currently running
+		GlobalDelay--;
+		if(!GlobalDelay) nosound();	// if now hit zero, turn off speaker
+	}
+	oldhandler();				// call old interrupt handler
+}
+
+void SetupTimer(void)			// setup timer interrupt routine
+{
+	disable();							// disable interrupts
+	oldhandler = getvect(TimerInt); 	// save old interrupt
+	setvect(TimerInt, timerhandler);	// setup pointer to new routine
+	GlobalDelay=0;
+	enable();							// re-enable interrupts
+	return;
+}
+
+void RestoreTimer(void)			// restore timer interrupt routine
+{
+	disable();							// disable interrupts
+	setvect(TimerInt, oldhandler);		// restore the old handler
+	enable();							// re-enable interrupts
+}
+
+void errhandler(char far *errtext, int error)		// global error handling routine
+{
+	if(GlobalDelay!=9999) RestoreTimer();// if timer has been started, restore
+	ProgramTimer0(0);
+	SetVMode(0x03);				// Change to text mode
+	cout << "*** FATAL ERROR CODE " << error << " ***" << endl;
+	cout << errtext << endl;
+	cout << "Application terminated." << endl;
+	exit(1);					// return to DOS
+}
+
+void ProgramTimer0(int val)			// used to set time interval for timer 0
+{
+	disable();
+	outportb(0x43, 0x36);	// Code to program timer 0 to mode 3
+	outportb(0x40, char(val & 0xff));			// low byte
+	outportb(0x40, char((val & 0xff00)>>8));	// high byte
+	enable();				// re-enable interupts
 }

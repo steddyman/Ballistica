@@ -1,5 +1,6 @@
+// No more changes.  Moved functions to hardware.cpp
 #include "support.hpp"
-#include "video.hpp"
+#include "hardware.hpp"
 #include <process.h>
 #include <iostream.h>
 
@@ -156,24 +157,6 @@ ballblock :: ballblock(int w, int h)
 	speed=10;spin=0; // 1 pixel movements and no spin
 	magx=magy=0;
 	killed=del=0;
-}
-
-void init_floattable(void)
-{
-	float PiOver180=float(M_PI/180);
-	float xf, yf, tf;	// tempoaray float varibles
-	for(int i=0;i<360;i++) {	// loop for all degrees
-		xf=cos(float(i)*PiOver180); // Compute Cosines (x)
-		tf=xf/1.0;	// workout what percentage
-		CosDir[i]=(int)float(StepsPixel)*tf;	// convert to integer range
-		yf=sin(float(i)*PiOver180); // Compute Sines (y)
-		tf=yf/1.0;	// workout what percentage of 1
-		SinDir[i]=(int)float(StepsPixel)*tf;	// convert to integer range
-	}
-	CosDir[0]=SinDir[90]=StepsPixel;	// set to 1 pixel
-	CosDir[90]=SinDir[0]=0;
-	CosDir[180]=SinDir[270]=NegStepsPixel;	// set to -1 pixel
-	CosDir[270]=SinDir[180]=0;
 }
 
 void ballblock :: sitonbat(block *bat)
@@ -689,179 +672,69 @@ void text :: draw(void)
 	}
 }
 
-void SetVMode(char mode)    // Function to set video mode
+void init_floattable(void)
 {
-	asm {
-	mov ah,0            // function 0 = set video mode
-	mov al,mode         // to the passed mode
-	int 10h
+	float PiOver180=float(M_PI/180);
+	float xf, yf, tf;	// tempoaray float varibles
+	for(int i=0;i<360;i++) {	// loop for all degrees
+		xf=cos(float(i)*PiOver180); // Compute Cosines (x)
+		tf=xf/1.0;	// workout what percentage
+		CosDir[i]=(int)float(StepsPixel)*tf;	// convert to integer range
+		yf=sin(float(i)*PiOver180); // Compute Sines (y)
+		tf=yf/1.0;	// workout what percentage of 1
+		SinDir[i]=(int)float(StepsPixel)*tf;	// convert to integer range
 	}
+	CosDir[0]=SinDir[90]=StepsPixel;	// set to 1 pixel
+	CosDir[90]=SinDir[0]=0;
+	CosDir[180]=SinDir[270]=NegStepsPixel;	// set to -1 pixel
+	CosDir[270]=SinDir[180]=0;
 }
 
-/* void WaitRetrace(void)		// Wait for Vertical retrace
+// No Changes needed
+// routine to check if brick above the one passed, brickno returned
+int above(int n)
 {
-	asm mov     dx,03dah
-retw1:	asm {
-		in      al,dx
-		test    al,08h
-		jz      retw1
-	}    retw2:	asm {
-		in	al,dx
-		test	al,08h
-		jnz	retw2
-	}
-}  */
+	int t;
 
-
-// Function to reset mouse and hide the cursor
-// returns 0 if OK 1 if failed
-int MouseReset(void)
-{
-	int retval;
-
-	asm {
-		mov	ax,21h			// software reset first
-		int	33h
-		mov     ax,0                    //Mouse reset code
-		int     33h                    //Perform mouse interupt
-		cmp     ax,-1                   //check for ok
-		jne     nomous                  //branch if mouse no found
-		push    ax
-		mov     ax,2                    //Hide cursor code
-		int     33h
-		pop     ax
-	}
-nomous: asm {
-		mov	retval,ax
-	}
-	return retval;
+	t=n-BricksX;
+        if(t<0) return -1;       // if past top, non above
+        if(bricks[t].deleted()) return -1;
+        if(bricks[t].moving()) return -1; // no hit if deleted or moving
+        return t;       // else there is a brick above
 }
 
-// Following routine will read the X motion counters and return
-// the value as an int
-int MouseMotionX(void)
+// routine to check brick below current one
+int below(int n)
 {
-	int retval;
+	int t;
 
-	asm {
-		mov     ax,0bh             //Mouse motion enquiry code
-		int     33h
-		mov     retval,cx          //Store motion for return value
-	}
-	return retval;
+	t=n+BricksX;
+        if(t>NumBricks-1) return -1;     // if below bottom, no brick
+        if(bricks[t].deleted()) return -1;
+        if(bricks[t].moving()) return -1; // no hit if deleted or moving
+        return t;       // brick there
 }
 
-// Following routine will read the Y motion counters and return
-// the value as an int
-int MouseMotionY(void)
+// check for brick to right
+int toright(int n)
 {
-	int retval;
+	int t;
 
-	asm {
-		mov     ax,0bh             //Mouse motion enquiry code
-		int     33h
-		mov     retval,dx          //Store motion for return value
-	}
-	return retval;
+	t=n+1;
+        if(n%BricksX == BricksX-1) return -1; // past right so no brick
+        if(bricks[t].deleted()) return -1;
+        if(bricks[t].moving()) return -1; // no hit if deleted or moving
+        return t;       // brick there
 }
 
-// Routine to read x and y counters simultaneously and store
-// the values in motionx and montiony which are global variables
-// value returned is the button status
-int ReadMouse(int &x, int &y)
+// check for brick to left
+int toleft(int n)
 {
-	int retval;
-	int ix, iy;
+	int t;
 
-	asm {
-		mov		ax,0bh
-		int		33h
-		mov		ix,cx
-		mov		iy,dx
-		mov		ax,03h
-		int		33h
-		mov     retval,bx
-	}
-	x=ix; y=iy;
-	return retval;
-}
-
-// The following routine will detect a button press
-// the button status is return in ax as an int
-int MouseButton(void)
-{
-	int retval;
-
-	asm {
-		mov     ax,03h              //Get button status code
-		int     33h
-		mov     retval,bx           //Put button status into ax
-	}
-	return retval;
-}
-
-void DoBeep(int tone, int del)	// Make a sound thru the speaker
-{
-	GlobalDelay=del>>2;	// reset global delay value to del/4.
-	GlobalTone=tone;
-	SoundFlag=1;
-}
-
-void NoBeep(void)	// turn off any pending sounds
-{
-	disable();
-	GlobalDelay=0;
-	SoundFlag=0;
-	nosound();
-	enable();
-}
-
-void interrupt timerhandler(__CPPARGS)	// timer interrupt routine
-{
-	if(SoundFlag) {
-		sound(GlobalTone);	// turn on sound
-		SoundFlag=0;		// mark no jobs pending
-	}
-	if(GlobalDelay) {			// if a sound currently running
-		GlobalDelay--;
-		if(!GlobalDelay) nosound();	// if now hit zero, turn off speaker
-	}
-	oldhandler();				// call old interrupt handler
-}
-
-void SetupTimer(void)			// setup timer interrupt routine
-{
-	disable();							// disable interrupts
-	oldhandler = getvect(TimerInt); 	// save old interrupt
-	setvect(TimerInt, timerhandler);	// setup pointer to new routine
-	GlobalDelay=0;
-	enable();							// re-enable interrupts
-	return;
-}
-
-void RestoreTimer(void)			// restore timer interrupt routine
-{
-	disable();							// disable interrupts
-	setvect(TimerInt, oldhandler);		// restore the old handler
-	enable();							// re-enable interrupts
-}
-
-void errhandler(char far *errtext, int error)		// global error handling routine
-{
-	if(GlobalDelay!=9999) RestoreTimer();// if timer has been started, restore
-	ProgramTimer0(0);
-	SetVMode(0x03);				// Change to text mode
-	cout << "*** FATAL ERROR CODE " << error << " ***" << endl;
-	cout << errtext << endl;
-	cout << "Application terminated." << endl;
-	exit(1);					// return to DOS
-}
-
-void ProgramTimer0(int val)			// used to set time interval for timer 0
-{
-	disable();
-	outportb(0x43, 0x36);	// Code to program timer 0 to mode 3
-	outportb(0x40, char(val & 0xff));			// low byte
-	outportb(0x40, char((val & 0xff00)>>8));	// high byte
-	enable();				// re-enable interupts
+	t=n-1;
+        if(n%BricksX == 0) return -1; // past left so no brick
+        if(bricks[t].deleted()) return -1;
+        if(bricks[t].moving()) return -1; // no hit if deleted or moving
+        return t;       // brick there
 }

@@ -139,3 +139,17 @@ void ClearBox(int, int, int, int, char);
 void ClearScreen(void);
 char ReadFire(int);
 uint ReadPot(char);
+void SetVMode(char mode);    	// Function to set video mode
+void WaitRetrace(void);         // Wait for vertical blanking signal
+int MouseReset(void);		// Reset and test mouse present
+int MouseMotionX(void);		// Return mouse motion counters X
+int MouseMotionY(void);		// Return mouse motion counters Y
+int ReadMouse(int &, int &);	// read both counters and button status
+int MouseButton(void);		// Return button status
+void DoBeep(int, int);		// Make a beep in speaker
+void NoBeep(void);		// turn off sound
+void interrupt timerhandler(__CPPARGS);	// timer interrupt handler
+void SetupTimer(void);		// Setup timer interrupt
+void RestoreTimer(void);	// Restore back to previous handler
+void errhandler(char far *, int);	// global error handler
+void ProgramTimer0(int);
