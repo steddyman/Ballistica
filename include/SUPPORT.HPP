@@ -1,21 +1,28 @@
-#include <dos.h>
-#include <math.h>
-#include <string.h>
-#include <stdlib.h>
+#pragma once
+#include <cmath>
+#include <cstdint>
+#include <cstring>
+#include <cstdlib>
 #ifdef __cplusplus
-	#define __CPPARGS ...
+#define __CPPARGS ...
 #else
-	#define __CPPARGS
+#define __CPPARGS
 #endif
 
 
 // Setup global definitions
 
 // old handler is a pointer to a function used for int routines
-const int TimerInt = 0x1c;	// timer interupt vector
-char far * const SCRPTR = (char far *) 0xa0000000L; // Screen address
+const int TimerInt = 0x1c; // legacy timer interrupt (unused on 3DS)
+#ifndef PLATFORM_3DS
+char far * const SCRPTR = (char far *) 0xa0000000L; // DOS screen segment
 extern char far *maskbuffer;
 extern char far *ballbuffer;
+#else
+// 3DS build uses modern pointers; buffers allocated differently or removed.
+extern unsigned char* maskbuffer;
+extern unsigned char* ballbuffer;
+#endif
 extern int DisplayedPage, NonDisplayedPage;
 const unsigned char BALLID=200;
 const unsigned char BARRIERID=199;
@@ -113,7 +120,7 @@ class block			// General block definition
 protected:
 	int     height;                 // height of block
 	int     width;                  // width of block
-	char far *sprdata;				// sprite data pointer
+unsigned char *sprdata; // legacy sprite data pointer (PCX) – placeholder for index into atlas
 	int     del;                	// status of block
 	int		moves;					// indicates block is moving
 	int		type;					// type of brick
@@ -171,8 +178,8 @@ public:
 	void droperasemask();
 	virtual void drawmask();
 	void drawback();
-	void save(char far *);
-	void restore(char far *);
+	void save(char *); // legacy (no-op on 3DS)
+	void restore(char *);
 	void dele();
 	void undelete() {if(type!=NB) del=killed=0;}	// mark brick undeleted
 //	void settruedel(int n) {truedelete[n]=1;}	// set true delet flag
@@ -266,14 +273,14 @@ private:
 	char *textdata;			// textdata points to current string
 	int textlen;			// length of text in characters
 	int colour;				// current text colour
-	char far *background;	// place to save background
+	char *background; // legacy background buffer
 public:
-	text(char far *string, int sflag);	// constructor
+	text(char *string, int sflag); // constructor
 	~text() {delete background; delete textdata;}  // destructor
 	// position text on screen
 	void position(int sx, int sy) {x=sx; y=sy;}
-	void setstring(char far *string);	// change current text string
-	char far *getstring(void) {return textdata;}	// get current contents of string
+	void setstring(char *string); // change current text string
+	char *getstring(void) {return textdata;} // get current contents of string
 	// change current colour
 	void setcolour(int col) {colour=col;}
 	void erase(void);		// erase current text

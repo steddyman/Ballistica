@@ -1,11 +1,13 @@
-#include <iostream.h>
-#include <fstream.h>
-#include <conio.h>
-#include <bios.h>
-#include <dos.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <alloc.h>
+// Modernized includes (legacy Borland headers removed)
+#include <cstdio>
+#include <cstdlib>
+#include <cstdint>
+#include <cstring>
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <array>
+#include <string>
 #include "support.hpp"
 #include "hardware.hpp"
 #include "sprcode.cpp"	// sprite code for graphics

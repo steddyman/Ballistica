@@ -51,7 +51,7 @@ CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:= -lctru -lm
+LIBS	:= -lcitro2d -lcitro3d -lctru -lm
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
@@ -84,10 +84,22 @@ SHLISTFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.shlist)))
 GFXFILES	:=	$(foreach dir,$(GRAPHICS),$(notdir $(wildcard $(dir)/*.t3s)))
 BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
 
-# --- Exclude the generic top-level hardware.cpp to avoid duplicate symbols -----
-# (platform-specific hardware.cpp lives under source/platform/$(PLATFORM)/)
+# --- Exclusions per-platform ---------------------------------------------------
+# Always exclude the generic hardware.cpp (we use platform/*/hardware.cpp)
 EXCLUDE_CPP := hardware.cpp
+
+# For the 3DS port we are incrementally migrating from legacy DOS code.
+# Exclude unported Borland-era implementation files (main.cpp, support.cpp) and
+# old C entry (_main.c) and provide a modern entry point (entry_3ds.cpp).
+ifeq ($(PLATFORM),3ds)
+EXCLUDE_CPP += main.cpp support.cpp
+EXCLUDE_C += _main.c
+endif
+
 CPPFILES := $(filter-out $(EXCLUDE_CPP),$(CPPFILES))
+ifneq ($(strip $(EXCLUDE_C)),)
+CFILES := $(filter-out $(EXCLUDE_C),$(CFILES))
+endif
 
 #---------------------------------------------------------------------------------
 # use CXX for linking C++ projects, CC for standard C
@@ -185,7 +197,11 @@ clean:
 $(GFXBUILD)/%.t3x	$(BUILD)/%.h	:	%.t3s
 #---------------------------------------------------------------------------------
 	@echo $(notdir $<)
-	@tex3ds -i $< -H $(BUILD)/$*.h -d $(DEPSDIR)/$*.d -o $(GFXBUILD)/$*.t3x
+	@if [ "$*" = "IMAGE" ]; then \
+		tex3ds -a -i $< -H $(BUILD)/$*.h -d $(DEPSDIR)/$*.d -o $(GFXBUILD)/$*.t3x; \
+	else \
+		tex3ds -i $< -H $(BUILD)/$*.h -d $(DEPSDIR)/$*.d -o $(GFXBUILD)/$*.t3x; \
+	fi
 
 #---------------------------------------------------------------------------------
 else
