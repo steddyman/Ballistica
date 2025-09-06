@@ -10,7 +10,9 @@
 #include <string>
 #include "support.hpp"
 #include "hardware.hpp"
-#include "sprcode.cpp"	// sprite code for graphics
+#ifndef PLATFORM_3DS
+#include "sprcode.cpp" // sprite code for graphics (legacy)
+#endif
 
 const int KEY_F1=0x3b00;
 const int KEY_F2=0x3c00;

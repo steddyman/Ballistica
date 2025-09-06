@@ -5,16 +5,29 @@
 #include "IMAGE.h"
 #include "IMAGE_t3x.h"
 #include "sprite_indexes/image_indices.h"
+#include "TITLE.h"
+#include "BREAK.h"
+#include "INSTRUCT.h"
+#include "DESIGNER.h"
+#include "game.hpp"
+
+// Forward decl (implemented in levels.cpp)
+void levels_load();
+void levels_render();
 
 // Basic game state migrated from legacy structures (incremental port)
 namespace game {
     struct Ball { float x, y; float vx, vy; bool active; C2D_Image img; };
     struct Bat  { float x, y; float width, height; C2D_Image img; };
+    enum class Mode { Title, Playing, Editor };
+
     struct State {
         Bat bat{};
         std::vector<Ball> balls;
         C2D_Image imgBall{};
         C2D_Image imgBatNormal{};
+        Mode mode = Mode::Title;
+    bool editorLaunched = false; // placeholder (not used now)
     };
 
     static State G;
@@ -29,11 +42,46 @@ namespace game {
     void init() {
     hw_log("game_init\n");
         init_assets();
+        levels_load();
     hw_log("assets loaded\n");
     }
 
+    // Title screen configuration (button rectangles)
+    static const struct { int x,y,w,h; Mode next; } kTitleButtons[] = {
+        {16,28,22,12, Mode::Playing}, // New Game
+        {16,39,22,12, Mode::Editor}   // Edit Levels
+    };
+
+    // Sequence of sheets to show while idling (fallback to BREAK if others missing)
+    struct SeqEntry { HwSheet sheet; int index; };
+    static const SeqEntry kSequence[] = {
+        {HwSheet::Title, TITLE_idx},
+        {HwSheet::Instruct, INSTRUCT_idx},
+        {HwSheet::Break, BREAK_idx}
+    };
+    static int seqPos = 0;
+    static int seqTimer = 0; // frames
+    static const int kSeqDelayFrames = 180; // ~3s at 60fps
+
     void update(const InputState& in) {
     hw_log("u"); // very lightweight heartbeat (one char per frame)
+        if(G.mode == Mode::Title) {
+            // If touch, check hit against buttons
+            if(in.touching) {
+                for(auto &b : kTitleButtons) {
+                    if(in.stylusX >= b.x && in.stylusX < b.x + b.w &&
+                       in.stylusY >= b.y && in.stylusY < b.y + b.h) {
+                        G.mode = b.next;
+                        hw_log(b.next==Mode::Playing?"start\n":"editor\n");
+                        return;
+                    }
+                }
+            }
+            // Cycle sequence if user idle
+            if(++seqTimer > kSeqDelayFrames) { seqTimer = 0; seqPos = (seqPos + 1) % (int)(sizeof(kSequence)/sizeof(kSequence[0])); }
+            return;
+        }
+    if(G.mode == Mode::Editor) { return; }
         // Stylus controls bat X
         if(in.touching) {
             float targetX = static_cast<float>(in.stylusX) - G.bat.width * 0.5f;
@@ -68,7 +116,26 @@ namespace game {
     }
 
     void render() {
+        if(G.mode == Mode::Title) {
+            // Draw current sequence image (skip if not loaded, fallback attempts)
+            const SeqEntry& cur = kSequence[seqPos];
+            C2D_Image img = hw_image_from(cur.sheet, cur.index);
+            if(!img.tex) { // simple fallback chain
+                for(auto &alt : kSequence) { img = hw_image_from(alt.sheet, alt.index); if(img.tex) break; }
+            }
+            if(img.tex) hw_draw_sprite(img, 0, 0);
+            return;
+        }
+        if(G.mode == Mode::Editor) {
+            C2D_Image img = hw_image_from(HwSheet::Designer, DESIGNER_idx);
+            if(img.tex) hw_draw_sprite(img, 0, 0); else {
+                img = hw_image_from(HwSheet::Instruct, INSTRUCT_idx);
+                if(img.tex) hw_draw_sprite(img, 0, 0);
+            }
+            return;
+        }
         // Draw bat
+        levels_render(); // draw bricks behind entities
         hw_draw_sprite(G.bat.img, G.bat.x, G.bat.y);
         // Draw balls
         for(auto &b : G.balls) if(b.active) hw_draw_sprite(b.img, b.x, b.y);

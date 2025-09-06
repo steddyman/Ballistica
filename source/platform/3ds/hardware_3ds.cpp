@@ -5,33 +5,150 @@
 #ifdef PLATFORM_3DS
 #include <3ds.h>
 #include <citro2d.h>
+#include <sys/stat.h>
+#include <stdio.h>
+#include <string.h>
+#include <vector>
+#include <string>
 
-#include "IMAGE_t3x.h" // binary data symbols
-#include "IMAGE.h"     // index definitions
+#include "IMAGE_t3x.h"
+#include "IMAGE.h"
+#include "BREAK_t3x.h"
+#include "BREAK.h"
+#include "TITLE_t3x.h"
+#include "TITLE.h"
+#include "INSTRUCT_t3x.h"
+#include "INSTRUCT.h"
+#include "DESIGNER_t3x.h"
+#include "DESIGNER.h"
 
 #include "sprite_indexes/image_indices.h"
 
 namespace {
     C3D_RenderTarget* g_bottom = nullptr;
+    C3D_RenderTarget* g_top = nullptr;
     C2D_SpriteSheet g_sheetImage = nullptr;
-    bool g_consoleInit = false;
+    C2D_SpriteSheet g_sheetBreak = nullptr;
+    C2D_SpriteSheet g_sheetTitle = nullptr;
+    C2D_SpriteSheet g_sheetInstruct = nullptr;
+    C2D_SpriteSheet g_sheetDesigner = nullptr; // placeholder for future
+    // Tiny log ring buffer
+    std::vector<std::string> g_logs;
+    const size_t kMaxLogLines = 64;
+
+    // 5x6 pixel bitmap font (uppercase + digits + some punctuation)
+    // Each row uses low 5 bits of a byte.
+    struct Glyph { char c; uint8_t rows[6]; };
+    static const Glyph kGlyphs[] = {
+        {'A',{0x0E,0x11,0x1F,0x11,0x11,0x00}},
+        {'B',{0x1E,0x11,0x1E,0x11,0x1E,0x00}},
+        {'C',{0x0E,0x11,0x10,0x11,0x0E,0x00}},
+        {'D',{0x1E,0x11,0x11,0x11,0x1E,0x00}},
+        {'E',{0x1F,0x10,0x1E,0x10,0x1F,0x00}},
+        {'F',{0x1F,0x10,0x1E,0x10,0x10,0x00}},
+        {'G',{0x0F,0x10,0x13,0x11,0x0F,0x00}},
+        {'H',{0x11,0x11,0x1F,0x11,0x11,0x00}},
+        {'I',{0x1F,0x04,0x04,0x04,0x1F,0x00}},
+        {'J',{0x01,0x01,0x01,0x11,0x0E,0x00}},
+        {'K',{0x11,0x12,0x1C,0x12,0x11,0x00}},
+        {'L',{0x10,0x10,0x10,0x10,0x1F,0x00}},
+        {'M',{0x11,0x1B,0x15,0x11,0x11,0x00}},
+        {'N',{0x11,0x19,0x15,0x13,0x11,0x00}},
+        {'O',{0x0E,0x11,0x11,0x11,0x0E,0x00}},
+        {'P',{0x1E,0x11,0x1E,0x10,0x10,0x00}},
+        {'Q',{0x0E,0x11,0x11,0x15,0x0E,0x01}},
+        {'R',{0x1E,0x11,0x1E,0x12,0x11,0x00}},
+        {'S',{0x0F,0x10,0x0E,0x01,0x1E,0x00}},
+        {'T',{0x1F,0x04,0x04,0x04,0x04,0x00}},
+        {'U',{0x11,0x11,0x11,0x11,0x0E,0x00}},
+        {'V',{0x11,0x11,0x11,0x0A,0x04,0x00}},
+        {'W',{0x11,0x11,0x15,0x1B,0x11,0x00}},
+        {'X',{0x11,0x0A,0x04,0x0A,0x11,0x00}},
+        {'Y',{0x11,0x0A,0x04,0x04,0x04,0x00}},
+        {'Z',{0x1F,0x02,0x04,0x08,0x1F,0x00}},
+        {'0',{0x0E,0x13,0x15,0x19,0x0E,0x00}},
+        {'1',{0x04,0x0C,0x04,0x04,0x0E,0x00}},
+        {'2',{0x0E,0x11,0x02,0x04,0x1F,0x00}},
+        {'3',{0x1F,0x02,0x04,0x02,0x1F,0x00}},
+        {'4',{0x02,0x06,0x0A,0x1F,0x02,0x00}},
+        {'5',{0x1F,0x10,0x1E,0x01,0x1E,0x00}},
+        {'6',{0x06,0x08,0x1E,0x11,0x0E,0x00}},
+        {'7',{0x1F,0x01,0x02,0x04,0x08,0x00}},
+        {'8',{0x0E,0x11,0x0E,0x11,0x0E,0x00}},
+        {'9',{0x0E,0x11,0x0F,0x01,0x06,0x00}},
+        {':',{0x00,0x04,0x00,0x04,0x00,0x00}},
+        {'.',{0x00,0x00,0x00,0x00,0x04,0x00}},
+        {'-',{0x00,0x00,0x0E,0x00,0x00,0x00}},
+        {'_',{0x00,0x00,0x00,0x00,0x1F,0x00}},
+    {'/',{0x01,0x02,0x04,0x08,0x10,0x00}},
+        {' ' ,{0x00,0x00,0x00,0x00,0x00,0x00}},
+    };
+
+    const Glyph* findGlyph(char c) {
+        if(c>='a' && c<='z') c = (char)(c - 'a' + 'A');
+        for(const auto &g : kGlyphs) if(g.c==c) return &g;
+        return &kGlyphs[sizeof(kGlyphs)/sizeof(kGlyphs[0]) - 1]; // space fallback
+    }
+
+    void drawLogs() {
+        if(!g_top) return;
+        C2D_SceneBegin(g_top);
+        C2D_TargetClear(g_top, C2D_Color32(0,0,0,255));
+        const int lineH=7; // 6px +1 spacing
+        int maxLines = 240 / lineH; // top screen height 240
+        int start = (int)g_logs.size() - maxLines;
+        if(start < 0) start = 0;
+        int y=0;
+        for(size_t i=start;i<g_logs.size();++i) {
+            int x=0;
+            for(char c : g_logs[i]) {
+                const Glyph* g = findGlyph(c);
+                for(int ry=0; ry<6; ++ry) {
+                    uint8_t row = g->rows[ry];
+                    for(int rx=0; rx<5; ++rx) {
+                        if(row & (1 << (4-rx))) {
+                            C2D_DrawRectSolid(x+rx, y+ry, 0, 1,1, C2D_Color32(200,200,200,255));
+                        }
+                    }
+                }
+                x += 6; // 5px +1 space
+                if(x > 400-6) break; // top screen width 400
+            }
+            y += lineH;
+            if(y > 240-lineH) break;
+        }
+    }
 }
 
 bool hw_init() {
     gfxInitDefault();
-    // init simple text console on top screen for debugging
-    consoleInit(GFX_TOP, nullptr); g_consoleInit = true; hw_log("hw_init start\n");
-    if (C3D_Init(C3D_DEFAULT_CMDBUF_SIZE) != 0) return false;
-    if (!C2D_Init(C2D_DEFAULT_MAX_OBJECTS)) return false;
+    hw_log("hw_init start\n");
+    romfsInit();
+    if (!C3D_Init(C3D_DEFAULT_CMDBUF_SIZE)) { hw_log("C3D_Init FAILED\n"); return false; }
+    if (!C2D_Init(C2D_DEFAULT_MAX_OBJECTS)) { hw_log("C2D_Init FAILED\n"); return false; }
     C2D_Prepare();
     g_bottom = C2D_CreateScreenTarget(GFX_BOTTOM, GFX_LEFT);
+    g_top = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
     if(!g_bottom) return false;
     g_sheetImage = C2D_SpriteSheetLoadFromMem(IMAGE_t3x, IMAGE_t3x_size);
-    if(!g_sheetImage) hw_log("Failed to load IMAGE sheet\n"); else hw_log("Loaded IMAGE sheet\n");
+    g_sheetBreak = C2D_SpriteSheetLoadFromMem(BREAK_t3x, BREAK_t3x_size);
+    g_sheetTitle = C2D_SpriteSheetLoadFromMem(TITLE_t3x, TITLE_t3x_size);
+    g_sheetInstruct = C2D_SpriteSheetLoadFromMem(INSTRUCT_t3x, INSTRUCT_t3x_size);
+    g_sheetDesigner = C2D_SpriteSheetLoadFromMem(DESIGNER_t3x, DESIGNER_t3x_size);
+    if(!g_sheetImage) hw_log("Failed IMAGE\n"); else hw_log("Loaded IMAGE\n");
+    if(!g_sheetBreak) hw_log("Failed BREAK\n");
+    if(!g_sheetTitle) hw_log("Failed TITLE\n");
+    if(!g_sheetInstruct) hw_log("Failed INSTRUCT\n");
+    if(!g_sheetDesigner) hw_log("Failed DESIGNER\n");
     return g_sheetImage != nullptr;
 }
 
 void hw_shutdown() {
+    romfsExit();
+    if(g_sheetDesigner) { C2D_SpriteSheetFree(g_sheetDesigner); g_sheetDesigner=nullptr; }
+    if(g_sheetInstruct) { C2D_SpriteSheetFree(g_sheetInstruct); g_sheetInstruct=nullptr; }
+    if(g_sheetTitle) { C2D_SpriteSheetFree(g_sheetTitle); g_sheetTitle=nullptr; }
+    if(g_sheetBreak) { C2D_SpriteSheetFree(g_sheetBreak); g_sheetBreak=nullptr; }
     if(g_sheetImage) { C2D_SpriteSheetFree(g_sheetImage); g_sheetImage=nullptr; }
     // Screen target is owned by citro2d; no explicit delete needed for default screen
     C2D_Fini();
@@ -53,6 +170,7 @@ void hw_poll_input(InputState& out) {
 
 void hw_begin_frame() {
     C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
+    drawLogs(); // render top logs first
     C2D_TargetClear(g_bottom, C2D_Color32(0,0,0,255));
     C2D_SceneBegin(g_bottom);
 }
@@ -67,9 +185,45 @@ C2D_Image hw_image(int index) {
     return C2D_SpriteSheetGetImage(g_sheetImage, index);
 }
 
+bool hw_sheet_loaded(HwSheet sheet) {
+    switch(sheet) {
+        case HwSheet::Image: return g_sheetImage;
+        case HwSheet::Break: return g_sheetBreak;
+        case HwSheet::Title: return g_sheetTitle;
+        case HwSheet::Instruct: return g_sheetInstruct;
+        case HwSheet::Designer: return g_sheetDesigner; // currently null
+    }
+    return false;
+}
+
+C2D_Image hw_image_from(HwSheet sheet, int index) {
+    C2D_SpriteSheet s = nullptr;
+    switch(sheet) {
+        case HwSheet::Image: s = g_sheetImage; break;
+        case HwSheet::Break: s = g_sheetBreak; break;
+        case HwSheet::Title: s = g_sheetTitle; break;
+        case HwSheet::Instruct: s = g_sheetInstruct; break;
+        case HwSheet::Designer: s = g_sheetDesigner; break;
+    }
+    if(!s) return C2D_Image{};
+    return C2D_SpriteSheetGetImage(s, index);
+}
+
 void hw_log(const char* msg) {
-    if(!g_consoleInit || !msg) return;
-    printf("%s", msg);
+    if(!msg) return;
+    // Split into lines and append to ring buffer
+    const char* p = msg;
+    while(*p) {
+        const char* start = p;
+        while(*p && *p!='\n') ++p;
+        std::string line(start, p-start);
+        if(!line.empty()) {
+            g_logs.push_back(line);
+            if(g_logs.size() > kMaxLogLines) g_logs.erase(g_logs.begin(), g_logs.begin() + (g_logs.size()-kMaxLogLines));
+        }
+        if(*p=='\n') ++p;
+    }
+    svcOutputDebugString(msg, (s32)strlen(msg));
 }
 
 #endif // PLATFORM_3DS

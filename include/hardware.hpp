@@ -197,4 +197,12 @@ C2D_Image hw_image(int index);
 // Simple debug logging to top-screen text console (no-op if console not initialised)
 void hw_log(const char* msg);
 
+// Additional sprite sheets (background / UI). All are optional; check loaded before use.
+enum class HwSheet : uint8_t { Image, Break, Title, Instruct, Designer };
+bool hw_sheet_loaded(HwSheet sheet);
+C2D_Image hw_image_from(HwSheet sheet, int index); // returns empty image if missing
+
 #endif // PLATFORM_3DS
+
+// Bridge declarations (legacy logic still in main.cpp). These will be refactored.
+int leveldesigner(int start_level);

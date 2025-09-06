@@ -1,4 +1,5 @@
-game.o: /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/game.cpp \
+main.o: /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/main.cpp \
+ /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/support.hpp \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/hardware.hpp \
  /opt/devkitpro/libctru/include/citro2d.h \
  /opt/devkitpro/libctru/include/citro3d.h \
@@ -109,15 +110,8 @@ game.o: /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/game.cpp \
  /opt/devkitpro/libctru/include/c2d/spritesheet.h \
  /opt/devkitpro/libctru/include/c2d/sprite.h \
  /opt/devkitpro/libctru/include/c2d/text.h \
- /opt/devkitpro/libctru/include/c2d/font.h \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/IMAGE.h \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/IMAGE_t3x.h \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/sprite_indexes/image_indices.h \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/TITLE.h \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/BREAK.h \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/INSTRUCT.h \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/DESIGNER.h \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/game.hpp
+ /opt/devkitpro/libctru/include/c2d/font.h
+/Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/support.hpp:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/hardware.hpp:
 /opt/devkitpro/libctru/include/citro2d.h:
 /opt/devkitpro/libctru/include/citro3d.h:
@@ -229,11 +223,3 @@ game.o: /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/game.cpp \
 /opt/devkitpro/libctru/include/c2d/sprite.h:
 /opt/devkitpro/libctru/include/c2d/text.h:
 /opt/devkitpro/libctru/include/c2d/font.h:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/IMAGE.h:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/IMAGE_t3x.h:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/sprite_indexes/image_indices.h:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/TITLE.h:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/BREAK.h:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/INSTRUCT.h:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/DESIGNER.h:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/game.hpp:
