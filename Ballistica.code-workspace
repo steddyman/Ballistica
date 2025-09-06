@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "../../../../../opt/devkitpro"
+		},
+		{
+			"path": "../_OG_MurderBall"
 		}
 	]
 }

@@ -1,0 +1,43 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "3DS Attach (Azahar @4003)",
+      "type": "cppdbg",
+      "request": "launch",
+      "MIMode": "gdb",
+      "miDebuggerPath": "/opt/devkitpro/devkitARM/bin/arm-none-eabi-gdb",
+      "program": "${workspaceFolder}/${workspaceFolderBasename}.elf",
+      "miDebuggerServerAddress": "localhost:4003",
+      "cwd": "${workspaceFolder}",
+      "stopAtEntry": false,
+      "externalConsole": false,
+      "preLaunchTask": "3ds: Build",
+      "setupCommands": [
+        { "text": "set confirm off" },
+        { "text": "set pagination off" },
+        { "text": "set architecture arm" },
+        { "text": "monitor reset" }
+      ]
+    },
+    {
+      "name": "3DS Build+Run+Attach",
+      "type": "cppdbg",
+      "request": "launch",
+      "MIMode": "gdb",
+      "miDebuggerPath": "/opt/devkitpro/devkitARM/bin/arm-none-eabi-gdb",
+      "program": "${workspaceFolder}/${workspaceFolderBasename}.elf",
+      "miDebuggerServerAddress": "localhost:4003",
+      "cwd": "${workspaceFolder}",
+      "stopAtEntry": false,
+      "externalConsole": false,
+      "preLaunchTask": "3ds: Run Azahar (.3dsx, GDB stub)",
+      "setupCommands": [
+        { "text": "set confirm off" },
+        { "text": "set pagination off" },
+        { "text": "set architecture arm" },
+        { "text": "monitor reset" }
+      ]
+    }
+  ]
+}

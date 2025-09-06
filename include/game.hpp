@@ -5,3 +5,7 @@
 void game_init();
 void game_update(const InputState&);
 void game_render();
+
+// Level helpers (temporary minimal port)
+void levels_load();
+void levels_render();
