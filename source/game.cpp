@@ -64,7 +64,7 @@ namespace game {
     static const int kSeqDelayFrames = 180; // ~3s at 60fps
 
     void update(const InputState& in) {
-    hw_log("u"); // very lightweight heartbeat (one char per frame)
+    // Removed per-frame heartbeat log to prevent console spam and log flooding.
         if(G.mode == Mode::Title) {
             // If touch, check hit against buttons
             if(in.touching) {

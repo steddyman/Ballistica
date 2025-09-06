@@ -211,19 +211,41 @@ C2D_Image hw_image_from(HwSheet sheet, int index) {
 
 void hw_log(const char* msg) {
     if(!msg) return;
-    // Split into lines and append to ring buffer
+    // Split into lines, coalesce immediate repeats, store, and forward to emulator (svcOutputDebugString) + stderr.
     const char* p = msg;
+    static std::string lastLine;
+    static int repeatCount = 0;
+    auto commitRepeat = [&]() {
+        if(repeatCount > 1 && !g_logs.empty()) {
+            g_logs.back() = lastLine + " (x" + std::to_string(repeatCount) + ")";
+            // Also emit one summary line to emulator
+            std::string summary = lastLine + " (x" + std::to_string(repeatCount) + ")\n";
+            svcOutputDebugString(summary.c_str(), (s32)summary.size());
+            fprintf(stderr, "%s", summary.c_str());
+        }
+        repeatCount = 0;
+    };
     while(*p) {
         const char* start = p;
         while(*p && *p!='\n') ++p;
         std::string line(start, p-start);
         if(!line.empty()) {
-            g_logs.push_back(line);
-            if(g_logs.size() > kMaxLogLines) g_logs.erase(g_logs.begin(), g_logs.begin() + (g_logs.size()-kMaxLogLines));
+            if(line == lastLine) {
+                ++repeatCount;
+            } else {
+                commitRepeat();
+                lastLine = line;
+                repeatCount = 1;
+                g_logs.push_back(line);
+                if(g_logs.size() > kMaxLogLines) g_logs.erase(g_logs.begin(), g_logs.begin() + (g_logs.size()-kMaxLogLines));
+                std::string outLine = line + "\n";
+                svcOutputDebugString(outLine.c_str(), (s32)outLine.size());
+                fprintf(stderr, "%s", outLine.c_str());
+            }
         }
-        if(*p=='\n') ++p;
+        if(*p=='\n') ++p; // skip newline
     }
-    svcOutputDebugString(msg, (s32)strlen(msg));
+    // Do not flush repeats yet if message could be continued in next call.
 }
 
 #endif // PLATFORM_3DS
