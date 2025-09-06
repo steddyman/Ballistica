@@ -43,6 +43,7 @@ The hardware‑specific layer lives at `source/platform/{platform}/hardware.cpp`
 ## 2) Graphics pipeline (PCX/INF → citro2d with .t3s/.t3x)
 - The project already contains `gfx/*.t3s` manifests and `gfx/images/*.png`. The Makefile compiles `.t3s → .t3x` and also emits **headers** into the build include path.
 - **Do not parse INF files anymore.** Atlas coordinates and image indices come from the `.t3x` metadata; access them via the **auto‑generated headers** and citro2d.
+- Original graphics code was based on PCX/INF parsing which created binary arrays of each image in sprcode.cpp that was then blitted to screen. This must be replaced with citro2d sprite sheets and the t3x generated includes for sprite indices.
 
 **How to use embedded `.t3x` with headers (current Makefile configuration):**
 - Each `NAME.t3s` generates: 
@@ -181,7 +182,7 @@ hw_shutdown();
 ---
 
 ## 4) Replace legacy sprite access with citro2d images
-- Remove any PCX/INF parsing and sprite rect math in generic code.
+- Remove Original graphics code was based on PCX/INF parsing output which created binary arrays of each image in sprcode.cpp that was then blitted to screen. This must be replaced with citro2d sprite sheets and the t3x generated includes for sprite indices.
 - For each atlas (e.g., `IMAGE.t3s`), include the generated `IMAGE.h` (embedded bytes) and the indices header(s) you created (e.g., `image_indices.h`).
 - Replace any code that referenced `x,y,w,h` with direct `C2D_Image` handles from `C2D_SpriteSheetGetImage(sheet, index)`.
 
