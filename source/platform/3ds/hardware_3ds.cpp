@@ -185,6 +185,8 @@ void hw_poll_input(InputState& out) {
     else { out.stylusX = out.stylusY = -1; }
     out.fireHeld = (kHeld & KEY_DUP) != 0;
     out.startPressed = (kDown & KEY_START) != 0;
+    out.levelPrevPressed = (kDown & KEY_L) != 0;
+    out.levelNextPressed = (kDown & KEY_R) != 0;
 }
 
 void hw_begin_frame() {

@@ -17,14 +17,18 @@
 #include "game.hpp"
 #include "levels.hpp"
 #include "brick.hpp"
+#include "SUPPORT.HPP" // legacy constants BATWIDTH, BATHEIGHT, BALLWIDTH, BALLHEIGHT
 #include <vector>
 
 // Basic game state migrated from legacy structures (incremental port)
 namespace game {
-    struct Ball { float x, y; float vx, vy; bool active; C2D_Image img; };
+    struct Ball { float x, y; float vx, vy; float px, py; bool active; C2D_Image img; };
     struct Laser { float x,y; bool active; };
     struct Bat  { float x, y; float width, height; C2D_Image img; };
     enum class Mode { Title, Playing, Editor };
+
+    struct MovingBrickData { float pos; float dir; float minX; float maxX; };
+    struct Particle { float x,y,vx,vy; int life; uint32_t color; };
 
     struct State {
         Bat bat{};
@@ -43,9 +47,10 @@ namespace game {
     int murderTimer = 0; // murderball active
     int laserCharges = 0; // available shots
     int fireCooldown = 0; // frames until next laser
-    // Moving brick offsets per index (size = 13*11) small oscillation
-    std::vector<float> moveOffset; // current offset x in pixels
-    std::vector<float> moveDir;    // direction (-1/+1)
+    // Moving brick dynamic traversal across contiguous empty span
+    std::vector<MovingBrickData> moving; // per-cell data (pos<0 => unused)
+    // Particles (bomb / generic)
+    std::vector<Particle> particles;
     };
 
     static State G;
@@ -53,8 +58,10 @@ namespace game {
     void init_assets() {
         G.imgBall = hw_image(IMAGE_ball_sprite_idx);
         G.imgBatNormal = hw_image(IMAGE_bat_normal_idx);
-        G.bat = { 160.f - 32.f, 200.f, 64.f, 8.f, G.imgBatNormal };
-        G.balls.push_back({160.f - 4.f, 180.f, 0.0f, -1.5f, true, G.imgBall});
+    float bw = (G.imgBatNormal.subtex) ? G.imgBatNormal.subtex->width : 64.f;
+    float bh = (G.imgBatNormal.subtex) ? G.imgBatNormal.subtex->height : 8.f;
+    G.bat = { 160.f - bw/2.f, 200.f, bw, bh, G.imgBatNormal };
+    G.balls.push_back({160.f - 4.f, 180.f, 0.0f, -1.5f, 160.f - 4.f, 180.f, true, G.imgBall});
     }
 
     void init() {
@@ -64,8 +71,7 @@ namespace game {
     hw_log("assets loaded\n");
     // Initialize moving brick buffers
     int total = levels_grid_width()*levels_grid_height();
-    G.moveOffset.assign(total,0.f);
-    G.moveDir.assign(total,1.f);
+    G.moving.assign(total, { -1.f, 1.f, 0.f, 0.f });
     highscores::init();
     }
 
@@ -85,11 +91,11 @@ namespace game {
     };
     static int seqPos = 0;
     static int seqTimer = 0; // frames
-    static const int kSeqDelayFrames = 180; // ~3s at 60fps
+    static const int kSeqDelayFrames = 300; // ~5s at 60fps
 
     static void spawn_extra_ball(float x,float y, float vx,float vy) {
         if(G.balls.size()>=8) return;
-        G.balls.push_back({x,y,vx,vy,true,G.imgBall});
+        G.balls.push_back(Ball{ x,y,vx,vy,x,y,true,G.imgBall });
     }
 
     static void apply_brick_effect(BrickType bt, float cx, float cy, Ball &ball) {
@@ -132,6 +138,8 @@ namespace game {
 
     static bool is_moving_type(int raw) { return raw==(int)BrickType::SS || raw==(int)BrickType::SF; }
 
+    static void update_moving_bricks(); // fwd
+
     static void handle_ball_bricks(Ball &ball) {
         const int bw=8,bh=8; int cols = levels_grid_width(); int rows=levels_grid_height();
         int ls=levels_left(), ts=levels_top(), cw=levels_brick_width(), ch=levels_brick_height();
@@ -140,16 +148,15 @@ namespace game {
         int maxCol = std::min(cols-1, (int)((ball.x + bw - ls)/cw));
         int minRow = std::max(0, (int)((ball.y - ts)/ch));
         int maxRow = std::min(rows-1, (int)((ball.y + bh - ts)/ch));
+        bool hit = false; // prevent double-hit in same frame
         for(int r=minRow; r<=maxRow; ++r) {
             for(int c=minCol; c<=maxCol; ++c) {
                 int raw = levels_brick_at(c,r);
                 if(raw<=0) continue;
+                if(is_moving_type(raw)) continue; // handle moving bricks separately with dynamic position
                 BrickType bt = (BrickType)raw;
-                // Brick AABB (apply horizontal offset for moving types)
-                int idx = r*cols + c;
-                float off = 0.f;
-                if(is_moving_type(raw) && idx < (int)G.moveOffset.size()) off = G.moveOffset[idx];
-                float bx = ls + c*cw + off;
+                // Brick AABB (use dynamic horizontal position if moving)
+                float bx = ls + c*cw;
                 float by = ts + r*ch;
                 float br = bx + cw;
                 float bb = by + ch;
@@ -164,7 +171,16 @@ namespace game {
                 } else if(bt == BrickType::BO) {
                     std::vector<DestroyedBrick> destroyedList;
                     levels_explode_bomb(c,r,&destroyedList);
-                    for(auto &db : destroyedList) apply_brick_effect((BrickType)db.type, ls + db.col * cw + cw/2, ts + db.row * ch + ch/2, ball);
+                    for(auto &db : destroyedList) {
+                        apply_brick_effect((BrickType)db.type, ls + db.col * cw + cw/2, ts + db.row * ch + ch/2, ball);
+                        // spawn particles
+                        for(int k=0;k<6;k++) {
+                            float angle = (float)k/6.0f * 6.28318f;
+                            float sp = 0.5f + 0.5f*(k%3);
+                            game::Particle p{ (float)(ls + db.col * cw + cw/2), (float)(ts + db.row * ch + ch/2), std::cos(angle)*sp, std::sin(angle)*sp, 30, C2D_Color32(255,200,50,255) };
+                            G.particles.push_back(p);
+                        }
+                    }
                 } else if(bt == BrickType::ID) {
                     destroyed = false; // no removal
                 } else {
@@ -187,7 +203,94 @@ namespace game {
                     levels_set_current(next);
                     hw_log("LEVEL COMPLETE\n");
                 }
-                return; // handle only first brick per frame per ball
+        hit = true;
+        goto after_static;
+            }
+        }
+    after_static:;
+    if(hit) return;
+        // Second pass: moving bricks dynamic collision (first hit only)
+        for(int r=0;r<rows;++r) {
+            for(int c=0;c<cols;++c) {
+                int raw = levels_brick_at(c,r);
+                if(!is_moving_type(raw)) continue;
+                int idx = r*cols + c;
+        if(idx >= (int)G.moving.size() || G.moving[idx].pos < 0.f) continue;
+        float bx = G.moving[idx].pos;
+                float by = ts + r*ch;
+                float br = bx + cw;
+                float bb = by + ch;
+                float ballL = ball.x, ballR = ball.x + bw, ballT = ball.y, ballB = ball.y + bh;
+                if(ballR <= bx || ballL >= br || ballB <= by || ballT >= bb) continue;
+                BrickType bt = (BrickType)raw;
+                float penX = std::min(ballR - bx, br - ballL);
+                float penY = std::min(ballB - by, bb - ballT);
+                bool destroyed = true;
+                if(bt == BrickType::T5) {
+                    destroyed = levels_damage_brick(c,r);
+                } else if(bt == BrickType::BO) {
+                    std::vector<DestroyedBrick> destroyedList; levels_explode_bomb(c,r,&destroyedList);
+                    for(auto &db : destroyedList) {
+                        apply_brick_effect((BrickType)db.type, ls + db.col * cw + cw/2, ts + db.row * ch + ch/2, ball);
+                        for(int k=0;k<6;k++) {
+                            float angle = (float)k/6.0f * 6.28318f;
+                            float sp = 0.5f + 0.5f*(k%3);
+                            game::Particle p{ (float)(ls + db.col * cw + cw/2), (float)(ts + db.row * ch + ch/2), std::cos(angle)*sp, std::sin(angle)*sp, 30, C2D_Color32(255,200,50,255) };
+                            G.particles.push_back(p);
+                        }
+                    }
+                } else if(bt == BrickType::ID) {
+                    destroyed = false;
+                } else {
+                    levels_remove_brick(c,r);
+                }
+                apply_brick_effect(bt, ball.x+4, ball.y+4, ball);
+                if(G.murderTimer<=0) {
+                    if(penX < penY) {
+                        if(ball.x < bx) ball.x -= penX; else ball.x += penX;
+                        ball.vx = -ball.vx;
+                    } else {
+                        if(ball.y < by) ball.y -= penY; else ball.y += penY;
+                        ball.vy = -ball.vy;
+                    }
+                }
+                if(destroyed && levels_remaining_breakable()==0 && levels_count()>0) {
+                    int next = (levels_current()+1) % levels_count();
+                    levels_set_current(next); hw_log("LEVEL COMPLETE\n");
+                }
+                return; // only first moving brick hit
+            }
+        }
+    }
+
+    static void update_moving_bricks() {
+        int cols = levels_grid_width(); int rows = levels_grid_height();
+        int ls = levels_left(); int cw = levels_brick_width();
+        for(int r=0;r<rows;++r) {
+            for(int c=0;c<cols;++c) {
+                int raw = levels_brick_at(c,r);
+                if(!is_moving_type(raw)) continue;
+                int idx = r*cols + c;
+                auto &mb = G.moving[idx];
+                int left=c; while(left-1>=0 && levels_brick_at(left-1,r)==0) --left;
+                int right=c; while(right+1<cols && levels_brick_at(right+1,r)==0) ++right;
+                float newMin = ls + left * cw;
+                float newMax = ls + right * cw;
+                bool hadNoSpan = (mb.minX == mb.maxX);
+                mb.minX = newMin; mb.maxX = newMax;
+                if(mb.pos < 0.f) mb.pos = ls + c*cw;
+                // If we previously had no span (blocked) and now have space, kick movement on
+                if(hadNoSpan && newMin != newMax && mb.dir == 0.f) mb.dir = 1.f;
+                // Clamp position into new bounds before advancing
+                if(mb.pos < mb.minX) mb.pos = mb.minX;
+                if(mb.pos > mb.maxX) mb.pos = mb.maxX;
+                float speed = (raw==(int)BrickType::SS)?0.5f:1.0f;
+                if(mb.dir != 0.f) {
+                    mb.pos += mb.dir*speed;
+                    if(mb.pos < mb.minX) { mb.pos = mb.minX; mb.dir = 1.f; }
+                    else if(mb.pos > mb.maxX) { mb.pos = mb.maxX; mb.dir = -1.f; }
+                }
+                if(mb.minX==mb.maxX) { mb.pos = mb.minX; mb.dir = 0.f; }
             }
         }
     }
@@ -240,6 +343,27 @@ namespace game {
             return;
         }
     if(G.mode == Mode::Editor) { return; }
+        #if defined(DEBUG) && DEBUG
+        // Debug level switching (L previous, R next)
+        if(in.levelPrevPressed || in.levelNextPressed) {
+            int cur = levels_current();
+            int total = levels_count();
+            if(in.levelPrevPressed && cur > 0) cur--;
+            if(in.levelNextPressed && cur < total-1) cur++;
+            if(cur != levels_current()) {
+                levels_set_current(cur);
+                levels_reset_level(cur);
+                // Reset game state (fresh start)
+                G.balls.clear();
+                G.balls.push_back(Ball{160.f - 4.f, 180.f, 0.0f, -1.5f, 160.f - 4.f, 180.f, true, G.imgBall});
+                G.lives = 5; G.score = 0; G.bonusBits=0; G.reverseTimer=G.lightsOffTimer=G.murderTimer=0; G.laserCharges=0; G.fireCooldown=0;
+                // Re-init moving brick arrays for new layout
+                int totalCells = levels_grid_width()*levels_grid_height();
+                G.moving.assign(totalCells, { -1.f, 1.f, 0.f, 0.f });
+                hw_log("DEBUG: level switched\n");
+            }
+        }
+        #endif
         // Stylus controls bat X
         if(in.touching) {
             float sx = static_cast<float>(in.stylusX);
@@ -258,28 +382,22 @@ namespace game {
         if(G.reverseTimer>0) --G.reverseTimer;
         if(G.lightsOffTimer>0) --G.lightsOffTimer;
         if(G.murderTimer>0) --G.murderTimer;
-        // Update moving bricks offsets with neighbor blocking
-        int total = levels_grid_width()*levels_grid_height();
-        for(int i=0;i<total;i++) {
-            int c = i % levels_grid_width(); int r = i / levels_grid_width();
-            int raw = levels_brick_at(c, r);
-            if(raw == (int)BrickType::SS || raw == (int)BrickType::SF) {
-                float speed = (raw == (int)BrickType::SS) ? 0.25f : 0.5f;
-                bool leftFree  = (c>0) && (levels_brick_at(c-1,r)==0);
-                bool rightFree = (c<levels_grid_width()-1) && (levels_brick_at(c+1,r)==0);
-                float baseLimit = (raw == (int)BrickType::SS)?4.f:6.f;
-                float negLimit = leftFree ? -baseLimit : 0.f;
-                float posLimit = rightFree ? baseLimit : 0.f;
-                G.moveOffset[i] += G.moveDir[i]*speed;
-                if(G.moveOffset[i] > posLimit) { G.moveOffset[i]=posLimit; G.moveDir[i] = (negLimit<0?-1.f:0.f); }
-                else if(G.moveOffset[i] < negLimit) { G.moveOffset[i]=negLimit; G.moveDir[i] = (posLimit>0?1.f:0.f); }
-                if(posLimit==0.f && negLimit==0.f) { G.moveOffset[i]=0.f; G.moveDir[i]=0.f; }
-            } else {
-                G.moveOffset[i] = 0.f; if(G.moveDir[i]==0.f) G.moveDir[i]=1.f;
-            }
-        }
+    update_moving_bricks();
+    // Update particles
+    for(auto &p : G.particles) {
+        if(p.life<=0) continue;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.02f; // slight gravity
+        p.life--;
+    }
+    // Compact occasionally
+    if((int)G.particles.size() > 256) {
+        G.particles.erase(std::remove_if(G.particles.begin(), G.particles.end(), [](const Particle& p){return p.life<=0;}), G.particles.end());
+    }
         // Update ball(s)
         for(auto &b : G.balls) if(b.active) {
+            b.px = b.x; b.py = b.y;
             b.x += b.vx; b.y += b.vy;
             // simple wall bounce
             if(b.x < 0) { b.x = 0; b.vx = -b.vx; }
@@ -302,15 +420,42 @@ namespace game {
                         #endif
                         seqPos = 1; seqTimer = 0; // jump to High screen
                     }
-                    G.mode = Mode::Title; G.balls.clear(); G.balls.push_back({160.f - 4.f, 180.f, 0.0f, -1.5f, true, G.imgBall}); G.lives = 5; G.score = 0; G.bonusBits=0; G.reverseTimer=G.lightsOffTimer=G.murderTimer=0; G.laserCharges=0; G.fireCooldown=0;
+                    G.mode = Mode::Title; 
+                    levels_reset_level(levels_current());
+                    G.balls.clear(); G.balls.push_back({160.f - 4.f, 180.f, 0.0f, -1.5f, 160.f - 4.f, 180.f, true, G.imgBall});
+                    G.lives = 5; G.score = 0; G.bonusBits=0; G.reverseTimer=G.lightsOffTimer=G.murderTimer=0; G.laserCharges=0; G.fireCooldown=0;
                     return; }
-                b.x = G.bat.x + G.bat.width/2 - 4; b.y = G.bat.y - 8; b.vx = 0; b.vy = -1.5f; continue;
+                b.x = G.bat.x + G.bat.width/2 - 4; b.y = G.bat.y - 8; b.px=b.x; b.py=b.y; b.vx = 0; b.vy = -1.5f; continue;
             }
-            // bat collision
-            if(b.y + 8 >= G.bat.y && b.y <= G.bat.y + G.bat.height && b.x + 8 >= G.bat.x && b.x <= G.bat.x + G.bat.width && b.vy > 0) {
-                b.y = G.bat.y - 8; b.vy = -b.vy; // reflect
-                float rel = (b.x + 4 - (G.bat.x + G.bat.width/2)) / (G.bat.width/2);
-                b.vx = rel * 2.0f; // vary angle
+            // Bat collision using legacy logical sizes (BATWIDTH/BATHEIGHT, BALLWIDTH/BALLHEIGHT)
+            if(b.vy > 0) {
+                constexpr float ballCollW = (float)BALLWIDTH;   // legacy collision width
+                constexpr float ballCollH = (float)BALLHEIGHT;  // legacy collision height
+                // We render an 8x8 ball; align collision box centered within sprite
+                float ballCenterX = b.x + 4.f; float ballCenterYPrev = b.py + 4.f; float ballCenterY = b.y + 4.f;
+                float ballHalfW = ballCollW * 0.5f; float ballHalfH = ballCollH * 0.5f;
+                float ballBottomPrev = ballCenterYPrev + ballHalfH;
+                float ballBottom = ballCenterY + ballHalfH;
+                // Bat effective rectangle: shrink sprite to legacy BATWIDTH/BATHEIGHT centered
+                float effBatW = (float)BATWIDTH;
+                float effBatH = (float)BATHEIGHT;
+                float batPadX = (G.bat.width  - effBatW) * 0.5f; if(batPadX < 0) batPadX = 0;
+                float batPadY = (G.bat.height - effBatH);        if(batPadY < 0) batPadY = 0; // assume extra space above
+                float batTop = G.bat.y + batPadY; // logical top surface
+                float batLeft = G.bat.x + batPadX;
+                float batRight = batLeft + effBatW;
+                // Detect crossing of the bat top line this frame
+                if(ballBottomPrev <= batTop && ballBottom >= batTop && ballCenterX + ballHalfW > batLeft && ballCenterX - ballHalfW < batRight) {
+                    // Place ball just above logical top using full rendered sprite alignment
+                    float adjust = (ballBottom - batTop);
+                    b.y -= adjust; // shift up so that logical bottom sits on top line
+                    b.vy = -b.vy;
+                    // Angle based on horizontal offset inside effective bat width
+                    float rel = (ballCenterX - (batLeft + effBatW * 0.5f)) / (effBatW * 0.5f);
+                    if(rel < -1.f) rel = -1.f;
+                    if(rel > 1.f) rel = 1.f;
+                    b.vx = rel * 2.0f; // maintain existing speed scale
+                }
             }
             handle_ball_bricks(b);
         }
@@ -347,14 +492,27 @@ namespace game {
             }
             return;
         }
-    // Render static bricks first (will also draw moving, we'll override position for moving types by drawing again)
+    // Render static bricks first then overwrite dynamic moving bricks at their current x
     levels_render();
-    // Draw moving bricks with offset (overwrite at new position). Simple: iterate grid.
     int cols = levels_grid_width(); int rows = levels_grid_height(); int ls=levels_left(); int ts=levels_top(); int cw=levels_brick_width(); int ch=levels_brick_height();
     for(int r=0;r<rows;++r) for(int c=0;c<cols;++c) {
-        int raw = levels_brick_at(c,r); if(raw == (int)BrickType::SS || raw == (int)BrickType::SF) {
-            int idx = r*cols + c; float off = G.moveOffset[idx]; int atlas = levels_atlas_index(raw); if(atlas<0) continue; float x = ls + c*cw + off; float y = ts + r*ch; hw_draw_sprite(hw_image(atlas), x, y);
+        int raw = levels_brick_at(c,r); if(!is_moving_type(raw)) continue; int idx = r*cols + c; int atlas = levels_atlas_index(raw); if(atlas<0) continue; float y = ts + r*ch; // clear original cell to avoid ghost
+        C2D_DrawRectSolid(ls + c*cw, y, 0, cw, ch, C2D_Color32(0,0,0,255));
+        float x = (idx < (int)G.moving.size() && G.moving[idx].pos >= 0.f) ? G.moving[idx].pos : (ls + c*cw);
+        if(idx < (int)G.moving.size()) { if(x < G.moving[idx].minX) x = G.moving[idx].minX; if(x > G.moving[idx].maxX) x = G.moving[idx].maxX; }
+        hw_draw_sprite(hw_image(atlas), x, y);
+        if(raw == (int)BrickType::T5) {
+            int hp = levels_brick_hp(c,r); if(hp>0) {
+                // darker overlay increases with damage (hp ranges 1..5). When hp=5 (full) no overlay; hp=1 heavy overlay.
+                int missing = 5 - hp; int alpha = 30 + missing * 40; if(alpha>180) alpha=180;
+                C2D_DrawRectSolid(x, y, 0, cw, ch, C2D_Color32(255,0,0,(uint8_t)alpha));
+            }
         }
+    }
+    // Simple particles
+    for(auto &p : G.particles) {
+        if(p.life<=0) continue;
+        C2D_DrawRectSolid(p.x, p.y, 0, 2, 2, p.color);
     }
     // HUD overlay
     char hud[128];
@@ -367,10 +525,29 @@ namespace game {
         C2D_DrawRectSolid(0,0,0,320,240, C2D_Color32(0,0,0,140));
     }
     // TODO: overlay HUD (score/lives/bonus) using tiny font logger or future UI layer
-    // Draw bat
+        // Draw bat
         hw_draw_sprite(G.bat.img, G.bat.x, G.bat.y);
-        // Draw balls
-        for(auto &b : G.balls) if(b.active) hw_draw_sprite(b.img, b.x, b.y);
+        #if defined(DEBUG) && DEBUG
+        // Draw logical bat collision rectangle (centered reduced width & height)
+        float effBatW = (float)BATWIDTH;
+        float effBatH = (float)BATHEIGHT;
+        float batPadX = (G.bat.width  - effBatW) * 0.5f; if(batPadX < 0) batPadX = 0;
+        float batPadY = (G.bat.height - effBatH);        if(batPadY < 0) batPadY = 0;
+        float batLeft = G.bat.x + batPadX; float batTop = G.bat.y + batPadY;
+        C2D_DrawRectSolid(batLeft, batTop, 0, effBatW, 1, C2D_Color32(255,0,0,180)); // top line
+        C2D_DrawRectSolid(batLeft, batTop+effBatH-1, 0, effBatW, 1, C2D_Color32(255,0,0,80)); // bottom line
+        C2D_DrawRectSolid(batLeft, batTop, 0, 1, effBatH, C2D_Color32(255,0,0,80)); // left
+        C2D_DrawRectSolid(batLeft+effBatW-1, batTop, 0, 1, effBatH, C2D_Color32(255,0,0,80)); // right
+        // Draw ball logical footprint(s)
+        for(auto &b : G.balls) if(b.active) {
+            float ballCenterX = b.x + 4.f; float ballCenterY = b.y + 4.f;
+            float halfW = BALLWIDTH * 0.5f; float halfH = BALLHEIGHT * 0.5f;
+            float lx = ballCenterX - halfW; float ly = ballCenterY - halfH;
+            C2D_DrawRectSolid(lx, ly, 0, BALLWIDTH, BALLHEIGHT, C2D_Color32(0,255,0,90));
+        }
+        #endif
+    // Draw balls (multi-hit bricks visual tweak: overlay HP number optional later)
+    for(auto &b : G.balls) if(b.active) hw_draw_sprite(b.img, b.x, b.y);
         // Draw lasers
         for(auto &L : G.lasers) if(L.active) C2D_DrawRectSolid(L.x, L.y, 0, 2, 6, C2D_Color32(255,255,100,255));
     }

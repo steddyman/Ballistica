@@ -175,6 +175,8 @@ struct InputState {
 	bool touching = false;
 	bool fireHeld = false; // D-Pad Up
 	bool startPressed = false; // START key (edge)
+	bool levelPrevPressed = false; // L edge (debug)
+	bool levelNextPressed = false; // R edge (debug)
 };
 
 // Initialise graphics (citro2d) and load embedded sprite sheets (.t3x via headers)
