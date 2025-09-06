@@ -7,6 +7,7 @@ The hardware‑specific layer lives at `source/platform/{platform}/hardware.cpp`
 - The game **renders only to the 3DS bottom screen** (320×240). 
 - Controls: **stylus** to move the bat; **D‑Pad Up** to release balls / fire.
 - Art pipeline: `.t3s → .t3x` via `tex3ds`. With the current Makefile, `.t3x` assets are **embedded** into the ELF and expose headers (not loaded from RomFS). PNG sources live in `gfx/images/`. Do **not** rely on RomFS unless explicitly switched on.
+- Original art was 320×200; center or letterbox vertically if needed.
 
 ---
 
