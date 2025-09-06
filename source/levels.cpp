@@ -1,25 +1,36 @@
-// levels.cpp - minimal 3DS level loading & brick layout rendering
+// levels.cpp - 3DS level loading & brick layout rendering (modernized)
 #include <3ds.h>
 #include <citro2d.h>
 #include <vector>
 #include <string>
 #include <cstdio>
+#include <cctype>
 #include <cstring>
+#include <unordered_map>
 #include <sys/stat.h>
 #include "hardware.hpp"
 #include "IMAGE.h"
 
 namespace levels {
-    static const char* kSdDir = "sdmc:/murderball";
-    static const char* kLevelFile = "LEVELS.DAT";
-    static bool g_loaded = false;
-    static int g_maxLevel = 0;
-    static std::vector<uint8_t> g_levelData; // level 1 only for now (NumBricks=143) -> 13*11
+    // Geometry constants (match legacy main.cpp values for layout region)
     static const int BricksX=13;
     static const int BricksY=11;
-    static const int NumBricks = BricksX*BricksY;
+    static const int NumBricks = BricksX*BricksY;    // 143 bricks
     static const int LEFTSTART=28;
     static const int TOPSTART=18;
+
+    static const char* kSdDir = "sdmc:/murderball";
+    static const char* kLevelFile = "LEVELS.DAT";
+
+    struct Level {
+        std::string name;
+        int speed = 0;
+        std::vector<uint8_t> bricks; // size NumBricks, indices into brickMap
+    };
+
+    static bool g_loaded = false;         // successfully parsed any levels
+    static std::vector<Level> g_levels;    // parsed levels
+    static int g_currentLevel = 0;         // index into g_levels
 
     struct BrickDef { int atlasIndex; };
     // Map legacy shorthand index (enum order) to atlas image indices
@@ -62,13 +73,13 @@ namespace levels {
         {IMAGE_sidehard_brick_idx}
     };
 
-    static bool fileExists(const char* path) {
-        struct stat st{}; return stat(path, &st) == 0; }
+    // ---------- File helpers --------------------------------------------------
+    static bool fileExists(const char* path) { struct stat st{}; return stat(path, &st)==0; }
 
     static void ensureOnSdmc() {
         mkdir(kSdDir, 0777); // ignore errors
         char sdPath[256]; snprintf(sdPath, sizeof(sdPath), "%s/%s", kSdDir, kLevelFile);
-        // if(fileExists(sdPath)) return; // already copied
+        if(fileExists(sdPath)) return; // already present
         FILE* in = fopen("romfs:/LEVELS.DAT", "rb");
         if(!in) { hw_log("no romfs LEVELS.DAT\n"); return; }
         FILE* out = fopen(sdPath, "wb");
@@ -77,68 +88,96 @@ namespace levels {
         fclose(in); fclose(out); hw_log("copied LEVELS.DAT -> sdmc\n");
     }
 
-    // Create a simple built-in default pattern (only used if no file present anywhere).
-    static void buildFallbackLevel() {
-        g_levelData.assign(NumBricks, 0);
-        // Color rows: Y,G,C,T,P,R repeating (indices 1..6 in our simplified brickMap)
-        for(int row=0; row<BricksY; ++row) {
-            int colorIdx = 1 + (row % 6); // cycle through first 6 colored bricks
-            for(int col=0; col<BricksX; ++col) {
-                int i = row * BricksX + col;
-                g_levelData[i] = (uint8_t)colorIdx;
-            }
+    // ---------- Legacy shorthand mapping (2-char codes) ----------------------
+    // Order must match brickMap order.
+    static const char* kBrickCodes[] = {
+        "NB","YB","GB","CB","TB","PB","RB","LB","SB","FB","F1","F2","B1","B2","B3","B4","B5","BS","BB","ID","RW","RE","IS","IF","AB","FO","LA","MB","BA","T5","BO","OF","ON","SS","SF"
+    };
+    static std::unordered_map<std::string,int> buildCodeMap() {
+        std::unordered_map<std::string,int> m; m.reserve(sizeof(kBrickCodes)/sizeof(kBrickCodes[0]));
+        for(size_t i=0;i<sizeof(kBrickCodes)/sizeof(kBrickCodes[0]);++i) m[kBrickCodes[i]] = (int)i;
+        return m;
+    }
+    static const std::unordered_map<std::string,int> kCodeToIndex = buildCodeMap();
+
+    // ---------- Fallback -----------------------------------------------------
+    static void buildFallback() {
+        Level L; L.name = "Fallback"; L.speed = 10; L.bricks.assign(NumBricks,0);
+        for(int r=0;r<BricksY;++r) {
+            int base = 1 + (r % 6); // cycle simple colored bricks
+            for(int c=0;c<BricksX;++c) L.bricks[r*BricksX+c] = (uint8_t)base;
         }
-        g_loaded = true; g_maxLevel = 1; hw_log("fallback level generated\n");
+        g_levels.push_back(L);
+        g_loaded = true;
+        hw_log("fallback level generated\n");
     }
 
-    static void parseLevel1(FILE* f) {
-        // crude parser: seek SPEED/NAME then read 143 tokens of brick shorthand (2+ chars)
-        g_levelData.assign(NumBricks, 0);
-        char word[32]; int bricksRead=0;
-        while(fscanf(f, "%31s", word)==1) {
-            if(strcmp(word, "LEVEL")==0) { int lv; fscanf(f, "%d", &lv); if(lv==1) { bricksRead=0; } }
-            else if(strcmp(word, "SPEED")==0) { int sp; fscanf(f, "%d", &sp); }
-            else if(strcmp(word, "NAME")==0) { fgets(word, sizeof word, f); }
-            else if(isalpha((unsigned char)word[0])) {
-                // treat as brick shorthand
-                if(bricksRead < NumBricks) {
-                    // map shorthand by first letter group (simplified)
-                    int idx=0;
-                    // Very naive mapping: single letters to known brick indices (expand later)
-                    switch(word[0]) {
-                        case 'Y': idx=1; break; // yellow
-                        case 'G': idx=2; break; // green
-                        case 'C': idx=3; break; // cyan
-                        case 'T': idx=4; break; // tan
-                        case 'P': idx=5; break; // purple
-                        case 'R': idx=6; break; // red
-                        case 'L': idx=7; break; // life or laser (ambiguous)
-                        case 'S': idx=8; break; // slow
-                        case 'F': idx=9; break; // fast / fivehit / forward (ambiguous)
-                        case 'B': idx=12; break; // B letter
+    // ---------- Parser -------------------------------------------------------
+    static void parseAll(FILE* f) {
+        g_levels.clear();
+        char token[64];
+        Level cur; bool inLevel=false; int bricks=0; int lineBricks=0;
+        while(fscanf(f, "%63s", token)==1) {
+            if(strcmp(token,"LEVEL")==0) {
+                // starting a new level: commit previous if valid
+                int lvNum=0; if(fscanf(f, "%d", &lvNum)!=1) { hw_log("LEVEL missing number\n"); break; }
+                if(inLevel) {
+                    if((int)cur.bricks.size()==NumBricks) g_levels.push_back(cur);
+                }
+                cur = Level(); bricks=0; lineBricks=0; inLevel=true; // reset
+            } else if(strcmp(token,"SPEED")==0) {
+                int sp=0; fscanf(f, "%d", &sp); cur.speed=sp;
+            } else if(strcmp(token,"NAME")==0) {
+                // read rest of line up to newline
+                int ch; std::string name; while((ch=fgetc(f))!='\n' && ch!=EOF) { if(ch=='\r') continue; name.push_back((char)ch); }
+                // trim leading spaces
+                size_t pos=0; while(pos<name.size() && std::isspace((unsigned char)name[pos])) ++pos; cur.name = name.substr(pos);
+            } else {
+                // brick code or unknown
+                if(strlen(token)==2 && std::isupper((unsigned char)token[0]) && std::isupper((unsigned char)token[1])) {
+                    auto it = kCodeToIndex.find(token);
+                    int idx = (it!=kCodeToIndex.end()) ? it->second : 0;
+                    if(bricks < NumBricks) {
+                        if(cur.bricks.empty()) cur.bricks.reserve(NumBricks);
+                        cur.bricks.push_back((uint8_t)idx); ++bricks; ++lineBricks;
+                        if(bricks==NumBricks) {
+                            if(cur.name.empty()) {
+                                cur.name = "Level";
+                            }
+                            if(cur.speed==0) {
+                                cur.speed = 10;
+                            }
+                        }
                     }
-                    g_levelData[bricksRead++] = (uint8_t)idx;
-                    if(bricksRead==NumBricks) break;
+                } else {
+                    // ignore unknown token; could log once
                 }
             }
         }
-        g_loaded = true; g_maxLevel = 1; hw_log("parsed level1\n");
+        if(inLevel && (int)cur.bricks.size()==NumBricks) g_levels.push_back(cur);
+        if(!g_levels.empty()) {
+            g_loaded = true;
+            char buf[64]; snprintf(buf,sizeof buf,"levels parsed:%d\n", (int)g_levels.size()); hw_log(buf);
+        }
     }
 
+    // ---------- Public-ish internal operations -------------------------------
     void load() {
         if(g_loaded) return;
         ensureOnSdmc();
         char sdPath[256]; snprintf(sdPath, sizeof(sdPath), "%s/%s", kSdDir, kLevelFile);
         FILE* f = fopen(sdPath, "rb");
-    if(!f) { hw_log("open sd LEVELS fail\n"); buildFallbackLevel(); return; }
-        parseLevel1(f);
-        fclose(f);
+        if(!f) { hw_log("open sd LEVELS fail\n"); buildFallback(); return; }
+        parseAll(f); fclose(f);
+        if(!g_loaded) buildFallback();
     }
 
     void renderBricks() {
-        if(!g_loaded) return;
+        if(!g_loaded || g_levels.empty()) return;
+        const Level& L = g_levels[g_currentLevel];
+        if(L.bricks.size()!=NumBricks) return;
         for(int i=0;i<NumBricks;i++) {
-            uint8_t v = g_levelData[i]; if(v==0) continue; if(v >= (int)(sizeof(brickMap)/sizeof(brickMap[0]))) continue;
+            uint8_t v = L.bricks[i]; if(v==0) continue; if(v >= (int)(sizeof(brickMap)/sizeof(brickMap[0]))) continue;
             int col = i % BricksX; int row = i / BricksX;
             float x = LEFTSTART + col * 16; float y = TOPSTART + row * 9;
             int atlasIndex = brickMap[v].atlasIndex; if(atlasIndex<0) continue;
