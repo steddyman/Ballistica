@@ -21,6 +21,8 @@
 #include "INSTRUCT.h"
 #include "DESIGNER_t3x.h"
 #include "DESIGNER.h"
+#include "HIGH_t3x.h"
+#include "HIGH.h"
 
 #include "sprite_indexes/image_indices.h"
 
@@ -32,6 +34,7 @@ namespace {
     C2D_SpriteSheet g_sheetTitle = nullptr;
     C2D_SpriteSheet g_sheetInstruct = nullptr;
     C2D_SpriteSheet g_sheetDesigner = nullptr; // placeholder for future
+    C2D_SpriteSheet g_sheetHigh = nullptr;
     // Tiny log ring buffer
     std::vector<std::string> g_logs;
     const size_t kMaxLogLines = 64;
@@ -118,6 +121,19 @@ namespace {
             if(y > 240-lineH) break;
         }
     }
+
+    void drawGlyphString(int x,int y,const char* s, uint32_t rgba) {
+        uint8_t r=(rgba>>24)&0xFF,g=(rgba>>16)&0xFF,b=(rgba>>8)&0xFF,a=rgba&0xFF;
+        for(const char* p=s; *p; ++p) {
+            const Glyph* gptr = findGlyph(*p);
+            for(int ry=0; ry<6; ++ry) {
+                uint8_t row = gptr->rows[ry];
+                for(int rx=0; rx<5; ++rx) if(row & (1 << (4-rx)))
+                    C2D_DrawRectSolid(x+rx, y+ry, 0, 1,1, C2D_Color32(r,g,b,a));
+            }
+            x += 6; if(x > 320-6) break; // bottom width 320
+        }
+    }
 }
 
 bool hw_init() {
@@ -135,17 +151,20 @@ bool hw_init() {
     g_sheetTitle = C2D_SpriteSheetLoadFromMem(TITLE_t3x, TITLE_t3x_size);
     g_sheetInstruct = C2D_SpriteSheetLoadFromMem(INSTRUCT_t3x, INSTRUCT_t3x_size);
     g_sheetDesigner = C2D_SpriteSheetLoadFromMem(DESIGNER_t3x, DESIGNER_t3x_size);
+    g_sheetHigh = C2D_SpriteSheetLoadFromMem(HIGH_t3x, HIGH_t3x_size);
     if(!g_sheetImage) hw_log("Failed IMAGE\n"); else hw_log("Loaded IMAGE\n");
     if(!g_sheetBreak) hw_log("Failed BREAK\n");
     if(!g_sheetTitle) hw_log("Failed TITLE\n");
     if(!g_sheetInstruct) hw_log("Failed INSTRUCT\n");
     if(!g_sheetDesigner) hw_log("Failed DESIGNER\n");
+    if(!g_sheetHigh) hw_log("Failed HIGH\n");
     return g_sheetImage != nullptr;
 }
 
 void hw_shutdown() {
     romfsExit();
     if(g_sheetDesigner) { C2D_SpriteSheetFree(g_sheetDesigner); g_sheetDesigner=nullptr; }
+    if(g_sheetHigh) { C2D_SpriteSheetFree(g_sheetHigh); g_sheetHigh=nullptr; }
     if(g_sheetInstruct) { C2D_SpriteSheetFree(g_sheetInstruct); g_sheetInstruct=nullptr; }
     if(g_sheetTitle) { C2D_SpriteSheetFree(g_sheetTitle); g_sheetTitle=nullptr; }
     if(g_sheetBreak) { C2D_SpriteSheetFree(g_sheetBreak); g_sheetBreak=nullptr; }
@@ -180,6 +199,8 @@ void hw_draw_sprite(C2D_Image img, float x, float y, float z, float sx, float sy
     C2D_DrawImageAt(img, x, y, z, nullptr, sx, sy);
 }
 
+void hw_draw_text(int x,int y,const char* text, uint32_t rgba) { drawGlyphString(x,y,text,rgba); }
+
 C2D_Image hw_image(int index) {
     if(!g_sheetImage) return C2D_Image{};
     return C2D_SpriteSheetGetImage(g_sheetImage, index);
@@ -190,6 +211,7 @@ bool hw_sheet_loaded(HwSheet sheet) {
         case HwSheet::Image: return g_sheetImage;
         case HwSheet::Break: return g_sheetBreak;
         case HwSheet::Title: return g_sheetTitle;
+    case HwSheet::High: return g_sheetHigh;
         case HwSheet::Instruct: return g_sheetInstruct;
         case HwSheet::Designer: return g_sheetDesigner; // currently null
     }
@@ -202,6 +224,7 @@ C2D_Image hw_image_from(HwSheet sheet, int index) {
         case HwSheet::Image: s = g_sheetImage; break;
         case HwSheet::Break: s = g_sheetBreak; break;
         case HwSheet::Title: s = g_sheetTitle; break;
+    case HwSheet::High: s = g_sheetHigh; break;
         case HwSheet::Instruct: s = g_sheetInstruct; break;
         case HwSheet::Designer: s = g_sheetDesigner; break;
     }

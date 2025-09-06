@@ -1,5 +1,6 @@
-main.o: /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/main.cpp \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/support.hpp \
+highscores.o: \
+ /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/highscores.cpp \
+ /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/highscores.hpp \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/hardware.hpp \
  /opt/devkitpro/libctru/include/citro2d.h \
  /opt/devkitpro/libctru/include/citro3d.h \
@@ -111,7 +112,7 @@ main.o: /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/main.cpp \
  /opt/devkitpro/libctru/include/c2d/sprite.h \
  /opt/devkitpro/libctru/include/c2d/text.h \
  /opt/devkitpro/libctru/include/c2d/font.h
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/support.hpp:
+/Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/highscores.hpp:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/hardware.hpp:
 /opt/devkitpro/libctru/include/citro2d.h:
 /opt/devkitpro/libctru/include/citro3d.h:

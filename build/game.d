@@ -1,5 +1,4 @@
 game.o: /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/game.cpp \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/hardware.hpp \
  /opt/devkitpro/libctru/include/citro2d.h \
  /opt/devkitpro/libctru/include/citro3d.h \
  /opt/devkitpro/libctru/include/c3d/types.h \
@@ -110,6 +109,7 @@ game.o: /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/game.cpp \
  /opt/devkitpro/libctru/include/c2d/sprite.h \
  /opt/devkitpro/libctru/include/c2d/text.h \
  /opt/devkitpro/libctru/include/c2d/font.h \
+ /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/hardware.hpp \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/IMAGE.h \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/IMAGE_t3x.h \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/sprite_indexes/image_indices.h \
@@ -117,8 +117,11 @@ game.o: /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/game.cpp \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/BREAK.h \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/INSTRUCT.h \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/DESIGNER.h \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/game.hpp
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/hardware.hpp:
+ /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/HIGH.h \
+ /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/highscores.hpp \
+ /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/game.hpp \
+ /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/levels.hpp \
+ /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/brick.hpp
 /opt/devkitpro/libctru/include/citro2d.h:
 /opt/devkitpro/libctru/include/citro3d.h:
 /opt/devkitpro/libctru/include/c3d/types.h:
@@ -229,6 +232,7 @@ game.o: /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/game.cpp \
 /opt/devkitpro/libctru/include/c2d/sprite.h:
 /opt/devkitpro/libctru/include/c2d/text.h:
 /opt/devkitpro/libctru/include/c2d/font.h:
+/Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/hardware.hpp:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/IMAGE.h:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/IMAGE_t3x.h:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/sprite_indexes/image_indices.h:
@@ -236,4 +240,8 @@ game.o: /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/game.cpp \
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/BREAK.h:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/INSTRUCT.h:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/DESIGNER.h:
+/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/HIGH.h:
+/Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/highscores.hpp:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/game.hpp:
+/Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/levels.hpp:
+/Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/brick.hpp:

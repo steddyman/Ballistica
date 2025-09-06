@@ -10,6 +10,8 @@
 #include <sys/stat.h>
 #include "hardware.hpp"
 #include "IMAGE.h"
+#include "brick.hpp"
+#include "levels.hpp"
 
 namespace levels {
     // Geometry constants (match legacy main.cpp values for layout region)
@@ -26,6 +28,7 @@ namespace levels {
         std::string name;
         int speed = 0;
         std::vector<uint8_t> bricks; // size NumBricks, indices into brickMap
+    std::vector<uint8_t> hp;     // per-brick hit points (only used for multi-hit like T5)
     };
 
     static bool g_loaded = false;         // successfully parsed any levels
@@ -107,6 +110,7 @@ namespace levels {
             int base = 1 + (r % 6); // cycle simple colored bricks
             for(int c=0;c<BricksX;++c) L.bricks[r*BricksX+c] = (uint8_t)base;
         }
+    L.hp.assign(NumBricks,1);
         g_levels.push_back(L);
         g_loaded = true;
         hw_log("fallback level generated\n");
@@ -140,6 +144,11 @@ namespace levels {
                     if(bricks < NumBricks) {
                         if(cur.bricks.empty()) cur.bricks.reserve(NumBricks);
                         cur.bricks.push_back((uint8_t)idx); ++bricks; ++lineBricks;
+                        if(cur.hp.empty()) cur.hp.reserve(NumBricks);
+                        // assign hp: default 1, T5 gets 5 hits
+                        uint8_t hpv = 1;
+                        if(idx == (int)BrickType::T5) hpv = 5; else if(idx == (int)BrickType::NB) hpv = 0; else if(idx == (int)BrickType::ID) hpv = 0;
+                        cur.hp.push_back(hpv);
                         if(bricks==NumBricks) {
                             if(cur.name.empty()) {
                                 cur.name = "Level";
@@ -181,6 +190,7 @@ namespace levels {
             int col = i % BricksX; int row = i / BricksX;
             float x = LEFTSTART + col * 16; float y = TOPSTART + row * 9;
             int atlasIndex = brickMap[v].atlasIndex; if(atlasIndex<0) continue;
+            // For multi-hit bricks we could choose alternate visual based on HP later.
             hw_draw_sprite(hw_image(atlasIndex), x, y);
         }
     }
@@ -189,3 +199,120 @@ namespace levels {
 // Public simple C interface used by game.cpp
 void levels_load() { levels::load(); }
 void levels_render() { levels::renderBricks(); }
+int levels_count() { return (int)levels::g_levels.size(); }
+int levels_current() { return levels::g_currentLevel; }
+bool levels_set_current(int idx) { if(idx>=0 && idx < (int)levels::g_levels.size()) { levels::g_currentLevel = idx; return true; } return false; }
+int levels_grid_width() { return 13; }
+int levels_grid_height() { return 11; }
+int levels_left() { return 28; }
+int levels_top() { return 18; }
+int levels_brick_width() { return 16; }
+int levels_brick_height() { return 9; }
+int levels_brick_at(int c,int r) {
+    if(levels::g_levels.empty()) return -1;
+    if(c<0||c>=13||r<0||r>=11) return -1;
+    const auto &L = levels::g_levels[levels::g_currentLevel];
+    int idx=r*13+c;
+    if(idx >= (int)L.bricks.size()) return -1;
+    return (int)L.bricks[idx];
+}
+
+void levels_remove_brick(int c,int r) {
+    if(levels::g_levels.empty()) return;
+    if(c<0||c>=13||r<0||r>=11) return;
+    auto &L = levels::g_levels[levels::g_currentLevel];
+    int idx=r*13+c;
+    if(idx >= (int)L.bricks.size()) return;
+    L.bricks[idx]=0;
+    if(L.hp.size()==L.bricks.size()) L.hp[idx]=0;
+}
+
+int levels_remaining_breakable() {
+    if(levels::g_levels.empty()) return 0;
+    const auto &L = levels::g_levels[levels::g_currentLevel];
+    int cnt=0;
+    for(auto b: L.bricks) {
+        if(b && b!=(int)BrickType::ID && b!=(int)BrickType::OF && b!=(int)BrickType::ON) ++cnt;
+    }
+    return cnt;
+}
+
+bool levels_damage_brick(int c,int r) {
+    if(levels::g_levels.empty()) return false;
+    if(c<0||c>=13||r<0||r>=11) return false;
+    auto &L = levels::g_levels[levels::g_currentLevel];
+    int idx=r*13+c;
+    if(idx >= (int)L.bricks.size()) return false;
+    int type = L.bricks[idx];
+    if(!type) return false;
+    if(type == (int)BrickType::ID) return false;
+    if(L.hp.size()!=L.bricks.size()) {
+        L.hp.assign(L.bricks.size(),1);
+        for(size_t i=0;i<L.bricks.size();++i) {
+            if(L.bricks[i]==(int)BrickType::T5) L.hp[i]=5;
+            else if(L.bricks[i]==0 || L.bricks[i]==(int)BrickType::ID) L.hp[i]=0;
+        }
+    }
+    if(L.hp[idx] > 1) {
+        L.hp[idx]--;
+        if(L.hp[idx]==0) { L.bricks[idx]=0; return true; }
+        return false;
+    }
+    L.bricks[idx]=0;
+    L.hp[idx]=0;
+    return true;
+}
+
+int levels_brick_hp(int c,int r) {
+    if(levels::g_levels.empty()) return 0;
+    if(c<0||c>=13||r<0||r>=11) return 0;
+    auto &L = levels::g_levels[levels::g_currentLevel];
+    int idx=r*13+c;
+    if(idx >= (int)L.bricks.size()) return 0;
+    if(L.hp.size()!=L.bricks.size()) {
+        return (L.bricks[idx]==(int)BrickType::T5)?5: (L.bricks[idx]==0||L.bricks[idx]==(int)BrickType::ID?0:1);
+    }
+    return L.hp[idx];
+}
+
+int levels_explode_bomb(int c,int r, std::vector<DestroyedBrick>* outDestroyed) {
+    if(levels::g_levels.empty()) return 0;
+    if(c<0||c>=13||r<0||r>=11) return 0;
+    auto &L = levels::g_levels[levels::g_currentLevel];
+    int idx=r*13+c;
+    if(idx >= (int)L.bricks.size()) return 0;
+    int type = L.bricks[idx];
+    if(type != (int)BrickType::BO) return 0;
+    int destroyed = 0;
+    std::vector<std::pair<int,int>> stack;
+    stack.push_back(std::make_pair(c,r));
+    while(!stack.empty()) {
+        std::pair<int,int> pr = stack.back();
+        stack.pop_back();
+        int cc = pr.first; int rr = pr.second;
+        if(cc<0||cc>=13||rr<0||rr>=11) continue;
+        int i = rr*13+cc;
+        if(i >= (int)L.bricks.size()) continue;
+        int t = L.bricks[i];
+        if(!t) continue;
+        bool isBomb = (t == (int)BrickType::BO);
+        if(outDestroyed) outDestroyed->push_back({cc,rr,t});
+        L.bricks[i]=0;
+        if(L.hp.size()==L.bricks.size()) L.hp[i]=0;
+        ++destroyed;
+        if(isBomb) {
+            for(int dy=-1; dy<=1; ++dy) {
+                for(int dx=-1; dx<=1; ++dx) {
+                    if(dx||dy) stack.push_back(std::make_pair(cc+dx, rr+dy));
+                }
+            }
+        }
+    }
+    return destroyed;
+}
+
+int levels_atlas_index(int rawType) {
+    if(rawType <=0) return -1;
+    if(rawType >= (int)(sizeof(levels::brickMap)/sizeof(levels::brickMap[0]))) return -1;
+    return levels::brickMap[rawType].atlasIndex;
+}
