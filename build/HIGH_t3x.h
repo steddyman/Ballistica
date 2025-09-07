@@ -6,7 +6,7 @@
 extern const uint8_t HIGH_t3x[];
 extern const uint8_t HIGH_t3x_end[];
 #if __cplusplus >= 201103L
-static constexpr size_t HIGH_t3x_size=36081;
+static constexpr size_t HIGH_t3x_size=92561;
 #else
-static const size_t HIGH_t3x_size=36081;
+static const size_t HIGH_t3x_size=92561;
 #endif
