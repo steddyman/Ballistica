@@ -6,7 +6,7 @@
 extern const uint8_t INSTRUCT_t3x[];
 extern const uint8_t INSTRUCT_t3x_end[];
 #if __cplusplus >= 201103L
-static constexpr size_t INSTRUCT_t3x_size=38013;
+static constexpr size_t INSTRUCT_t3x_size=204013;
 #else
-static const size_t INSTRUCT_t3x_size=38013;
+static const size_t INSTRUCT_t3x_size=204013;
 #endif

@@ -176,6 +176,9 @@ struct InputState {
 	bool fireHeld = false; // D-Pad Up
 	bool startPressed = false; // START key (edge)
 	bool selectPressed = false; // SELECT key (edge)
+	bool aPressed = false; // A key (edge)
+	bool bPressed = false; // B key (edge)
+	bool xPressed = false; // X key (edge)
 	bool levelPrevPressed = false; // L edge (debug)
 	bool levelNextPressed = false; // R edge (debug)
 };
@@ -207,6 +210,13 @@ C2D_Image hw_image_from(HwSheet sheet, int index); // returns empty image if mis
 
 // Minimal 5x6 debug font rendering on bottom screen for HUD
 void hw_draw_text(int x,int y,const char* text, uint32_t rgba = 0xC8C8C8FF);
+
+// Draw recent log lines into current target starting at (x,y); maxPixelsY caps height (optional).
+void hw_draw_logs(int x,int y,int maxPixelsY=240);
+
+// Switch current drawing target (top or bottom screen)
+void hw_set_top();
+void hw_set_bottom();
 
 #endif // PLATFORM_3DS
 

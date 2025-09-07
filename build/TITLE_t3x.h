@@ -6,7 +6,7 @@
 extern const uint8_t TITLE_t3x[];
 extern const uint8_t TITLE_t3x_end[];
 #if __cplusplus >= 201103L
-static constexpr size_t TITLE_t3x_size=26325;
+static constexpr size_t TITLE_t3x_size=140505;
 #else
-static const size_t TITLE_t3x_size=26325;
+static const size_t TITLE_t3x_size=140505;
 #endif

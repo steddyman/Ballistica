@@ -56,6 +56,8 @@ namespace game {
     };
 
     static State G;
+    static bool g_exitRequested = false;
+    bool exit_requested_internal() { return g_exitRequested; }
 
     void init_assets() {
         G.imgBall = hw_image(IMAGE_ball_sprite_idx);
@@ -346,22 +348,16 @@ namespace game {
 
     void update(const InputState& in) {
         if(G.mode == Mode::Title) {
-            // If touch, check hit against buttons
+            // Physical button mappings: START=Play, SELECT=Editor, X=Exit
+            if(in.startPressed) { G.mode = Mode::Playing; hw_log("start (START)\n"); return; }
+            if(in.selectPressed) { G.mode = Mode::Editor; hw_log("editor (SELECT)\n"); return; }
+            if(in.xPressed) { g_exitRequested = true; hw_log("exit (X)\n"); return; }
+            // Touch buttons: we emulate three horizontal bars; map to actions by y band
             if(in.touching) {
-                for(auto &b : kTitleButtons) {
-                    if(in.stylusX >= b.x && in.stylusX < b.x + b.w &&
-                       in.stylusY >= b.y && in.stylusY < b.y + b.h) {
-                        G.mode = b.next;
-                        hw_log(b.next==Mode::Playing?"start\n":"editor\n");
-                        return;
-                    }
-                }
-            }
-            // Press START on any rotating title/high/instruction screen to begin immediately
-            if(in.startPressed) {
-                G.mode = Mode::Playing;
-                hw_log("start (START key)\n");
-                return;
+                int y = in.stylusY;
+                if(y>=60 && y<80) { G.mode = Mode::Playing; hw_log("start (touch)\n"); return; }
+                if(y>=100 && y<120) { G.mode = Mode::Editor; hw_log("editor (touch)\n"); return; }
+                if(y>=140 && y<160) { g_exitRequested = true; hw_log("exit (touch)\n"); return; }
             }
             // Cycle sequence if user idle
             if(++seqTimer > kSeqDelayFrames) { seqTimer = 0; seqPos = (seqPos + 1) % (int)(sizeof(kSequence)/sizeof(kSequence[0])); }
@@ -599,3 +595,5 @@ namespace game {
 void game_init() { game::init(); }
 void game_update(const InputState& in) { game::update(in); }
 void game_render() { game::render(); }
+GameMode game_mode() { using namespace game; switch(G.mode){case game::Mode::Title: return GameMode::Title; case game::Mode::Playing: return GameMode::Playing; case game::Mode::Editor: return GameMode::Editor;} return GameMode::Title; }
+bool exit_requested() { return game::exit_requested_internal(); }
