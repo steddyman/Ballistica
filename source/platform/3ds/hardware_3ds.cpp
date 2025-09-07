@@ -93,34 +93,6 @@ namespace {
         return &kGlyphs[sizeof(kGlyphs)/sizeof(kGlyphs[0]) - 1]; // space fallback
     }
 
-    void drawLogs() {
-        if(!g_top) return;
-        C2D_SceneBegin(g_top);
-        C2D_TargetClear(g_top, C2D_Color32(0,0,0,255));
-        const int lineH=7; // 6px +1 spacing
-        int maxLines = 240 / lineH; // top screen height 240
-        int start = (int)g_logs.size() - maxLines;
-        if(start < 0) start = 0;
-        int y=0;
-        for(size_t i=start;i<g_logs.size();++i) {
-            int x=0;
-            for(char c : g_logs[i]) {
-                const Glyph* g = findGlyph(c);
-                for(int ry=0; ry<6; ++ry) {
-                    uint8_t row = g->rows[ry];
-                    for(int rx=0; rx<5; ++rx) {
-                        if(row & (1 << (4-rx))) {
-                            C2D_DrawRectSolid(x+rx, y+ry, 0, 1,1, C2D_Color32(200,200,200,255));
-                        }
-                    }
-                }
-                x += 6; // 5px +1 space
-                if(x > 400-6) break; // top screen width 400
-            }
-            y += lineH;
-            if(y > 240-lineH) break;
-        }
-    }
 
     void drawGlyphString(int x,int y,const char* s, uint32_t rgba) {
         uint8_t r=(rgba>>24)&0xFF,g=(rgba>>16)&0xFF,b=(rgba>>8)&0xFF,a=rgba&0xFF;
@@ -186,15 +158,18 @@ void hw_poll_input(InputState& out) {
     out.fireHeld = (kHeld & KEY_DUP) != 0;
     out.startPressed = (kDown & KEY_START) != 0;
     out.selectPressed = (kDown & KEY_SELECT) != 0;
+    out.aPressed = (kDown & KEY_A) != 0;
+    out.bPressed = (kDown & KEY_B) != 0;
+    out.xPressed = (kDown & KEY_X) != 0;
     out.levelPrevPressed = (kDown & KEY_L) != 0;
     out.levelNextPressed = (kDown & KEY_R) != 0;
 }
 
 void hw_begin_frame() {
     C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
-    drawLogs(); // render top logs first
+    // We'll leave clearing/drawing order to higher level now.
+    C2D_TargetClear(g_top, C2D_Color32(0,0,0,255));
     C2D_TargetClear(g_bottom, C2D_Color32(0,0,0,255));
-    C2D_SceneBegin(g_bottom);
 }
 void hw_end_frame() { C3D_FrameEnd(0); }
 
@@ -203,6 +178,31 @@ void hw_draw_sprite(C2D_Image img, float x, float y, float z, float sx, float sy
 }
 
 void hw_draw_text(int x,int y,const char* text, uint32_t rgba) { drawGlyphString(x,y,text,rgba); }
+
+void hw_draw_logs(int x,int y,int maxPixelsY) {
+    // Render logs onto whichever target is current (caller sets scene)
+    const int lineH=7; int maxLines = maxPixelsY / lineH; if(maxLines<=0) return;
+    int start = (int)g_logs.size() - maxLines; if(start<0) start=0; int yy=y;
+    for(size_t i=start;i<g_logs.size();++i) {
+        int xx=x;
+        for(char c : g_logs[i]) {
+            const Glyph* g = findGlyph(c);
+            for(int ry=0; ry<6; ++ry) {
+                uint8_t row = g->rows[ry];
+                for(int rx=0; rx<5; ++rx) if(row & (1<<(4-rx))) C2D_DrawRectSolid(xx+rx, yy+ry, 0,1,1,C2D_Color32(180,180,180,255));
+            }
+            xx += 6; if(xx > 320-6) break;
+        }
+        yy += lineH; if(yy + lineH > y + maxPixelsY) break;
+    }
+}
+
+void hw_set_top() {
+    if(g_top) C2D_SceneBegin(g_top);
+}
+void hw_set_bottom() {
+    if(g_bottom) C2D_SceneBegin(g_bottom);
+}
 
 C2D_Image hw_image(int index) {
     if(!g_sheetImage) return C2D_Image{};
