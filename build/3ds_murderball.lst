@@ -913,334 +913,334 @@
 00139a7c R DESIGNER_t3x
 0013b6b9 R DESIGNER_t3x_end
 0013b6bc R HIGH_t3x
-001443ad R HIGH_t3x_end
-001443b0 R IMAGE_t3x
-001462fd R IMAGE_t3x_end
-00146300 R INSTRUCT_t3x
-00177fed R INSTRUCT_t3x_end
-00177ff0 R TITLE_t3x
-0019a4c9 R TITLE_t3x_end
-0019ae34 r .LC2
-0019af00 00000008 r s_defaultTint.0
-0019af08 R render2d_shbin
-0019b094 R render2d_shbin_end
-0019b094 R render2d_shbin_size
-0019b098 00000004 r depthFmtSizes
-0019b09c 00000005 r colorFmtSizes
-0019b0a4 00000010 r CSWTCH.11
-0019b0b4 00000038 r CSWTCH.19
-0019b0ec 00000080 r romFS_devoptab
-0019b194 00000008 r morton_y.2
-0019b19c 00000008 r morton_x.3
-0019b1a4 00000008 r s_sleepWakeEvents.4
-0019b1ac 0000000c r serviceNameTable.5
-0019b1dc 00000030 r error_table
-0019b20c 00000080 r archive_devoptab
-0019b28c 00000027 V typeinfo name for __gnu_cxx::__concurrence_lock_error
-0019b2b4 0000000c V typeinfo for __gnu_cxx::__concurrence_lock_error
-0019b2c0 00000029 V typeinfo name for __gnu_cxx::__concurrence_unlock_error
-0019b2ec 0000000c V typeinfo for __gnu_cxx::__concurrence_unlock_error
-0019b2f8 0000002c V typeinfo name for __gnu_cxx::__concurrence_broadcast_error
-0019b324 0000000c V typeinfo for __gnu_cxx::__concurrence_broadcast_error
-0019b330 00000027 V typeinfo name for __gnu_cxx::__concurrence_wait_error
-0019b358 0000000c V typeinfo for __gnu_cxx::__concurrence_wait_error
-0019b364 00000014 V vtable for __gnu_cxx::__concurrence_lock_error
-0019b378 00000014 V vtable for __gnu_cxx::__concurrence_unlock_error
-0019b38c 00000014 V vtable for __gnu_cxx::__concurrence_broadcast_error
-0019b3a0 00000014 V vtable for __gnu_cxx::__concurrence_wait_error
-0019b3b4 00000023 R typeinfo name for __gnu_cxx::recursive_init_error
-0019b3d8 0000000c R typeinfo for __gnu_cxx::recursive_init_error
-0019b3e4 00000014 R vtable for __gnu_cxx::recursive_init_error
-0019b3f8 00000025 R typeinfo name for __cxxabiv1::__si_class_type_info
-0019b420 0000000c R typeinfo for __cxxabiv1::__si_class_type_info
-0019b42c 0000002c R vtable for __cxxabiv1::__si_class_type_info
-0019b458 0000000d R typeinfo name for std::type_info
-0019b468 00000008 R typeinfo for std::type_info
-0019b470 0000000e r std::__detail::_Prime_rehash_policy::_M_next_bkt(unsigned int) const::__fast_bkt
-0019b480 00000404 R std::__detail::__prime_list
-0019b884 0000000d R typeinfo name for std::bad_alloc
-0019b894 0000000c R typeinfo for std::bad_alloc
-0019b8a0 00000014 R vtable for std::bad_alloc
-0019b8b4 00000019 R typeinfo name for std::bad_array_new_length
-0019b8d0 0000000c R typeinfo for std::bad_array_new_length
-0019b8dc 00000014 R vtable for std::bad_array_new_length
-0019b8f0 00000022 R typeinfo name for __cxxabiv1::__class_type_info
-0019b914 0000000c R typeinfo for __cxxabiv1::__class_type_info
-0019b920 0000002c R vtable for __cxxabiv1::__class_type_info
-0019b94c 0000000d R typeinfo name for std::exception
-0019b95c 00000008 R typeinfo for std::exception
-0019b964 00000012 R typeinfo name for std::bad_exception
-0019b978 0000000c R typeinfo for std::bad_exception
-0019b984 00000020 R typeinfo name for __cxxabiv1::__forced_unwind
-0019b9a4 00000008 R typeinfo for __cxxabiv1::__forced_unwind
-0019b9ac 00000024 R typeinfo name for __cxxabiv1::__foreign_exception
-0019b9d0 00000008 R typeinfo for __cxxabiv1::__foreign_exception
-0019b9d8 00000014 R vtable for std::bad_exception
-0019ba00 00000010 R typeinfo name for std::logic_error
-0019ba10 0000000c R typeinfo for std::logic_error
-0019ba1c 00000011 R typeinfo name for std::length_error
-0019ba30 0000000c R typeinfo for std::length_error
-0019ba3c 00000011 R typeinfo name for std::out_of_range
-0019ba50 0000000c R typeinfo for std::out_of_range
-0019ba5c 00000014 R vtable for std::logic_error
-0019ba70 00000014 R vtable for std::length_error
-0019ba84 00000014 R vtable for std::out_of_range
-0019ba98 00000060 R __inv_pio4
-0019baf8 000000e0 R __sincosf_table
-0019bd1c 00000010 r zeroes.0
-0019bd2c 00000010 r blanks.1
-0019bd3c 00000101 R _ctype_
-0019bf54 00000022 r basefix.0
-0019bf78 0000006c R __action_table
-0019bfe4 0000006c R __state_table
-0019c050 00000100 R __chclass
-0019c1b4 00000014 r fpinan.0
-0019c1c8 00000014 r fpi.1
-0019c1e0 00000028 r tinytens
-0019c208 00000100 R __hexdig
-0019c310 0000000c r p05.0
-0019c320 00000028 R __mprec_bigtens
-0019c348 000000c8 R __mprec_tens
-0019c410 000035dc r categories
-0019fad8 00000010 r zeroes.0
-0019fae8 00000010 r blanks.1
-0019faf8 00000080 R dotab_stdnull
-0019fb78 R __tdata_align
-0019fb7c r __EH_FRAME_BEGIN__
-0019fca8 R __exidx_start
-0019ff08 R __exidx_end
-001a0000 00000008 d framerateCounter
-001a0008 00000004 d framerate
-001a000c 00000004 d queueLock
-001a0010 00000004 d aptChainloadDeliverArgSize
-001a0014 00000004 d kCount
-001a0018 00000004 d kInterval
-001a001c 00000004 d kDelay
-001a0020 W __stacksize__
-001a0024 00000004 D __cxxabiv1::__unexpected_handler
-001a0028 00000004 D __cxxabiv1::__terminate_handler
-001a002c 0000000c D __sglue
-001a0038 00000004 D __malloc_sbrk_base
-001a003c 00000004 D __malloc_trim_threshold
-001a0040 00000408 D __malloc_av_
-001a0448 00000004 D _impure_ptr
-001a0450 00000140 D _impure_data
-001a0590 0000016c D __global_locale
-001a06fc 00000004 D environ
-001a0700 00000400 d _current_working_directory
-001a0b00 00001000 d handles
-001a1b00 0000000c d __stderr_handle
-001a1b0c 0000000c d __stdout_handle
-001a1b18 0000000c d __stdin_handle
-001a1b24 0000008c D devoptab_list
-001a1bb0 00000004 d defaultDevice
-001a1bbc d _GLOBAL_OFFSET_TABLE_
-001a1bc8 d __frame_dummy_init_array_entry
-001a1bc8 D __init_array_start
-001a1bc8 B __preinit_array_end
-001a1bc8 B __preinit_array_start
-001a1bc8 D __tdata_lma
-001a1bc8 D __tdata_lma_end
-001a1be0 d __do_global_dtors_aux_fini_array_entry
-001a1be0 D __fini_array_start
-001a1be0 D __init_array_end
-001a1bf4 D __bss_start__
-001a1bf4 D __fini_array_end
-001a1bf4 00000088 b game::G
-001a1c7c 00000001 b game::g_exitRequested
-001a1c80 00000004 b game::seqPos
-001a1c84 00000004 b game::seqTimer
-001a1c88 000000c0 b highscores::g_entries
-001a1d48 00000001 b highscores::g_loaded
-001a1d4c 00000001 b levels::g_loaded
-001a1d50 0000000c b levels::g_levels
-001a1d5c 00000004 b levels::g_currentLevel
-001a1d60 0000001c b levels::kCodeToIndex
-001a1d7c 00000018 b hw_log(char const*)::lastLine
-001a1d94 00000004 b (anonymous namespace)::g_sheetDesigner
-001a1d98 00000004 b (anonymous namespace)::g_sheetHigh
-001a1d9c 00000004 b (anonymous namespace)::g_sheetInstruct
-001a1da0 00000004 b (anonymous namespace)::g_sheetTitle
-001a1da4 00000004 b (anonymous namespace)::g_sheetBreak
-001a1da8 00000004 b (anonymous namespace)::g_sheetImage
-001a1dac 00000004 b (anonymous namespace)::g_top
-001a1db0 00000004 b (anonymous namespace)::g_bottom
-001a1db4 0000000c b (anonymous namespace)::g_logs
-001a1dc0 00000004 b guard variable for hw_log(char const*)::lastLine
-001a1dc4 00000004 b hw_log(char const*)::repeatCount
-001a1dc8 b completed.1
-001a1dcc b object.0
-001a1de8 000005a8 B __C2Di_Context
-001a2390 00000040 b s_projBot
-001a23d0 00000040 b s_projTop
-001a2410 00000004 b uLoc_mdlvMtx
-001a2414 00000004 b uLoc_projMtx
-001a2418 0000000c b hookCookie
-001a2428 000002d0 B __C3D_Context
-001a26f8 00000004 b frameEndCbData
-001a26fc 00000004 b frameEndCb
-001a2700 00000008 b frameCounter
-001a2708 00000001 b isTopStereo
-001a2709 00000001 b needSwapBot
-001a270a 00000001 b needSwapTop
-001a270b 00000001 b measureGpuTime
-001a270c 00000001 b inSafeTransfer
-001a270d 00000001 b inFrame
-001a2710 00000010 b cpuTime
-001a2720 00000010 b gpuTime
-001a2730 0000000c b linkedTarget
-001a273c 00000004 b lastTarget
-001a2740 00000004 b firstTarget
-001a2744 00000008 b C3Di_IVUnifEverDirty
-001a274c 000000c0 b C3Di_FVUnifEverDirty
-001a280c 00000018 b C3Di_ShaderFVecData
-001a2824 00000002 B C3D_BoolUnifsDirty
-001a2828 00000008 B C3D_IVUnifDirty
-001a2830 000000c0 B C3D_FVUnifDirty
-001a28f0 00000004 B C3D_BoolUnifs
-001a28f4 00000020 B C3D_IVUnif
-001a2914 00000c00 B C3D_FVUnif
-001a3518 00000008 b sLinearPool
-001a3520 0000000c b sAddrMap
-001a3530 00000008 b sVramPoolB
-001a3538 00000008 b sVramPoolA
-001a3540 0000000c b sAddrMap
-001a354c 00000004 b screenAlloc
-001a3550 00000004 b screenFree
-001a3554 00000002 b gfxIsDoubleBuf
-001a3558 00000002 b gfxCurBuf
-001a355a 00000001 b gfxIsVram
-001a355b 00000001 b gfxTopMode
-001a355c 00000002 b gfxFramebufferFormats
-001a3560 00000004 b gfxBottomFramebufferMaxSize
-001a3564 00000004 b gfxTopFramebufferMaxSize
-001a3568 00000008 b gfxBottomFramebuffers
-001a3570 00000008 b gfxTopFramebuffers
-001a3578 00000001 V __ctru_speedup
-001a357c 00000004 b romfs_mount_list
-001a3580 00000004 V __romfs_path
-001a3584 00000004 B gpuCmdBufOffset
-001a3588 00000004 B gpuCmdBufSize
-001a358c 00000004 B gpuCmdBuf
-001a3590 00000004 b boundQueue
-001a3594 00000001 b shouldStop
-001a3595 00000001 b isRunning
-001a3596 00000001 b isActive
-001a3598 00000004 b curQueue
-001a359c 00000001 b flagValue.0
-001a359d 00000001 b flagInit.1
-001a35a0 00000004 b serviceName.6
-001a35a4 00000001 b aptChainloadFlags
-001a35a5 00000001 b aptChainloadMediatype
-001a35a8 00000020 b aptChainloadHmac
-001a35c8 00000300 b aptChainloadDeliverArg
-001a38c8 00000008 b aptChainloadTid
-001a38d0 00001000 b aptParameters
-001a48d0 00000004 b aptFlags
-001a48d4 00000001 b aptHomeButtonState
-001a48d8 00000004 b aptMessageFuncData
-001a48dc 00000004 b aptMessageFunc
-001a48e0 0000000c b aptFirstHook
-001a48ec 00000001 b aptEventHandlerThreadQuit
-001a48f0 00000004 b aptEventHandlerThread
-001a48f4 00000008 b aptSleepEvent
-001a48fc 00000008 b aptReceiveEvent
-001a4904 00000008 b aptEvents
-001a490c 00000004 b aptLockHandle
-001a4910 00000004 b aptRefCount
-001a4918 00000080 b fsExemptArchives
-001a4998 00000004 b fsuRefCount
-001a499c 00000004 b fsuHandle
-001a49a0 00000007 b gspEventCbOneShot
-001a49a8 0000001c b gspEventCbData
-001a49c4 0000001c b gspEventCb
-001a49e0 00000038 b gspEvents
-001a4a18 00000004 b gspLastEvent
-001a4a1c 00000001 b gspRunEvents
-001a4a20 00000004 b gspEventThread
-001a4a24 00000004 b gspEvent
-001a4a28 00000001 b gspGpuRight
-001a4a29 00000001 b gspThreadId
-001a4a2c 00000004 b gspSharedMem
-001a4a30 00000004 b gspSharedMemHandle
-001a4a34 00000004 b gspRefCount
-001a4a38 00000004 b gspGpuHandle
-001a4a3c 00000001 b usingIrrst
-001a4a40 00000004 b hidRefCount
-001a4a44 00000006 b gRate
-001a4a4c 00000006 b aVec
-001a4a54 00000004 b cPos
-001a4a58 00000004 b tPos
-001a4a5c 00000004 b kRepeat
-001a4a60 00000004 b kUp
-001a4a64 00000004 b kDown
-001a4a68 00000004 b kHeld
-001a4a6c 00000004 b kOld
-001a4a70 00000004 B hidSharedMem
-001a4a74 00000014 B hidEvents
-001a4a88 00000004 B hidMemHandle
-001a4a8c 00000004 B hidHandle
-001a4a90 00000004 b irrstRefCount
-001a4a94 00000004 b csPos
-001a4a98 00000004 b kHeld
-001a4a9c 00000004 B irrstSharedMem
-001a4aa0 00000004 B irrstEvent
-001a4aa4 00000004 B irrstMemHandle
-001a4aa8 00000004 B irrstHandle
-001a4aac 00000004 b ptmSysmRefCount
-001a4ab0 00000004 b ptmSysmHandle
-001a4ab4 00000004 b swkbdSharedMemHandle
-001a4ab8 00000004 b swkbdSharedMem
-001a4abc 00000004 V __ctru_linear_heap_size
-001a4ac0 00000004 V __ctru_heap_size
-001a4ac4 00000004 B __ctru_linear_heap
-001a4ac8 00000004 B __ctru_heap
-001a4acc 00000004 B __system_retAddr
-001a4ad0 00000004 B __system_argv
-001a4ad4 00000004 B __system_argc
-001a4ad8 b saved_stack
-001a4ae0 00000004 B __3dslink_host
-001a4ae4 00000004 b srvRefCount
-001a4ae8 00000004 b srvHandle
-001a4aec 00000004 b arbiter
-001a4af0 00000004 b currentAddr
-001a4af4 00000004 b maxAddr
-001a4af8 00000004 b minAddr
-001a4afc 00000004 b srvPmHandle
-001a4b00 000005c0 b archive_devices
-001a50c0 00000004 b archive_device_cwd
-001a50c4 00000001 b archive_initialized
-001a50c8 00000004 b (anonymous namespace)::get_static_cond()::once
-001a50d0 00000008 b (anonymous namespace)::fake_cond
-001a50d8 00000004 b (anonymous namespace)::static_cond
-001a50dc 00000004 b (anonymous namespace)::get_static_mutex()::once
-001a50e0 00000010 b (anonymous namespace)::fake_mutex
-001a50f0 00000004 b (anonymous namespace)::static_mutex
-001a50f8 0000001c b (anonymous namespace)::emergency_pool
-001a5114 00000004 b init
-001a5118 00000001 B __eh_globals_init::_S_init
-001a511c 0000000c b (anonymous namespace)::eh_globals
-001a5128 00000004 b (anonymous namespace)::__new_handler
-001a512c 00000010 V std::string::_Rep::_S_empty_rep_storage
-001a513c 0000000c b __sfp_recursive_mutex
-001a5148 00000168 B __sf
-001a52b0 00000004 B __stdio_exit_handler
-001a52b4 00000028 B __malloc_current_mallinfo
-001a52dc 00000004 B __malloc_max_total_mem
-001a52e0 00000004 B __malloc_max_sbrked_mem
-001a52e4 00000004 B __malloc_top_pad
-001a52e8 0000000c b __malloc_recursive_mutex
-001a52f4 0000000c b __env_recursive_mutex
-001a5300 00000004 b initial_env
-001a5304 00000190 B __atexit0
-001a5494 00000004 B __atexit
-001a5498 0000000c B __atexit_recursive_mutex
-001a54a4 00000400 b temp_cwd
-001a58a4 00000004 b __hndl_lock
-001a58a8 00000004 B fake_heap_start
-001a58ac 00000004 B fake_heap_end
-001a58b0 00000004 b heap_start.0
-001a58b4 B __tls_start
-001a64bc B __bss_end__
-001a64bc A __end__
-001a64bc B __tls_end
+0015204d R HIGH_t3x_end
+00152050 R IMAGE_t3x
+00153f9d R IMAGE_t3x_end
+00153fa0 R INSTRUCT_t3x
+00185c8d R INSTRUCT_t3x_end
+00185c90 R TITLE_t3x
+001a8169 R TITLE_t3x_end
+001a8ad4 r .LC2
+001a8ba0 00000008 r s_defaultTint.0
+001a8ba8 R render2d_shbin
+001a8d34 R render2d_shbin_end
+001a8d34 R render2d_shbin_size
+001a8d38 00000004 r depthFmtSizes
+001a8d3c 00000005 r colorFmtSizes
+001a8d44 00000010 r CSWTCH.11
+001a8d54 00000038 r CSWTCH.19
+001a8d8c 00000080 r romFS_devoptab
+001a8e34 00000008 r morton_y.2
+001a8e3c 00000008 r morton_x.3
+001a8e44 00000008 r s_sleepWakeEvents.4
+001a8e4c 0000000c r serviceNameTable.5
+001a8e7c 00000030 r error_table
+001a8eac 00000080 r archive_devoptab
+001a8f2c 00000027 V typeinfo name for __gnu_cxx::__concurrence_lock_error
+001a8f54 0000000c V typeinfo for __gnu_cxx::__concurrence_lock_error
+001a8f60 00000029 V typeinfo name for __gnu_cxx::__concurrence_unlock_error
+001a8f8c 0000000c V typeinfo for __gnu_cxx::__concurrence_unlock_error
+001a8f98 0000002c V typeinfo name for __gnu_cxx::__concurrence_broadcast_error
+001a8fc4 0000000c V typeinfo for __gnu_cxx::__concurrence_broadcast_error
+001a8fd0 00000027 V typeinfo name for __gnu_cxx::__concurrence_wait_error
+001a8ff8 0000000c V typeinfo for __gnu_cxx::__concurrence_wait_error
+001a9004 00000014 V vtable for __gnu_cxx::__concurrence_lock_error
+001a9018 00000014 V vtable for __gnu_cxx::__concurrence_unlock_error
+001a902c 00000014 V vtable for __gnu_cxx::__concurrence_broadcast_error
+001a9040 00000014 V vtable for __gnu_cxx::__concurrence_wait_error
+001a9054 00000023 R typeinfo name for __gnu_cxx::recursive_init_error
+001a9078 0000000c R typeinfo for __gnu_cxx::recursive_init_error
+001a9084 00000014 R vtable for __gnu_cxx::recursive_init_error
+001a9098 00000025 R typeinfo name for __cxxabiv1::__si_class_type_info
+001a90c0 0000000c R typeinfo for __cxxabiv1::__si_class_type_info
+001a90cc 0000002c R vtable for __cxxabiv1::__si_class_type_info
+001a90f8 0000000d R typeinfo name for std::type_info
+001a9108 00000008 R typeinfo for std::type_info
+001a9110 0000000e r std::__detail::_Prime_rehash_policy::_M_next_bkt(unsigned int) const::__fast_bkt
+001a9120 00000404 R std::__detail::__prime_list
+001a9524 0000000d R typeinfo name for std::bad_alloc
+001a9534 0000000c R typeinfo for std::bad_alloc
+001a9540 00000014 R vtable for std::bad_alloc
+001a9554 00000019 R typeinfo name for std::bad_array_new_length
+001a9570 0000000c R typeinfo for std::bad_array_new_length
+001a957c 00000014 R vtable for std::bad_array_new_length
+001a9590 00000022 R typeinfo name for __cxxabiv1::__class_type_info
+001a95b4 0000000c R typeinfo for __cxxabiv1::__class_type_info
+001a95c0 0000002c R vtable for __cxxabiv1::__class_type_info
+001a95ec 0000000d R typeinfo name for std::exception
+001a95fc 00000008 R typeinfo for std::exception
+001a9604 00000012 R typeinfo name for std::bad_exception
+001a9618 0000000c R typeinfo for std::bad_exception
+001a9624 00000020 R typeinfo name for __cxxabiv1::__forced_unwind
+001a9644 00000008 R typeinfo for __cxxabiv1::__forced_unwind
+001a964c 00000024 R typeinfo name for __cxxabiv1::__foreign_exception
+001a9670 00000008 R typeinfo for __cxxabiv1::__foreign_exception
+001a9678 00000014 R vtable for std::bad_exception
+001a96a0 00000010 R typeinfo name for std::logic_error
+001a96b0 0000000c R typeinfo for std::logic_error
+001a96bc 00000011 R typeinfo name for std::length_error
+001a96d0 0000000c R typeinfo for std::length_error
+001a96dc 00000011 R typeinfo name for std::out_of_range
+001a96f0 0000000c R typeinfo for std::out_of_range
+001a96fc 00000014 R vtable for std::logic_error
+001a9710 00000014 R vtable for std::length_error
+001a9724 00000014 R vtable for std::out_of_range
+001a9738 00000060 R __inv_pio4
+001a9798 000000e0 R __sincosf_table
+001a99bc 00000010 r zeroes.0
+001a99cc 00000010 r blanks.1
+001a99dc 00000101 R _ctype_
+001a9bf4 00000022 r basefix.0
+001a9c18 0000006c R __action_table
+001a9c84 0000006c R __state_table
+001a9cf0 00000100 R __chclass
+001a9e54 00000014 r fpinan.0
+001a9e68 00000014 r fpi.1
+001a9e80 00000028 r tinytens
+001a9ea8 00000100 R __hexdig
+001a9fb0 0000000c r p05.0
+001a9fc0 00000028 R __mprec_bigtens
+001a9fe8 000000c8 R __mprec_tens
+001aa0b0 000035dc r categories
+001ad778 00000010 r zeroes.0
+001ad788 00000010 r blanks.1
+001ad798 00000080 R dotab_stdnull
+001ad818 R __tdata_align
+001ad81c r __EH_FRAME_BEGIN__
+001ad948 R __exidx_start
+001adba8 R __exidx_end
+001ae000 00000008 d framerateCounter
+001ae008 00000004 d framerate
+001ae00c 00000004 d queueLock
+001ae010 00000004 d aptChainloadDeliverArgSize
+001ae014 00000004 d kCount
+001ae018 00000004 d kInterval
+001ae01c 00000004 d kDelay
+001ae020 W __stacksize__
+001ae024 00000004 D __cxxabiv1::__unexpected_handler
+001ae028 00000004 D __cxxabiv1::__terminate_handler
+001ae02c 0000000c D __sglue
+001ae038 00000004 D __malloc_sbrk_base
+001ae03c 00000004 D __malloc_trim_threshold
+001ae040 00000408 D __malloc_av_
+001ae448 00000004 D _impure_ptr
+001ae450 00000140 D _impure_data
+001ae590 0000016c D __global_locale
+001ae6fc 00000004 D environ
+001ae700 00000400 d _current_working_directory
+001aeb00 00001000 d handles
+001afb00 0000000c d __stderr_handle
+001afb0c 0000000c d __stdout_handle
+001afb18 0000000c d __stdin_handle
+001afb24 0000008c D devoptab_list
+001afbb0 00000004 d defaultDevice
+001afbbc d _GLOBAL_OFFSET_TABLE_
+001afbc8 d __frame_dummy_init_array_entry
+001afbc8 D __init_array_start
+001afbc8 B __preinit_array_end
+001afbc8 B __preinit_array_start
+001afbc8 D __tdata_lma
+001afbc8 D __tdata_lma_end
+001afbe0 d __do_global_dtors_aux_fini_array_entry
+001afbe0 D __fini_array_start
+001afbe0 D __init_array_end
+001afbf4 D __bss_start__
+001afbf4 D __fini_array_end
+001afbf4 00000088 b game::G
+001afc7c 00000001 b game::g_exitRequested
+001afc80 00000004 b game::seqPos
+001afc84 00000004 b game::seqTimer
+001afc88 000000c0 b highscores::g_entries
+001afd48 00000001 b highscores::g_loaded
+001afd4c 00000001 b levels::g_loaded
+001afd50 0000000c b levels::g_levels
+001afd5c 00000004 b levels::g_currentLevel
+001afd60 0000001c b levels::kCodeToIndex
+001afd7c 00000018 b hw_log(char const*)::lastLine
+001afd94 00000004 b (anonymous namespace)::g_sheetDesigner
+001afd98 00000004 b (anonymous namespace)::g_sheetHigh
+001afd9c 00000004 b (anonymous namespace)::g_sheetInstruct
+001afda0 00000004 b (anonymous namespace)::g_sheetTitle
+001afda4 00000004 b (anonymous namespace)::g_sheetBreak
+001afda8 00000004 b (anonymous namespace)::g_sheetImage
+001afdac 00000004 b (anonymous namespace)::g_top
+001afdb0 00000004 b (anonymous namespace)::g_bottom
+001afdb4 0000000c b (anonymous namespace)::g_logs
+001afdc0 00000004 b guard variable for hw_log(char const*)::lastLine
+001afdc4 00000004 b hw_log(char const*)::repeatCount
+001afdc8 b completed.1
+001afdcc b object.0
+001afde8 000005a8 B __C2Di_Context
+001b0390 00000040 b s_projBot
+001b03d0 00000040 b s_projTop
+001b0410 00000004 b uLoc_mdlvMtx
+001b0414 00000004 b uLoc_projMtx
+001b0418 0000000c b hookCookie
+001b0428 000002d0 B __C3D_Context
+001b06f8 00000004 b frameEndCbData
+001b06fc 00000004 b frameEndCb
+001b0700 00000008 b frameCounter
+001b0708 00000001 b isTopStereo
+001b0709 00000001 b needSwapBot
+001b070a 00000001 b needSwapTop
+001b070b 00000001 b measureGpuTime
+001b070c 00000001 b inSafeTransfer
+001b070d 00000001 b inFrame
+001b0710 00000010 b cpuTime
+001b0720 00000010 b gpuTime
+001b0730 0000000c b linkedTarget
+001b073c 00000004 b lastTarget
+001b0740 00000004 b firstTarget
+001b0744 00000008 b C3Di_IVUnifEverDirty
+001b074c 000000c0 b C3Di_FVUnifEverDirty
+001b080c 00000018 b C3Di_ShaderFVecData
+001b0824 00000002 B C3D_BoolUnifsDirty
+001b0828 00000008 B C3D_IVUnifDirty
+001b0830 000000c0 B C3D_FVUnifDirty
+001b08f0 00000004 B C3D_BoolUnifs
+001b08f4 00000020 B C3D_IVUnif
+001b0914 00000c00 B C3D_FVUnif
+001b1518 00000008 b sLinearPool
+001b1520 0000000c b sAddrMap
+001b1530 00000008 b sVramPoolB
+001b1538 00000008 b sVramPoolA
+001b1540 0000000c b sAddrMap
+001b154c 00000004 b screenAlloc
+001b1550 00000004 b screenFree
+001b1554 00000002 b gfxIsDoubleBuf
+001b1558 00000002 b gfxCurBuf
+001b155a 00000001 b gfxIsVram
+001b155b 00000001 b gfxTopMode
+001b155c 00000002 b gfxFramebufferFormats
+001b1560 00000004 b gfxBottomFramebufferMaxSize
+001b1564 00000004 b gfxTopFramebufferMaxSize
+001b1568 00000008 b gfxBottomFramebuffers
+001b1570 00000008 b gfxTopFramebuffers
+001b1578 00000001 V __ctru_speedup
+001b157c 00000004 b romfs_mount_list
+001b1580 00000004 V __romfs_path
+001b1584 00000004 B gpuCmdBufOffset
+001b1588 00000004 B gpuCmdBufSize
+001b158c 00000004 B gpuCmdBuf
+001b1590 00000004 b boundQueue
+001b1594 00000001 b shouldStop
+001b1595 00000001 b isRunning
+001b1596 00000001 b isActive
+001b1598 00000004 b curQueue
+001b159c 00000001 b flagValue.0
+001b159d 00000001 b flagInit.1
+001b15a0 00000004 b serviceName.6
+001b15a4 00000001 b aptChainloadFlags
+001b15a5 00000001 b aptChainloadMediatype
+001b15a8 00000020 b aptChainloadHmac
+001b15c8 00000300 b aptChainloadDeliverArg
+001b18c8 00000008 b aptChainloadTid
+001b18d0 00001000 b aptParameters
+001b28d0 00000004 b aptFlags
+001b28d4 00000001 b aptHomeButtonState
+001b28d8 00000004 b aptMessageFuncData
+001b28dc 00000004 b aptMessageFunc
+001b28e0 0000000c b aptFirstHook
+001b28ec 00000001 b aptEventHandlerThreadQuit
+001b28f0 00000004 b aptEventHandlerThread
+001b28f4 00000008 b aptSleepEvent
+001b28fc 00000008 b aptReceiveEvent
+001b2904 00000008 b aptEvents
+001b290c 00000004 b aptLockHandle
+001b2910 00000004 b aptRefCount
+001b2918 00000080 b fsExemptArchives
+001b2998 00000004 b fsuRefCount
+001b299c 00000004 b fsuHandle
+001b29a0 00000007 b gspEventCbOneShot
+001b29a8 0000001c b gspEventCbData
+001b29c4 0000001c b gspEventCb
+001b29e0 00000038 b gspEvents
+001b2a18 00000004 b gspLastEvent
+001b2a1c 00000001 b gspRunEvents
+001b2a20 00000004 b gspEventThread
+001b2a24 00000004 b gspEvent
+001b2a28 00000001 b gspGpuRight
+001b2a29 00000001 b gspThreadId
+001b2a2c 00000004 b gspSharedMem
+001b2a30 00000004 b gspSharedMemHandle
+001b2a34 00000004 b gspRefCount
+001b2a38 00000004 b gspGpuHandle
+001b2a3c 00000001 b usingIrrst
+001b2a40 00000004 b hidRefCount
+001b2a44 00000006 b gRate
+001b2a4c 00000006 b aVec
+001b2a54 00000004 b cPos
+001b2a58 00000004 b tPos
+001b2a5c 00000004 b kRepeat
+001b2a60 00000004 b kUp
+001b2a64 00000004 b kDown
+001b2a68 00000004 b kHeld
+001b2a6c 00000004 b kOld
+001b2a70 00000004 B hidSharedMem
+001b2a74 00000014 B hidEvents
+001b2a88 00000004 B hidMemHandle
+001b2a8c 00000004 B hidHandle
+001b2a90 00000004 b irrstRefCount
+001b2a94 00000004 b csPos
+001b2a98 00000004 b kHeld
+001b2a9c 00000004 B irrstSharedMem
+001b2aa0 00000004 B irrstEvent
+001b2aa4 00000004 B irrstMemHandle
+001b2aa8 00000004 B irrstHandle
+001b2aac 00000004 b ptmSysmRefCount
+001b2ab0 00000004 b ptmSysmHandle
+001b2ab4 00000004 b swkbdSharedMemHandle
+001b2ab8 00000004 b swkbdSharedMem
+001b2abc 00000004 V __ctru_linear_heap_size
+001b2ac0 00000004 V __ctru_heap_size
+001b2ac4 00000004 B __ctru_linear_heap
+001b2ac8 00000004 B __ctru_heap
+001b2acc 00000004 B __system_retAddr
+001b2ad0 00000004 B __system_argv
+001b2ad4 00000004 B __system_argc
+001b2ad8 b saved_stack
+001b2ae0 00000004 B __3dslink_host
+001b2ae4 00000004 b srvRefCount
+001b2ae8 00000004 b srvHandle
+001b2aec 00000004 b arbiter
+001b2af0 00000004 b currentAddr
+001b2af4 00000004 b maxAddr
+001b2af8 00000004 b minAddr
+001b2afc 00000004 b srvPmHandle
+001b2b00 000005c0 b archive_devices
+001b30c0 00000004 b archive_device_cwd
+001b30c4 00000001 b archive_initialized
+001b30c8 00000004 b (anonymous namespace)::get_static_cond()::once
+001b30d0 00000008 b (anonymous namespace)::fake_cond
+001b30d8 00000004 b (anonymous namespace)::static_cond
+001b30dc 00000004 b (anonymous namespace)::get_static_mutex()::once
+001b30e0 00000010 b (anonymous namespace)::fake_mutex
+001b30f0 00000004 b (anonymous namespace)::static_mutex
+001b30f8 0000001c b (anonymous namespace)::emergency_pool
+001b3114 00000004 b init
+001b3118 00000001 B __eh_globals_init::_S_init
+001b311c 0000000c b (anonymous namespace)::eh_globals
+001b3128 00000004 b (anonymous namespace)::__new_handler
+001b312c 00000010 V std::string::_Rep::_S_empty_rep_storage
+001b313c 0000000c b __sfp_recursive_mutex
+001b3148 00000168 B __sf
+001b32b0 00000004 B __stdio_exit_handler
+001b32b4 00000028 B __malloc_current_mallinfo
+001b32dc 00000004 B __malloc_max_total_mem
+001b32e0 00000004 B __malloc_max_sbrked_mem
+001b32e4 00000004 B __malloc_top_pad
+001b32e8 0000000c b __malloc_recursive_mutex
+001b32f4 0000000c b __env_recursive_mutex
+001b3300 00000004 b initial_env
+001b3304 00000190 B __atexit0
+001b3494 00000004 B __atexit
+001b3498 0000000c B __atexit_recursive_mutex
+001b34a4 00000400 b temp_cwd
+001b38a4 00000004 b __hndl_lock
+001b38a8 00000004 B fake_heap_start
+001b38ac 00000004 B fake_heap_end
+001b38b0 00000004 b heap_start.0
+001b38b4 B __tls_start
+001b44bc B __bss_end__
+001b44bc A __end__
+001b44bc B __tls_end
