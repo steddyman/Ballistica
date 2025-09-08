@@ -55,27 +55,19 @@ int main(int argc, char** argv) {
             }
             hw_draw_text(20, 20, "START=Play  SELECT=Editor  X=Exit", 0xFFFFFFFF);
             } else {
-            // Touch-to-move region (entire bottom unless DEBUG splits)
-            bool dbg = false;
-#if defined(DEBUG) && DEBUG
-            dbg = true;
-#endif
-            int regionY = dbg ? 120 : 0;
-            int regionH = dbg ? 120 : 240;
-            // Visual feedback: highlight under stylus & gentle animated background
-            float pulse = 0.3f + 0.2f * std::sin(frame * 0.12f);
-            uint8_t base = (uint8_t)(20 + 30 * pulse);
-            C2D_DrawRectSolid(0,regionY,0,320,regionH,C2D_Color32(base,40,70,255));
-            hw_draw_text(70, regionY + regionH/2 - 4, "Touch To Move", 0xFFFFFFFF);
-            if(in.touching && in.stylusY>=regionY) {
-                int cx = in.stylusX; int cy = in.stylusY;
-                int r = 18;
-                for(int dy=-r; dy<=r; ++dy) for(int dx=-r; dx<=r; ++dx) if(dx*dx+dy*dy <= r*r) {
-                    int px = cx+dx, py = cy+dy; if(px>=0 && px<320 && py>=regionY && py<regionY+regionH)
-                        C2D_DrawRectSolid(px,py,0,1,1,C2D_Color32(255,255,255,40));
-                }
+            // Gameplay bottom screen: static TOUCH image prompt replaces text region.
+            // If sheet not loaded fallback to minimal text.
+            if(hw_sheet_loaded(HwSheet::Touch)) {
+                C2D_Image img = hw_image_from(HwSheet::Touch, 0); // single full-screen image
+                // Center horizontally if narrower than 320 (assume asset sized for 320x240 or smaller)
+                float w = img.tex ? img.subtex->width : 0;
+                float h = img.tex ? img.subtex->height : 0;
+                float x = (320.0f - w) * 0.5f;
+                float y = (240.0f - h) * 0.5f;
+                hw_draw_sprite(img, x<0?0:x, y<0?0:y);
+            } else {
+                hw_draw_text(70, 120 - 4, "Touch To Move", 0xFFFFFFFF);
             }
-                if(dbg) { hw_draw_logs(4,4,112); }
             }
         }
         hw_end_frame();
