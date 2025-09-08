@@ -178,7 +178,22 @@ namespace game {
     static void update_moving_bricks(); // fwd
 
     static void handle_ball_bricks(Ball &ball) {
-        // Logical legacy collider (BALLWIDTH x BALLHEIGHT) centered in sprite (stable version)
+    // Brick collision detection (legacy logic adapted to new rendering)
+    // ---------------------------------------------------------------
+    // We keep a small logical collider for the ball that matches the original DOS game
+    // (BALLWIDTH x BALLHEIGHT = 3x3). The rendered sprite is larger (e.g. 8x8) so we
+    // compute a logical rectangle centered inside the drawn image. All brick collision
+    // math operates on this logical rect so the game feel stays faithful while visuals
+    // can be higher resolution.
+    // Key goals:
+    //  1. Avoid premature side / top hits caused by the larger sprite.
+    //  2. Preserve classic reflection behaviour (choose the axis with the smaller
+    //     penetration unless we clearly crossed a top/bottom edge this frame).
+    //  3. Provide a tiny vertical sweep assist only when the ball actually crosses the
+    //     top or bottom plane of a brick while its center is horizontally inside that
+    //     brick. This prevents missing very thin contacts on slow / shallow angles
+    //     while not corrupting pure side glances (which should reflect horizontally and
+    //     keep moving upward).
         int cols = levels_grid_width(); int rows=levels_grid_height();
         int ls=levels_left(), ts=levels_top(), cw=levels_brick_width(), ch=levels_brick_height();
         float spriteW = (ball.img.subtex ? ball.img.subtex->width : 8.f);
@@ -201,14 +216,20 @@ namespace game {
                 if(raw<=0) continue;
                 if(is_moving_type(raw)) continue; // handle moving bricks separately with dynamic position
                 BrickType bt = (BrickType)raw;
-            // Brick AABB
+            // Brick AABB in screen space
             float bx = ls + c*cw; float by = ts + r*ch; float br = bx + cw; float bb = by + ch;
             float ballL = logicalL, ballR = logicalR, ballT = logicalT, ballB = logicalB;
             if(ballR <= bx || ballL >= br || ballB <= by || ballT >= bb) continue; // no overlap
-            float penX = std::min(ballR - bx, br - ballL);
-            float penY = std::min(ballB - by, bb - ballT);
+            // Penetration depths used to choose primary reflection axis (classic AABB rule)
+            float penX = std::min(ballR - bx, br - ballL); // overlap distance along X toward the smaller exit
+            float penY = std::min(ballB - by, bb - ballT); // overlap distance along Y
+            // Edge crossing tests: detect if the ball moved through the exact top or bottom plane
+            // between last frame and this frame (helps catch thin or near-miss contacts).
             bool crossedTopEdge    = (ball.vy > 0) && (prevLogicalB <= by) && (logicalB >= by);
             bool crossedBottomEdge = (ball.vy < 0) && (prevLogicalT >= bb) && (logicalT <= bb);
+            // Only treat an edge crossing as a forced vertical collision if the logical center
+            // is horizontally inside the brick. Side glances should not be reinterpreted as
+            // vertical hits; they are important for consistent upward travel along walls.
             bool centerInsideHoriz = (centerX > bx && centerX < br);
             bool destroyed = true;
                 if(bt == BrickType::T5) {
@@ -226,12 +247,14 @@ namespace game {
                 }
         apply_brick_effect(bt, centerX, centerY, ball);
                 if(G.murderTimer<=0) {
-                    bool forceVertical = centerInsideHoriz && (crossedTopEdge || crossedBottomEdge); // only if center within span
+                    bool forceVertical = centerInsideHoriz && (crossedTopEdge || crossedBottomEdge); // restrict vertical bias to true top/bottom crossings
                     if(!forceVertical && penX < penY) {
-                        if(centerX < bx) ball.x -= penX; else ball.x += penX; // horizontal reflect
+                        // Horizontal reflection: shallower horizontal penetration than vertical, or side glance
+                        if(centerX < bx) ball.x -= penX; else ball.x += penX; // resolve along X
                         ball.vx = -ball.vx;
                     } else {
-                        if(centerY < by) ball.y -= penY; else ball.y += penY; // vertical reflect
+                        // Vertical reflection (either penetration favored Y or we purposely forced it)
+                        if(centerY < by) ball.y -= penY; else ball.y += penY; // resolve along Y
                         ball.vy = -ball.vy;
                     }
                 }
@@ -257,6 +280,7 @@ namespace game {
                 float ballL = logicalL, ballR = logicalR, ballT = logicalT, ballB = logicalB;
                 if(ballR <= bx || ballL >= br || ballB <= by || ballT >= bb) continue;
                 BrickType bt = (BrickType)raw;
+                // Same logic for moving bricks (dynamic bx)
                 float penX = std::min(ballR - bx, br - ballL);
                 float penY = std::min(ballB - by, bb - ballT);
                 bool crossedTopEdge    = (ball.vy > 0) && (prevLogicalB <= by) && (logicalB >= by);
@@ -279,10 +303,10 @@ namespace game {
                 if(G.murderTimer<=0) {
                     bool forceVertical = centerInsideHoriz && (crossedTopEdge || crossedBottomEdge);
                     if(!forceVertical && penX < penY) {
-                        if(centerX < bx) ball.x -= penX; else ball.x += penX;
+                        if(centerX < bx) ball.x -= penX; else ball.x += penX; // X resolve for side hit
                         ball.vx = -ball.vx;
                     } else {
-                        if(centerY < by) ball.y -= penY; else ball.y += penY;
+                        if(centerY < by) ball.y -= penY; else ball.y += penY; // Y resolve for top/bottom hit
                         ball.vy = -ball.vy;
                     }
                 }
