@@ -9,15 +9,15 @@ namespace highscores {
 
     static void set_default() {
         for(int i=0;i<NUM_SCORES;i++) {
-            g_entries[i].score = (NUM_SCORES - i) * 1000u;
+            g_entries[i].score = (NUM_SCORES - i) * 500u;
             g_entries[i].level = 1;
-            std::snprintf(g_entries[i].name, MAX_NAME+1, "STEDDY %d", i+1);
+            std::snprintf(g_entries[i].name, MAX_NAME+1, "PLAYER %d", i+1);
         }
     }
 
     void init() {
         if(g_loaded) return;
-        FILE* f = fopen("sdmc:/scores.dat", "rb");
+        FILE* f = fopen("sdmc:/ballistica/scores.dat", "rb");
         if(!f) {
             set_default();
             g_loaded = true;
@@ -63,7 +63,7 @@ namespace highscores {
     }
 
     void save() {
-        FILE* f = fopen("sdmc:/scores.dat", "wb");
+        FILE* f = fopen("sdmc:/ballistica/scores.dat", "wb");
         if(!f) { hw_log("save scores fail\n"); return; }
         for(int i=0;i<NUM_SCORES;i++) {
             fwrite(&g_entries[i].score, sizeof(uint32_t), 1, f);
