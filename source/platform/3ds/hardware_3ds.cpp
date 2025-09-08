@@ -23,6 +23,8 @@
 #include "DESIGNER.h"
 #include "HIGH_t3x.h"
 #include "HIGH.h"
+#include "TOUCH_t3x.h"
+#include "TOUCH.h"
 
 #include "sprite_indexes/image_indices.h"
 
@@ -35,6 +37,7 @@ namespace {
     C2D_SpriteSheet g_sheetInstruct = nullptr;
     C2D_SpriteSheet g_sheetDesigner = nullptr; // placeholder for future
     C2D_SpriteSheet g_sheetHigh = nullptr;
+    C2D_SpriteSheet g_sheetTouch = nullptr;
     // Tiny log ring buffer
     std::vector<std::string> g_logs;
     const size_t kMaxLogLines = 64;
@@ -124,12 +127,14 @@ bool hw_init() {
     g_sheetInstruct = C2D_SpriteSheetLoadFromMem(INSTRUCT_t3x, INSTRUCT_t3x_size);
     g_sheetDesigner = C2D_SpriteSheetLoadFromMem(DESIGNER_t3x, DESIGNER_t3x_size);
     g_sheetHigh = C2D_SpriteSheetLoadFromMem(HIGH_t3x, HIGH_t3x_size);
+    g_sheetTouch = C2D_SpriteSheetLoadFromMem(TOUCH_t3x, TOUCH_t3x_size);
     if(!g_sheetImage) hw_log("Failed IMAGE\n"); else hw_log("Loaded IMAGE\n");
     if(!g_sheetBreak) hw_log("Failed BREAK\n");
     if(!g_sheetTitle) hw_log("Failed TITLE\n");
     if(!g_sheetInstruct) hw_log("Failed INSTRUCT\n");
     if(!g_sheetDesigner) hw_log("Failed DESIGNER\n");
     if(!g_sheetHigh) hw_log("Failed HIGH\n");
+    if(!g_sheetTouch) hw_log("Failed TOUCH\n");
     return g_sheetImage != nullptr;
 }
 
@@ -137,6 +142,7 @@ void hw_shutdown() {
     romfsExit();
     if(g_sheetDesigner) { C2D_SpriteSheetFree(g_sheetDesigner); g_sheetDesigner=nullptr; }
     if(g_sheetHigh) { C2D_SpriteSheetFree(g_sheetHigh); g_sheetHigh=nullptr; }
+    if(g_sheetTouch) { C2D_SpriteSheetFree(g_sheetTouch); g_sheetTouch=nullptr; }
     if(g_sheetInstruct) { C2D_SpriteSheetFree(g_sheetInstruct); g_sheetInstruct=nullptr; }
     if(g_sheetTitle) { C2D_SpriteSheetFree(g_sheetTitle); g_sheetTitle=nullptr; }
     if(g_sheetBreak) { C2D_SpriteSheetFree(g_sheetBreak); g_sheetBreak=nullptr; }
@@ -237,6 +243,7 @@ bool hw_sheet_loaded(HwSheet sheet) {
     case HwSheet::High: return g_sheetHigh;
         case HwSheet::Instruct: return g_sheetInstruct;
         case HwSheet::Designer: return g_sheetDesigner; // currently null
+    case HwSheet::Touch: return g_sheetTouch;
     }
     return false;
 }
@@ -250,6 +257,7 @@ C2D_Image hw_image_from(HwSheet sheet, int index) {
     case HwSheet::High: s = g_sheetHigh; break;
         case HwSheet::Instruct: s = g_sheetInstruct; break;
         case HwSheet::Designer: s = g_sheetDesigner; break;
+    case HwSheet::Touch: s = g_sheetTouch; break;
     }
     if(!s) return C2D_Image{};
     return C2D_SpriteSheetGetImage(s, index);
