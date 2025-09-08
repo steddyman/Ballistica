@@ -42,6 +42,7 @@ namespace game {
         unsigned long score = 0;
         uint8_t bonusBits = 0; // collected B1..B5 letters
         bool editorLaunched = false;
+    float prevBatX = 0.f; // for imparting momentum
     // Timers/effects
     int reverseTimer = 0; // frames remaining reverse controls
     int lightsOffTimer = 0; // frames until lights restore
@@ -397,6 +398,7 @@ namespace game {
     process_bomb_events();
     // Stylus controls bat X
         if(in.touching) {
+            G.prevBatX = G.bat.x; // record before move
             float sx = static_cast<float>(in.stylusX);
             if(G.reverseTimer>0) sx = 320.0f - sx;
             float targetX = sx - G.bat.width * 0.5f;
@@ -496,7 +498,15 @@ namespace game {
                     float rel = (ballCenterX - (batLeft + effBatW * 0.5f)) / (effBatW * 0.5f);
                     if(rel < -1.f) rel = -1.f;
                     if(rel > 1.f) rel = 1.f;
-                    b.vx = rel * 2.0f; // maintain existing speed scale
+                    // Base horizontal component from relative position
+                    float baseVX = rel * 2.0f;
+                    // Add momentum imparted by bat movement this frame
+                    float batDX = G.bat.x - G.prevBatX;
+                    baseVX += batDX * 0.08f; // tuning factor from legacy feel approximation
+                    // Clamp to reasonable range
+                    if(baseVX < -3.f) baseVX = -3.f;
+                    if(baseVX >  3.f) baseVX =  3.f;
+                    b.vx = baseVX;
                 }
             }
             handle_ball_bricks(b);
