@@ -173,6 +173,7 @@ struct InputState {
 	int  stylusX = -1;
 	int  stylusY = -1;
 	bool touching = false;
+	bool touchPressed = false; // edge: became touching this frame
 	bool fireHeld = false; // D-Pad Up
 	bool startPressed = false; // START key (edge)
 	bool selectPressed = false; // SELECT key (edge)
@@ -204,7 +205,7 @@ C2D_Image hw_image(int index);
 void hw_log(const char* msg);
 
 // Additional sprite sheets (background / UI). All are optional; check loaded before use.
-enum class HwSheet : uint8_t { Image, Break, Title, High, Instruct, Designer, Touch };
+enum class HwSheet : uint8_t { Image, Break, Title, High, Instruct, Designer, Touch, Options };
 bool hw_sheet_loaded(HwSheet sheet);
 C2D_Image hw_image_from(HwSheet sheet, int index); // returns empty image if missing
 
