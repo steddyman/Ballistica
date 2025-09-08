@@ -2,6 +2,7 @@
 #pragma once
 #include <cstdint>
 #include <vector>
+#include <string>
 
 void levels_load();
 void levels_render();
@@ -42,3 +43,10 @@ int levels_brick_hp(int col,int row);
 
 // Reset (restore) a level's bricks/hp to original snapshot
 void levels_reset_level(int index);
+
+// Dynamic level file selection support
+const std::vector<std::string>& levels_available_files();
+void levels_refresh_files();
+void levels_set_active_file(const char* filename); // set desired .DAT (basename)
+const char* levels_get_active_file();
+void levels_reload_active();
