@@ -178,13 +178,22 @@ namespace game {
     static void update_moving_bricks(); // fwd
 
     static void handle_ball_bricks(Ball &ball) {
-        const int bw=8,bh=8; int cols = levels_grid_width(); int rows=levels_grid_height();
+        // Logical legacy collider (BALLWIDTH x BALLHEIGHT) centered in sprite (stable version)
+        int cols = levels_grid_width(); int rows=levels_grid_height();
         int ls=levels_left(), ts=levels_top(), cw=levels_brick_width(), ch=levels_brick_height();
-        // Broad phase: compute grid span overlapped by ball AABB (minus movement inside cell)
-        int minCol = std::max(0, (int)((ball.x - ls)/cw));
-        int maxCol = std::min(cols-1, (int)((ball.x + bw - ls)/cw));
-        int minRow = std::max(0, (int)((ball.y - ts)/ch));
-        int maxRow = std::min(rows-1, (int)((ball.y + bh - ts)/ch));
+        float spriteW = (ball.img.subtex ? ball.img.subtex->width : 8.f);
+        float spriteH = (ball.img.subtex ? ball.img.subtex->height : 8.f);
+        float centerX = ball.x + spriteW * 0.5f;
+        float centerY = ball.y + spriteH * 0.5f;
+        float prevCenterY = ball.py + spriteH * 0.5f;
+        float halfW = BALLWIDTH * 0.5f; float halfH = BALLHEIGHT * 0.5f;
+        float logicalL = centerX - halfW; float logicalR = centerX + halfW;
+        float logicalT = centerY - halfH; float logicalB = centerY + halfH;
+        float prevLogicalT = prevCenterY - halfH; float prevLogicalB = prevCenterY + halfH;
+        int minCol = std::max(0, (int)((logicalL - ls)/cw));
+        int maxCol = std::min(cols-1, (int)((logicalR - ls)/cw));
+        int minRow = std::max(0, (int)((logicalT - ts)/ch));
+        int maxRow = std::min(rows-1, (int)((logicalB - ts)/ch));
         bool hit = false; // prevent double-hit in same frame
         for(int r=minRow; r<=maxRow; ++r) {
             for(int c=minCol; c<=maxCol; ++c) {
@@ -192,17 +201,16 @@ namespace game {
                 if(raw<=0) continue;
                 if(is_moving_type(raw)) continue; // handle moving bricks separately with dynamic position
                 BrickType bt = (BrickType)raw;
-                // Brick AABB (use dynamic horizontal position if moving)
-                float bx = ls + c*cw;
-                float by = ts + r*ch;
-                float br = bx + cw;
-                float bb = by + ch;
-                float ballL = ball.x, ballR = ball.x + bw, ballT = ball.y, ballB = ball.y + bh;
-                if(ballR <= bx || ballL >= br || ballB <= by || ballT >= bb) continue; // no overlap
-                // Collision: decide reflection axis
-                float penX = std::min(ballR - bx, br - ballL);
-                float penY = std::min(ballB - by, bb - ballT);
-                bool destroyed = true;
+            // Brick AABB
+            float bx = ls + c*cw; float by = ts + r*ch; float br = bx + cw; float bb = by + ch;
+            float ballL = logicalL, ballR = logicalR, ballT = logicalT, ballB = logicalB;
+            if(ballR <= bx || ballL >= br || ballB <= by || ballT >= bb) continue; // no overlap
+            float penX = std::min(ballR - bx, br - ballL);
+            float penY = std::min(ballB - by, bb - ballT);
+            bool crossedTopEdge    = (ball.vy > 0) && (prevLogicalB <= by) && (logicalB >= by);
+            bool crossedBottomEdge = (ball.vy < 0) && (prevLogicalT >= bb) && (logicalT <= bb);
+            bool centerInsideHoriz = (centerX > bx && centerX < br);
+            bool destroyed = true;
                 if(bt == BrickType::T5) {
                     destroyed = levels_damage_brick(c,r);
                 } else if(bt == BrickType::BO) {
@@ -216,15 +224,14 @@ namespace game {
                 } else {
                     levels_remove_brick(c,r);
                 }
-                apply_brick_effect(bt, ball.x+4, ball.y+4, ball);
+        apply_brick_effect(bt, centerX, centerY, ball);
                 if(G.murderTimer<=0) {
-                    if(penX < penY) {
-                        // Reflect X
-                        if(ball.x < bx) ball.x -= penX; else ball.x += penX;
+                    bool forceVertical = centerInsideHoriz && (crossedTopEdge || crossedBottomEdge); // only if center within span
+                    if(!forceVertical && penX < penY) {
+                        if(centerX < bx) ball.x -= penX; else ball.x += penX; // horizontal reflect
                         ball.vx = -ball.vx;
                     } else {
-                        // Reflect Y
-                        if(ball.y < by) ball.y -= penY; else ball.y += penY;
+                        if(centerY < by) ball.y -= penY; else ball.y += penY; // vertical reflect
                         ball.vy = -ball.vy;
                     }
                 }
@@ -246,15 +253,15 @@ namespace game {
                 if(!is_moving_type(raw)) continue;
                 int idx = r*cols + c;
         if(idx >= (int)G.moving.size() || G.moving[idx].pos < 0.f) continue;
-        float bx = G.moving[idx].pos;
-                float by = ts + r*ch;
-                float br = bx + cw;
-                float bb = by + ch;
-                float ballL = ball.x, ballR = ball.x + bw, ballT = ball.y, ballB = ball.y + bh;
+                float bx = G.moving[idx].pos; float by = ts + r*ch; float br = bx + cw; float bb = by + ch;
+                float ballL = logicalL, ballR = logicalR, ballT = logicalT, ballB = logicalB;
                 if(ballR <= bx || ballL >= br || ballB <= by || ballT >= bb) continue;
                 BrickType bt = (BrickType)raw;
                 float penX = std::min(ballR - bx, br - ballL);
                 float penY = std::min(ballB - by, bb - ballT);
+                bool crossedTopEdge    = (ball.vy > 0) && (prevLogicalB <= by) && (logicalB >= by);
+                bool crossedBottomEdge = (ball.vy < 0) && (prevLogicalT >= bb) && (logicalT <= bb);
+                bool centerInsideHoriz = (centerX > bx && centerX < br);
                 bool destroyed = true;
                 if(bt == BrickType::T5) {
                     destroyed = levels_damage_brick(c,r);
@@ -268,13 +275,14 @@ namespace game {
                 } else {
                     levels_remove_brick(c,r);
                 }
-                apply_brick_effect(bt, ball.x+4, ball.y+4, ball);
+        apply_brick_effect(bt, centerX, centerY, ball);
                 if(G.murderTimer<=0) {
-                    if(penX < penY) {
-                        if(ball.x < bx) ball.x -= penX; else ball.x += penX;
+                    bool forceVertical = centerInsideHoriz && (crossedTopEdge || crossedBottomEdge);
+                    if(!forceVertical && penX < penY) {
+                        if(centerX < bx) ball.x -= penX; else ball.x += penX;
                         ball.vx = -ball.vx;
                     } else {
-                        if(ball.y < by) ball.y -= penY; else ball.y += penY;
+                        if(centerY < by) ball.y -= penY; else ball.y += penY;
                         ball.vy = -ball.vy;
                     }
                 }
@@ -578,6 +586,24 @@ namespace game {
             }
         }
     }
+#if defined(DEBUG) && DEBUG
+    // Draw static brick colliders (red outlines)
+    for(int r=0;r<rows;++r) for(int c=0;c<cols;++c) {
+        int raw = levels_brick_at(c,r); if(raw<=0) continue; if(is_moving_type(raw)) continue; float bx = ls + c*cw; float by = ts + r*ch;
+        C2D_DrawRectSolid(bx, by, 0, cw, 1, C2D_Color32(255,0,0,200)); // top
+        C2D_DrawRectSolid(bx, by+ch-1, 0, cw, 1, C2D_Color32(255,0,0,80)); // bottom
+        C2D_DrawRectSolid(bx, by, 0, 1, ch, C2D_Color32(255,0,0,120)); // left
+        C2D_DrawRectSolid(bx+cw-1, by, 0, 1, ch, C2D_Color32(255,0,0,120)); // right
+    }
+    // Draw moving brick colliders (solid red border)
+    for(int r=0;r<rows;++r) for(int c=0;c<cols;++c) {
+        int raw = levels_brick_at(c,r); if(!is_moving_type(raw)) continue; int idx = r*cols + c; if(idx >= (int)G.moving.size()) continue; if(G.moving[idx].pos < 0.f) continue; float x = G.moving[idx].pos; float y = ts + r*ch;
+        C2D_DrawRectSolid(x, y, 0, cw, 1, C2D_Color32(255,0,0,200));
+        C2D_DrawRectSolid(x, y+ch-1, 0, cw, 1, C2D_Color32(255,0,0,80));
+        C2D_DrawRectSolid(x, y, 0, 1, ch, C2D_Color32(255,0,0,120));
+        C2D_DrawRectSolid(x+cw-1, y, 0, 1, ch, C2D_Color32(255,0,0,120));
+    }
+#endif
     // Simple particles
     for(auto &p : G.particles) {
         if(p.life<=0) continue;
