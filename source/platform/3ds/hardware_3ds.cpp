@@ -179,6 +179,26 @@ void hw_draw_sprite(C2D_Image img, float x, float y, float z, float sx, float sy
 
 void hw_draw_text(int x,int y,const char* text, uint32_t rgba) { drawGlyphString(x,y,text,rgba); }
 
+void hw_draw_text_scaled(int x,int y,const char* text, uint32_t rgba, float scale) {
+    if(scale <= 1.01f) { hw_draw_text(x,y,text,rgba); return; }
+    float cursorX = (float)x;
+    uint8_t r=(rgba>>24)&0xFF,g=(rgba>>16)&0xFF,b=(rgba>>8)&0xFF,a=rgba&0xFF;
+    for(const char* p=text; *p; ++p) {
+        char c = *p;
+        if(c=='\n') { y += (int)std::ceil(6*scale + scale); cursorX = (float)x; continue; }
+        const Glyph* glyph = findGlyph(c);
+        for(int ry=0; ry<6; ++ry) {
+            uint8_t row = glyph->rows[ry];
+            for(int rx=0; rx<5; ++rx) if(row & (1<<(4-rx))) {
+                float px = cursorX + rx*scale;
+                float py = (float)y + ry*scale;
+                C2D_DrawRectSolid(px, py, 0, scale, scale, C2D_Color32(r,g,b,a));
+            }
+        }
+        cursorX += 6*scale; if(cursorX > 400 - 6*scale) break;
+    }
+}
+
 void hw_draw_logs(int x,int y,int maxPixelsY) {
     // Render logs onto whichever target is current (caller sets scene)
     const int lineH=7; int maxLines = maxPixelsY / lineH; if(maxLines<=0) return;

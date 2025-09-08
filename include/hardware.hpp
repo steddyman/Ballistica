@@ -210,6 +210,7 @@ C2D_Image hw_image_from(HwSheet sheet, int index); // returns empty image if mis
 
 // Minimal 5x6 debug font rendering on bottom screen for HUD
 void hw_draw_text(int x,int y,const char* text, uint32_t rgba = 0xC8C8C8FF);
+void hw_draw_text_scaled(int x,int y,const char* text, uint32_t rgba, float scale);
 
 // Draw recent log lines into current target starting at (x,y); maxPixelsY caps height (optional).
 void hw_draw_logs(int x,int y,int maxPixelsY=240);

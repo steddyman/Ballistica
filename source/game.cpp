@@ -514,10 +514,17 @@ namespace game {
             if(img.tex) hw_draw_sprite(img, 0, 0);
             if(kSequence[seqPos].sheet == HwSheet::High) {
                 const highscores::Entry* tab = highscores::table();
-                for(int i=0;i<highscores::NUM_SCORES;i++) {
-                    char line[48];
-                    snprintf(line,sizeof line, "%d %6lu L%02d %-15s", i+1, (unsigned long)tab[i].score, tab[i].level, tab[i].name);
-                    hw_draw_text(8, 40 + i*10, line, 0xFFFFFFFF);
+                int shown = highscores::NUM_SCORES; if(shown>10) shown=10;
+                for(int i=0;i<shown;i++) {
+                    char nameTrunc[highscores::MAX_NAME+1];
+                    std::strncpy(nameTrunc, tab[i].name, highscores::MAX_NAME);
+                    nameTrunc[highscores::MAX_NAME]='\0';
+                    char line[64];
+                    snprintf(line,sizeof line, "%2d  %7lu  L%02d  %-10s", i+1, (unsigned long)tab[i].score, tab[i].level, nameTrunc);
+                    int baseX = 32; int baseY = 48 + i*18; float scale = 2.0f; // 10% smaller than previous 2.0
+                    // Shadow (offset 1px)
+                    hw_draw_text_scaled(baseX+1, baseY+1, line, 0x000000FF, scale);
+                    hw_draw_text_scaled(baseX, baseY, line, 0xFFFFFFFF, scale);
                 }
             }
             return;
