@@ -6,8 +6,8 @@
 // For each entry (NUM_SCORES=8): uint32_t score, uint8_t level, newline-terminated name string.
 
 namespace highscores {
-    static const int NUM_SCORES = 8;
-    static const int MAX_NAME = 15; // 15 chars + null
+    static const int NUM_SCORES = 10;
+    static const int MAX_NAME = 10; // 10 chars + null
 
     struct Entry { uint32_t score; uint8_t level; char name[MAX_NAME+1]; };
 
