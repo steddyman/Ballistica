@@ -190,105 +190,85 @@ namespace game {
         // We resolve *one* brick per frame (classic behaviour) choosing axis by
         // minimum penetration. No sweeping – velocities are low so tunnelling risk
         // is negligible; can be added later if needed.
+        auto detect_and_resolve = [&](bool movingPhase)->bool {
+            int ls = levels_left();
+            int ts = levels_top();
+            float ballL = ball.x;
+            float ballT = ball.y;
+            float ballR = ball.x + kBallW;
+            float ballB = ball.y + kBallH;
+            float centerX = ball.x + kBallW * 0.5f;
+            float centerY = ball.y + kBallH * 0.5f;
 
-        int ls = levels_left();
-        int ts = levels_top();
-
-        float ballL = ball.x;
-        float ballT = ball.y;
-        float ballR = ball.x + kBallW;
-        float ballB = ball.y + kBallH;
-        float centerX = ball.x + kBallW * 0.5f;
-        float centerY = ball.y + kBallH * 0.5f;
-
-        // Candidate columns/rows (clamped)
-        int minCol = (int)((ballL - ls) / kBrickW); if(minCol < 0) minCol = 0; if(minCol >= kBrickCols) return;
-        int maxCol = (int)((ballR - 1 - ls) / kBrickW); if(maxCol < 0) return; if(maxCol >= kBrickCols) maxCol = kBrickCols - 1;
-        int minRow = (int)((ballT - ts) / kBrickH); if(minRow < 0) minRow = 0; if(minRow >= kBrickRows) return;
-        int maxRow = (int)((ballB - 1 - ts) / kBrickH); if(maxRow < 0) return; if(maxRow >= kBrickRows) maxRow = kBrickRows - 1;
-
-        // Static bricks first
-        for(int r=minRow; r<=maxRow; ++r) {
-            for(int c=minCol; c<=maxCol; ++c) {
-                int raw = levels_brick_at(c,r);
-                if(raw <= 0) continue;
-                if(is_moving_type(raw)) continue; // handled later
-                float bx = ls + c * kBrickW;
-                float by = ts + r * kBrickH;
-                float br = bx + kBrickW;
-                float bb = by + kBrickH;
-                if(ballR <= bx || ballL >= br || ballB <= by || ballT >= bb) continue; // no overlap
-                // Overlap distances (penetrations)
-                float penLeft   = ballR - bx;      // overlap if coming from left
-                float penRight  = br - ballL;      // coming from right
-                float penTop    = ballB - by;      // from top
-                float penBottom = bb - ballT;      // from bottom
-                float penX = std::min(penLeft, penRight);
-                float penY = std::min(penTop, penBottom);
-                BrickType bt = (BrickType)raw;
-                bool destroyed = true;
-                if(bt == BrickType::T5) {
-                    destroyed = levels_damage_brick(c,r);
-                } else if(bt == BrickType::BO) {
-                    levels_remove_brick(c,r);
-                    apply_brick_effect(BrickType::BO, bx + kBrickW*0.5f, by + kBrickH*0.5f, ball);
-                    for(int k=0;k<8;k++){float angle=(float)k/8.f*6.28318f;float sp=0.6f+0.4f*(k%4);Particle p{bx + kBrickW*0.5f, by + kBrickH*0.5f, std::cos(angle)*sp, std::sin(angle)*sp, 32, C2D_Color32(255,200,50,255)};G.particles.push_back(p);} 
-                    schedule_neighbor_bombs(c,r,15);
-                } else if(bt == BrickType::ID) {
-                    destroyed = false;
-                } else {
-                    levels_remove_brick(c,r);
-                }
-                apply_brick_effect(bt, centerX, centerY, ball);
-                if(G.murderTimer <= 0) {
-                    if(penX < penY) {
-                        // Horizontal reflection
-                        if(penLeft < penRight) ball.x -= penLeft; else ball.x += penRight;
-                        ball.vx = -ball.vx;
-                    } else {
-                        if(penTop < penBottom) ball.y -= penTop; else ball.y += penBottom;
-                        ball.vy = -ball.vy;
+            if(!movingPhase) {
+                int minCol = (int)((ballL - ls) / kBrickW); if(minCol < 0) minCol = 0; if(minCol >= kBrickCols) return false;
+                int maxCol = (int)((ballR - 1 - ls) / kBrickW); if(maxCol < 0) return false; if(maxCol >= kBrickCols) maxCol = kBrickCols - 1;
+                int minRow = (int)((ballT - ts) / kBrickH); if(minRow < 0) minRow = 0; if(minRow >= kBrickRows) return false;
+                int maxRow = (int)((ballB - 1 - ts) / kBrickH); if(maxRow < 0) return false; if(maxRow >= kBrickRows) maxRow = kBrickRows - 1;
+                for(int r=minRow; r<=maxRow; ++r) for(int c=minCol; c<=maxCol; ++c) {
+                    int raw = levels_brick_at(c,r); if(raw<=0) continue; if(is_moving_type(raw)) continue;
+                    float bx = ls + c * kBrickW; float by = ts + r * kBrickH; float br = bx + kBrickW; float bb = by + kBrickH;
+                    if(ballR <= bx || ballL >= br || ballB <= by || ballT >= bb) continue;
+                    float penLeft = ballR - bx; float penRight = br - ballL; float penTop = ballB - by; float penBottom = bb - ballT;
+                    float penX = std::min(penLeft, penRight); float penY = std::min(penTop, penBottom);
+                    BrickType bt = (BrickType)raw; bool destroyed = true;
+                    if(bt == BrickType::T5) destroyed = levels_damage_brick(c,r);
+                    else if(bt == BrickType::BO) { levels_remove_brick(c,r); apply_brick_effect(BrickType::BO, bx + kBrickW*0.5f, by + kBrickH*0.5f, ball); for(int k=0;k<8;k++){float angle=(float)k/8.f*6.28318f;float sp=0.6f+0.4f*(k%4);Particle p{bx + kBrickW*0.5f, by + kBrickH*0.5f, std::cos(angle)*sp, std::sin(angle)*sp,32,C2D_Color32(255,200,50,255)};G.particles.push_back(p);} schedule_neighbor_bombs(c,r,15); }
+                    else if(bt == BrickType::ID) destroyed = false; else levels_remove_brick(c,r);
+                    apply_brick_effect(bt, centerX, centerY, ball);
+                    if(G.murderTimer <= 0) {
+                        if(penX < penY) { if(penLeft < penRight) ball.x -= penLeft; else ball.x += penRight; ball.vx = -ball.vx; }
+                        else { if(penTop < penBottom) ball.y -= penTop; else ball.y += penBottom; ball.vy = -ball.vy; }
                     }
+                    if(destroyed && levels_remaining_breakable()==0 && levels_count()>0) { int next=(levels_current()+1)%levels_count(); levels_set_current(next); hw_log("LEVEL COMPLETE\n"); }
+                    return true;
                 }
-                if(destroyed && levels_remaining_breakable()==0 && levels_count()>0) {
-                    int next = (levels_current()+1) % levels_count();
-                    levels_set_current(next); hw_log("LEVEL COMPLETE\n");
+                return false;
+            } else {
+                int ts2 = ts; // only need top offset for moving rows (ls already baked into mb.pos)
+                for(int r=0;r<kBrickRows;++r) for(int c=0;c<kBrickCols;++c) {
+                    int raw = levels_brick_at(c,r); if(!is_moving_type(raw)) continue; int idx = r*kBrickCols + c; if(idx >= (int)G.moving.size()) continue; auto &mb = G.moving[idx]; if(mb.pos < 0.f) continue;
+                    float bx = mb.pos; float by = ts2 + r*kBrickH; float br = bx + kBrickW; float bb = by + kBrickH;
+                    if(ballR <= bx || ballL >= br || ballB <= by || ballT >= bb) continue;
+                    BrickType bt = (BrickType)raw; bool destroyed = true;
+                    if(bt == BrickType::T5) destroyed = levels_damage_brick(c,r);
+                    else if(bt == BrickType::BO) { levels_remove_brick(c,r); apply_brick_effect(BrickType::BO, bx + kBrickW*0.5f, by + kBrickH*0.5f, ball); for(int k=0;k<8;k++){float angle=(float)k/8.f*6.28318f;float sp=0.6f+0.4f*(k%4);Particle p{bx + kBrickW*0.5f, by + kBrickH*0.5f, std::cos(angle)*sp, std::sin(angle)*sp,32,C2D_Color32(255,200,50,255)};G.particles.push_back(p);} schedule_neighbor_bombs(c,r,15); }
+                    else if(bt == BrickType::ID) destroyed = false; else levels_remove_brick(c,r);
+                    apply_brick_effect(bt, centerX, centerY, ball);
+                    if(G.murderTimer <= 0) {
+                        float penLeft = ballR - bx; float penRight = br - ballL; float penTop = ballB - by; float penBottom = bb - ballT;
+                        float penX = std::min(penLeft, penRight); float penY = std::min(penTop, penBottom);
+                        if(penX < penY) { if(penLeft < penRight) ball.x -= penLeft; else ball.x += penRight; ball.vx = -ball.vx; }
+                        else { if(penTop < penBottom) ball.y -= penTop; else ball.y += penBottom; ball.vy = -ball.vy; }
+                    }
+                    if(destroyed && levels_remaining_breakable()==0 && levels_count()>0) { int next=(levels_current()+1)%levels_count(); levels_set_current(next); hw_log("LEVEL COMPLETE\n"); }
+                    return true;
                 }
-                return; // only one brick per frame
+                return false;
             }
-        }
+        };
 
-        // Moving bricks: test full set (rare) – still simple AABB overlap
-        for(int r=0; r<kBrickRows; ++r) {
-            for(int c=0; c<kBrickCols; ++c) {
-                int raw = levels_brick_at(c,r); if(!is_moving_type(raw)) continue; int idx = r*kBrickCols + c; if(idx >= (int)G.moving.size()) continue; auto &mb = G.moving[idx]; if(mb.pos < 0.f) continue;
-                float bx = mb.pos; float by = ts + r * kBrickH; float br = bx + kBrickW; float bb = by + kBrickH;
-                if(ballR <= bx || ballL >= br || ballB <= by || ballT >= bb) continue;
-                BrickType bt = (BrickType)raw; bool destroyed = true;
-                if(bt == BrickType::T5) {
-                    destroyed = levels_damage_brick(c,r);
-                } else if(bt == BrickType::BO) {
-                    levels_remove_brick(c,r);
-                    apply_brick_effect(BrickType::BO, bx + kBrickW*0.5f, by + kBrickH*0.5f, ball);
-                    for(int k=0;k<8;k++){float angle=(float)k/8.f*6.28318f;float sp=0.6f+0.4f*(k%4);Particle p{bx + kBrickW*0.5f, by + kBrickH*0.5f, std::cos(angle)*sp, std::sin(angle)*sp,32,C2D_Color32(255,200,50,255)};G.particles.push_back(p);} 
-                    schedule_neighbor_bombs(c,r,15);
-                } else if(bt == BrickType::ID) { destroyed = false; }
-                else { levels_remove_brick(c,r); }
-                apply_brick_effect(bt, centerX, centerY, ball);
-                if(G.murderTimer <= 0) {
-                    float penLeft   = ballR - bx;
-                    float penRight  = br - ballL;
-                    float penTop    = ballB - by;
-                    float penBottom = bb - ballT;
-                    float penX = std::min(penLeft, penRight);
-                    float penY = std::min(penTop, penBottom);
-                    if(penX < penY) { if(penLeft < penRight) ball.x -= penLeft; else ball.x += penRight; ball.vx = -ball.vx; }
-                    else { if(penTop < penBottom) ball.y -= penTop; else ball.y += penBottom; ball.vy = -ball.vy; }
-                }
-                if(destroyed && levels_remaining_breakable()==0 && levels_count()>0) {
-                    int next = (levels_current()+1) % levels_count(); levels_set_current(next); hw_log("LEVEL COMPLETE\n"); }
-                return;
-            }
+        // Sub-step integration to prevent corner tunnelling between adjacent bricks.
+        // We subdivide the frame movement if speed exceeds 1px in any axis. On first
+        // collision we stop (maintaining one-hit-per-frame behaviour).
+        int steps = (int)std::ceil(std::max(std::fabs(ball.vx), std::fabs(ball.vy)));
+        if(steps < 1) steps = 1;
+        if(steps == 1) {
+            if(detect_and_resolve(false)) return; // static
+            (void)detect_and_resolve(true); // moving
+            return;
+        }
+        // Multi-step: start from previous position
+        float startX = ball.px; float startY = ball.py;
+        float totalDX = ball.x - startX; float totalDY = ball.y - startY;
+        // Reset to start; we will advance in increments
+        ball.x = startX; ball.y = startY;
+        for(int s=1; s<=steps; ++s) {
+            float t = (float)s / (float)steps;
+            ball.x = startX + totalDX * t;
+            ball.y = startY + totalDY * t;
+            if(detect_and_resolve(false)) return;
+            if(detect_and_resolve(true)) return;
         }
     }
 
