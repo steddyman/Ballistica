@@ -391,3 +391,26 @@ void levels_refresh_files() { levels::refresh_level_files(); }
 void levels_set_active_file(const char* f) { if(f) levels::set_active_level_file(f); }
 const char* levels_get_active_file() { return levels::get_active_level_file().c_str(); }
 void levels_reload_active() { using namespace levels; g_loaded=false; g_levels.clear(); load(); }
+bool levels_duplicate_active(const char* newBase) {
+    if(!newBase || !*newBase) return false;
+    // Sanitize: uppercase, strip invalid, max 8 chars
+    char base[9]; int bi=0; for(const char* p=newBase; *p && bi<8; ++p) {
+        char c=*p; if(c>='a'&&c<='z') c = (char)(c-'a'+'A');
+        if(!((c>='A'&&c<='Z')||(c>='0'&&c<='9')||c=='_')) continue; // allow alnum underscore
+        base[bi++]=c;
+    }
+    if(bi==0) return false;
+    base[bi]='\0';
+    // Source file path
+    const char* active = levels_get_active_file(); if(!active) return false;
+    char src[256]; snprintf(src,sizeof src,"%s/%s", "sdmc:/ballistica/levels", active);
+    char dst[256]; snprintf(dst,sizeof dst,"%s/%s.DAT", "sdmc:/ballistica/levels", base);
+    // Prevent overwrite
+    struct stat st{}; if(stat(dst,&st)==0) return false;
+    FILE* in = fopen(src,"rb"); if(!in) return false;
+    FILE* out = fopen(dst,"wb"); if(!out) { fclose(in); return false; }
+    char buf[1024]; size_t r; while((r=fread(buf,1,sizeof buf,in))>0) fwrite(buf,1,r,out);
+    fclose(in); fclose(out);
+    levels_refresh_files();
+    return true;
+}

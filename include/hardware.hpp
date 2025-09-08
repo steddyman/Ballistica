@@ -173,6 +173,7 @@ struct InputState {
 	int  stylusX = -1;
 	int  stylusY = -1;
 	bool touching = false;
+	bool touchPressed = false; // edge: became touching this frame
 	bool fireHeld = false; // D-Pad Up
 	bool startPressed = false; // START key (edge)
 	bool selectPressed = false; // SELECT key (edge)

@@ -21,6 +21,7 @@
 #include <vector>
 #include <string>
 #include "OPTIONS.h"
+#include <3ds.h> // for software keyboard
 
 // Basic game state migrated from legacy structures (incremental port)
 namespace game {
@@ -369,6 +370,29 @@ namespace game {
     static int optSelectedIndex = 0; // index into available files
     static bool optDropdownOpen = false;
     static std::string optPendingFile; // selection not yet saved
+    static char optDuplicateName[9] = {0}; // user-entered duplicate base name (sanitized uppercase)
+    static int optScrollOffset = 0; // scroll offset for dropdown list
+    static constexpr int kMaxVisibleDropdown = 8;
+    // Legacy touch release tracking removed; we now rely solely on hardware edge (touchPressed)
+
+    static void options_show_name_keyboard() {
+        SwkbdState swkbd; swkbdInit(&swkbd, SWKBD_TYPE_NORMAL, 2, 8);
+        swkbdSetValidation(&swkbd, SWKBD_NOTEMPTY_NOTBLANK, 0, 0);
+        swkbdSetInitialText(&swkbd, optDuplicateName[0]?optDuplicateName:"");
+        swkbdSetHintText(&swkbd, "Enter name (A-Z 0-9 _)");
+        static char out[9]; memset(out,0,sizeof out);
+        SwkbdButton btn = swkbdInputText(&swkbd, out, sizeof(out));
+        if(btn == SWKBD_BUTTON_CONFIRM) {
+            char sanitized[9]; int si=0; for(int i=0; i<8 && out[i]; ++i) {
+                char c = out[i];
+                if(c>='a'&&c<='z') c = (char)(c - 'a' + 'A');
+                if(!((c>='A'&&c<='Z')||(c>='0'&&c<='9')||c=='_')) continue; // skip invalid
+                sanitized[si++] = c;
+            }
+            sanitized[si]='\0';
+            if(si>0) { strncpy(optDuplicateName, sanitized, sizeof(optDuplicateName)); optDuplicateName[8]='\0'; }
+        }
+    }
 
     void update(const InputState& in) {
         if(G.mode == Mode::Title) {
@@ -394,32 +418,97 @@ namespace game {
             return;
         }
     if(G.mode == Mode::Options) {
-        // guard against re-entrancy issues
-        const auto &filesDbg = levels_available_files(); char dbgBuf[96]; snprintf(dbgBuf,sizeof dbgBuf,"OPTIONS update files=%d sel=%d open=%d\n", (int)filesDbg.size(), optSelectedIndex, optDropdownOpen?1:0); hw_log(dbgBuf);
-        // Basic touch UI: a single dropdown listing files and two buttons SAVE / CANCEL
-        if(in.touching) {
-            int x = in.stylusX; int y = in.stylusY;
-            // Dropdown box area (positioned at 40,60 width 240 height dynamic)
-            int ddX=40, ddY=60, ddW=240, ddH=20; // closed height
-            const auto &files = levels_available_files();
-            if(!optPendingFile.size() && !files.empty()) optPendingFile = files[0];
-            if(optDropdownOpen) ddH = 20 + (int)files.size()*16;
-            if(x>=ddX && x<ddX+ddW && y>=ddY && y<ddY+ddH) {
-                if(!optDropdownOpen) { optDropdownOpen = true; }
-                else {
-                    if(y > ddY+20) {
-                        int rel = y - (ddY+20);
-                        int idx = rel / 16;
-                        if(idx >=0 && idx < (int)files.size()) { optSelectedIndex=idx; optPendingFile = files[idx]; optDropdownOpen=false; }
-                    } else { optDropdownOpen=false; }
+        const int ddX=40, ddY=60, ddW=240, ddH=20; // dropdown header
+        const int itemH=16;
+        const int nameX=40, nameY=100, nameW=120, nameH=20;
+        const int dupX=180, dupY=100, dupW=120, dupH=20;
+        const int cancelX=60, cancelY=190, btnW=60, btnH=20;
+        const int saveX=200, saveY=190; // same width/height as cancel
+
+        const auto &files = levels_available_files();
+        if(optSelectedIndex < 0 && !files.empty()) optSelectedIndex = 0;
+        if(optSelectedIndex >= (int)files.size() && !files.empty()) optSelectedIndex = (int)files.size()-1;
+        if(optPendingFile.empty() && !files.empty() && optSelectedIndex >=0) optPendingFile = files[optSelectedIndex];
+
+        if(in.touchPressed) {
+            int x=in.stylusX, y=in.stylusY;
+
+            // NAME field -> software keyboard
+            if(x>=nameX && x<nameX+nameW && y>=nameY && y<nameY+nameH) {
+                options_show_name_keyboard();
+            }
+            // DUPLICATE
+            else if(x>=dupX && x<dupX+dupW && y>=dupY && y<dupY+dupH) {
+                if(optDuplicateName[0]) {
+                    bool ok = levels_duplicate_active(optDuplicateName);
+                    if(ok) {
+                        levels_refresh_files();
+                        std::string created = std::string(optDuplicateName)+".DAT";
+                        const auto &fl = levels_available_files();
+                        for(size_t i=0;i<fl.size(); ++i) if(fl[i]==created) { optSelectedIndex=(int)i; optPendingFile=fl[i]; break; }
+                        // Adjust scroll after selection
+                        if(optSelectedIndex < optScrollOffset) optScrollOffset = optSelectedIndex;
+                        if(optSelectedIndex >= optScrollOffset + kMaxVisibleDropdown) optScrollOffset = optSelectedIndex - kMaxVisibleDropdown + 1;
+                        optDuplicateName[0]='\0';
+                        hw_log("duplicate ok\n");
+                    } else hw_log("duplicate failed\n");
                 }
             }
-            // Buttons at bottom: CANCEL (60,190)-(120,210) SAVE (200,190)-(260,210)
-            if(x>=60 && x<120 && y>=190 && y<210) { // cancel
+            // CANCEL
+            else if(x>=cancelX && x<cancelX+btnW && y>=cancelY && y<cancelY+btnH) {
                 G.mode = Mode::Title; hw_log("options cancel\n"); return; }
-            if(x>=200 && x<260 && y>=190 && y<210) { // save
+            // SAVE
+            else if(x>=saveX && x<saveX+btnW && y>=saveY && y<saveY+btnH) {
                 if(!optPendingFile.empty()) { levels_set_active_file(optPendingFile.c_str()); levels_reload_active(); levels_set_current(0); levels_reset_level(0); }
                 G.mode = Mode::Title; hw_log("options save\n"); return; }
+            // Dropdown header / arrow toggle
+            else if(x>=ddX && x<ddX+ddW && y>=ddY && y<ddY+ddH) {
+                int arrowX0 = ddX + ddW - 32; // extended arrow zone
+                if(!optDropdownOpen) {
+                    optDropdownOpen = true;
+                    if(optSelectedIndex < optScrollOffset) optScrollOffset = optSelectedIndex;
+                    if(optSelectedIndex >= optScrollOffset + kMaxVisibleDropdown) optScrollOffset = optSelectedIndex - kMaxVisibleDropdown + 1;
+                } else if(x>=arrowX0) {
+                    // only close when pressing on arrow while open
+                    optDropdownOpen = false;
+                }
+            }
+            // Dropdown list interactions
+            else if(optDropdownOpen) {
+                int listStartY = ddY + 20;
+                if(files.size() > (size_t)kMaxVisibleDropdown) {
+                    int topArrowY0 = listStartY;
+                    int itemsY0 = topArrowY0 + itemH; // skip top arrow
+                    int itemsY1 = itemsY0 + kMaxVisibleDropdown*itemH;
+                    int bottomArrowY0 = itemsY1; // bottom arrow row
+                    if(x>=ddX && x<ddX+ddW) {
+                        if(y>=topArrowY0 && y<topArrowY0+itemH) {
+                            if(optScrollOffset>0) optScrollOffset--; }
+                        else if(y>=bottomArrowY0 && y<bottomArrowY0+itemH) {
+                            if(optScrollOffset + kMaxVisibleDropdown < (int)files.size()) optScrollOffset++; }
+                        else if(y>=itemsY0 && y<itemsY1) {
+                            int rel = (y - itemsY0)/itemH; int idx = optScrollOffset + rel;
+                            if(idx>=0 && idx < (int)files.size()) { optSelectedIndex=idx; optPendingFile=files[idx]; optDropdownOpen=false; }
+                        } else {
+                            optDropdownOpen=false; // clicked within x bounds but outside known rows
+                        }
+                    } else {
+                        optDropdownOpen=false; // outside x bounds
+                    }
+                } else { // non-scrolling list
+                    int listH = (int)files.size()*itemH;
+                    if(x>=ddX && x<ddX+ddW && y>=listStartY && y<listStartY+listH) {
+                        int rel = (y - listStartY)/itemH; int idx = rel;
+                        if(idx>=0 && idx < (int)files.size()) { optSelectedIndex=idx; optPendingFile=files[idx]; optDropdownOpen=false; }
+                    } else {
+                        optDropdownOpen=false; // outside list
+                    }
+                }
+            }
+            else {
+                // Click outside anything closes dropdown if open (handled above) else no-op
+                if(optDropdownOpen) optDropdownOpen=false;
+            }
         }
         if(in.selectPressed) { G.mode = Mode::Title; hw_log("options->title (SELECT)\n"); return; }
         return;
@@ -627,26 +716,56 @@ namespace game {
                 C2D_DrawRectSolid(0,0,0,320,240,C2D_Color32(20,20,40,255));
                 hw_draw_text(100,20,"OPTIONS",0xFFFFFFFF);
             }
-            // Draw dropdown
+            // Draw dropdown header (always)
             const auto &files = levels_available_files();
             int ddX=40, ddY=60, ddW=240; int itemH=16;
             C2D_DrawRectSolid(ddX,ddY,0,ddW,20,C2D_Color32(40,40,60,255));
-            hw_draw_text(ddX+8, ddY+6, files.empty()?"(no .DAT)": (files.size()> (size_t)optSelectedIndex? files[optSelectedIndex].c_str():"?"), 0xFFFFFFFF);
-            // indicator
+            hw_draw_text(ddX+8, ddY+6, files.empty()?"(no .DAT)": (files.size()>(size_t)optSelectedIndex?files[optSelectedIndex].c_str():"?"), 0xFFFFFFFF);
             C2D_DrawRectSolid(ddX+ddW-16, ddY+2,0,12,12,C2D_Color32(80,80,110,255));
-            if(optDropdownOpen) {
-                int h = (int)files.size()*itemH;
-                C2D_DrawRectSolid(ddX, ddY+20,0,ddW,h,C2D_Color32(30,30,50,255));
-                for(size_t i=0;i<files.size();++i) {
-                    int iy = ddY+20 + (int)i*itemH;
-                    uint32_t col = (i== (size_t)optSelectedIndex)? C2D_Color32(70,70,110,255):C2D_Color32(50,50,80,255);
-                    C2D_DrawRectSolid(ddX+2,iy+1,0,ddW-4,itemH-2,col);
-                    hw_draw_text(ddX+6,iy+4, files[i].c_str(), 0xFFFFFFFF);
-                }
-            }
+            // Name input label and box
+            hw_draw_text(40,92,"NAME:",0xFFFFFFFF);
+            C2D_DrawRectSolid(40,100,0,120,20,C2D_Color32(40,40,60,255));
+            hw_draw_text(48,106,optDuplicateName[0]?optDuplicateName:"TAP",0xFFFFFFFF);
+            // Duplicate button
+            C2D_DrawRectSolid(180,100,0,120,20,C2D_Color32(60,40,40,255)); hw_draw_text(188,106,"DUPLICATE",0xFFFFFFFF);
             // Buttons
             C2D_DrawRectSolid(60,190,0,60,20,C2D_Color32(50,30,30,255)); hw_draw_text(70,198,"CANCEL",0xFFFFFFFF);
             C2D_DrawRectSolid(200,190,0,60,20,C2D_Color32(30,50,30,255)); hw_draw_text(212,198,"SAVE",0xFFFFFFFF);
+            // Draw dropdown list LAST so it overlays other controls if open
+            if(optDropdownOpen) {
+                if(files.size() > (size_t)kMaxVisibleDropdown) {
+                    // Scrolling variant with arrows
+                    if(optScrollOffset < 0) optScrollOffset = 0;
+                    int maxStart = (int)files.size() - kMaxVisibleDropdown; if(maxStart < 0) maxStart = 0;
+                    if(optScrollOffset > maxStart) optScrollOffset = maxStart;
+                    int h = (kMaxVisibleDropdown + 2)*itemH; // +2 for arrows
+                    int boxY = ddY + 20;
+                    C2D_DrawRectSolid(ddX, boxY, 0, ddW, h, C2D_Color32(30,30,50,255));
+                    // Top arrow
+                    C2D_DrawRectSolid(ddX+2, boxY+2,0,ddW-4,itemH-4, C2D_Color32(50,50,80,255)); hw_draw_text(ddX+ddW/2-12, boxY+4, "UP", 0xFFFFFFFF);
+                    // Items
+                    int itemsY0 = boxY + itemH;
+                    for(int vis=0; vis<kMaxVisibleDropdown; ++vis) {
+                        int fi = optScrollOffset + vis; if(fi >= (int)files.size()) break;
+                        int iy = itemsY0 + vis*itemH;
+                        uint32_t col = (fi==optSelectedIndex)? C2D_Color32(70,70,110,255):C2D_Color32(50,50,80,255);
+                        C2D_DrawRectSolid(ddX+2,iy+1,0,ddW-4,itemH-2,col);
+                        hw_draw_text(ddX+6,iy+4, files[fi].c_str(), 0xFFFFFFFF);
+                    }
+                    // Bottom arrow
+                    int bottomY = itemsY0 + kMaxVisibleDropdown*itemH;
+                    C2D_DrawRectSolid(ddX+2, bottomY+2,0,ddW-4,itemH-4, C2D_Color32(50,50,80,255)); hw_draw_text(ddX+ddW/2-16, bottomY+4, "DOWN", 0xFFFFFFFF);
+                } else {
+                    int h = (int)files.size()*itemH;
+                    C2D_DrawRectSolid(ddX, ddY+20,0,ddW,h,C2D_Color32(30,30,50,255));
+                    for(size_t i=0;i<files.size();++i) {
+                        int iy = ddY+20 + (int)i*itemH;
+                        uint32_t col = (i==(size_t)optSelectedIndex)? C2D_Color32(70,70,110,255):C2D_Color32(50,50,80,255);
+                        C2D_DrawRectSolid(ddX+2,iy+1,0,ddW-4,itemH-2,col);
+                        hw_draw_text(ddX+6,iy+4, files[i].c_str(), 0xFFFFFFFF);
+                    }
+                }
+            }
             return;
         }
     // Render static bricks first then overwrite dynamic moving bricks at their current x
