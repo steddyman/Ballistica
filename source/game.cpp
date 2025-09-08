@@ -22,6 +22,13 @@
 
 // Basic game state migrated from legacy structures (incremental port)
 namespace game {
+    // Fixed geometry (design guarantees these never change now)
+    static constexpr int kBrickCols = 13;
+    static constexpr int kBrickRows = 11;
+    static constexpr int kBrickW    = 16;
+    static constexpr int kBrickH    = 9;
+    static constexpr int kBallW     = BALLWIDTH;  // 3
+    static constexpr int kBallH     = BALLHEIGHT; // 3
     struct Ball { float x, y; float vx, vy; float px, py; bool active; C2D_Image img; };
     struct Laser { float x,y; bool active; };
     struct Bat  { float x, y; float width, height; C2D_Image img; };
@@ -178,135 +185,68 @@ namespace game {
     static void update_moving_bricks(); // fwd
 
     static void handle_ball_bricks(Ball &ball) {
-    // Brick collision detection (legacy logic adapted to new rendering)
-    // ---------------------------------------------------------------
-    // We keep a small logical collider for the ball that matches the original DOS game
-    // (BALLWIDTH x BALLHEIGHT = 3x3). The rendered sprite is larger (e.g. 8x8) so we
-    // compute a logical rectangle centered inside the drawn image. All brick collision
-    // math operates on this logical rect so the game feel stays faithful while visuals
-    // can be higher resolution.
-    // Key goals:
-    //  1. Avoid premature side / top hits caused by the larger sprite.
-    //  2. Preserve classic reflection behaviour (choose the axis with the smaller
-    //     penetration unless we clearly crossed a top/bottom edge this frame).
-    //  3. Provide a tiny vertical sweep assist only when the ball actually crosses the
-    //     top or bottom plane of a brick while its center is horizontally inside that
-    //     brick. This prevents missing very thin contacts on slow / shallow angles
-    //     while not corrupting pure side glances (which should reflect horizontally and
-    //     keep moving upward).
-        int cols = levels_grid_width(); int rows=levels_grid_height();
-        int ls=levels_left(), ts=levels_top(), cw=levels_brick_width(), ch=levels_brick_height();
-        float spriteW = (ball.img.subtex ? ball.img.subtex->width : 8.f);
-        float spriteH = (ball.img.subtex ? ball.img.subtex->height : 8.f);
-        float centerX = ball.x + spriteW * 0.5f;
-        float centerY = ball.y + spriteH * 0.5f;
-        float prevCenterY = ball.py + spriteH * 0.5f;
-        float halfW = BALLWIDTH * 0.5f; float halfH = BALLHEIGHT * 0.5f;
-        float logicalL = centerX - halfW; float logicalR = centerX + halfW;
-        float logicalT = centerY - halfH; float logicalB = centerY + halfH;
-        float prevLogicalT = prevCenterY - halfH; float prevLogicalB = prevCenterY + halfH;
-        int minCol = std::max(0, (int)((logicalL - ls)/cw));
-        int maxCol = std::min(cols-1, (int)((logicalR - ls)/cw));
-        int minRow = std::max(0, (int)((logicalT - ts)/ch));
-        int maxRow = std::min(rows-1, (int)((logicalB - ts)/ch));
-        bool hit = false; // prevent double-hit in same frame
+        // Simplified brick collision: treat the ball as a 3x3 box (fixed) and test
+        // overlap against bricks (all 16x9) using minimal candidate cell range.
+        // We resolve *one* brick per frame (classic behaviour) choosing axis by
+        // minimum penetration. No sweeping – velocities are low so tunnelling risk
+        // is negligible; can be added later if needed.
+
+        int ls = levels_left();
+        int ts = levels_top();
+
+        float ballL = ball.x;
+        float ballT = ball.y;
+        float ballR = ball.x + kBallW;
+        float ballB = ball.y + kBallH;
+        float centerX = ball.x + kBallW * 0.5f;
+        float centerY = ball.y + kBallH * 0.5f;
+
+        // Candidate columns/rows (clamped)
+        int minCol = (int)((ballL - ls) / kBrickW); if(minCol < 0) minCol = 0; if(minCol >= kBrickCols) return;
+        int maxCol = (int)((ballR - 1 - ls) / kBrickW); if(maxCol < 0) return; if(maxCol >= kBrickCols) maxCol = kBrickCols - 1;
+        int minRow = (int)((ballT - ts) / kBrickH); if(minRow < 0) minRow = 0; if(minRow >= kBrickRows) return;
+        int maxRow = (int)((ballB - 1 - ts) / kBrickH); if(maxRow < 0) return; if(maxRow >= kBrickRows) maxRow = kBrickRows - 1;
+
+        // Static bricks first
         for(int r=minRow; r<=maxRow; ++r) {
             for(int c=minCol; c<=maxCol; ++c) {
                 int raw = levels_brick_at(c,r);
-                if(raw<=0) continue;
-                if(is_moving_type(raw)) continue; // handle moving bricks separately with dynamic position
+                if(raw <= 0) continue;
+                if(is_moving_type(raw)) continue; // handled later
+                float bx = ls + c * kBrickW;
+                float by = ts + r * kBrickH;
+                float br = bx + kBrickW;
+                float bb = by + kBrickH;
+                if(ballR <= bx || ballL >= br || ballB <= by || ballT >= bb) continue; // no overlap
+                // Overlap distances (penetrations)
+                float penLeft   = ballR - bx;      // overlap if coming from left
+                float penRight  = br - ballL;      // coming from right
+                float penTop    = ballB - by;      // from top
+                float penBottom = bb - ballT;      // from bottom
+                float penX = std::min(penLeft, penRight);
+                float penY = std::min(penTop, penBottom);
                 BrickType bt = (BrickType)raw;
-            // Brick AABB in screen space
-            float bx = ls + c*cw; float by = ts + r*ch; float br = bx + cw; float bb = by + ch;
-            float ballL = logicalL, ballR = logicalR, ballT = logicalT, ballB = logicalB;
-            if(ballR <= bx || ballL >= br || ballB <= by || ballT >= bb) continue; // no overlap
-            // Penetration depths used to choose primary reflection axis (classic AABB rule)
-            float penX = std::min(ballR - bx, br - ballL); // overlap distance along X toward the smaller exit
-            float penY = std::min(ballB - by, bb - ballT); // overlap distance along Y
-            // Edge crossing tests: detect if the ball moved through the exact top or bottom plane
-            // between last frame and this frame (helps catch thin or near-miss contacts).
-            bool crossedTopEdge    = (ball.vy > 0) && (prevLogicalB <= by) && (logicalB >= by);
-            bool crossedBottomEdge = (ball.vy < 0) && (prevLogicalT >= bb) && (logicalT <= bb);
-            // Only treat an edge crossing as a forced vertical collision if the logical center
-            // is horizontally inside the brick. Side glances should not be reinterpreted as
-            // vertical hits; they are important for consistent upward travel along walls.
-            bool centerInsideHoriz = (centerX > bx && centerX < br);
-            bool destroyed = true;
-                if(bt == BrickType::T5) {
-                    destroyed = levels_damage_brick(c,r);
-                } else if(bt == BrickType::BO) {
-                    // Immediate bomb: remove and schedule neighbors
-                    levels_remove_brick(c,r);
-                    apply_brick_effect(BrickType::BO, ls + c*cw + cw/2, ts + r*ch + ch/2, ball);
-                    for(int k=0;k<8;k++){float angle=(float)k/8.f*6.28318f;float sp=0.6f+0.4f*(k%4);Particle p{(float)(ls + c*cw + cw/2),(float)(ts + r*ch + ch/2),std::cos(angle)*sp,std::sin(angle)*sp,32,C2D_Color32(255,200,50,255)};G.particles.push_back(p);} 
-                    schedule_neighbor_bombs(c,r,15);
-                } else if(bt == BrickType::ID) {
-                    destroyed = false; // no removal
-                } else {
-                    levels_remove_brick(c,r);
-                }
-        apply_brick_effect(bt, centerX, centerY, ball);
-                if(G.murderTimer<=0) {
-                    bool forceVertical = centerInsideHoriz && (crossedTopEdge || crossedBottomEdge); // restrict vertical bias to true top/bottom crossings
-                    if(!forceVertical && penX < penY) {
-                        // Horizontal reflection: shallower horizontal penetration than vertical, or side glance
-                        if(centerX < bx) ball.x -= penX; else ball.x += penX; // resolve along X
-                        ball.vx = -ball.vx;
-                    } else {
-                        // Vertical reflection (either penetration favored Y or we purposely forced it)
-                        if(centerY < by) ball.y -= penY; else ball.y += penY; // resolve along Y
-                        ball.vy = -ball.vy;
-                    }
-                }
-                if(destroyed && levels_remaining_breakable()==0 && levels_count()>0) {
-                    int next = (levels_current()+1) % levels_count();
-                    levels_set_current(next);
-                    hw_log("LEVEL COMPLETE\n");
-                }
-        hit = true;
-        goto after_static;
-            }
-        }
-    after_static:;
-    if(hit) return;
-        // Second pass: moving bricks dynamic collision (first hit only)
-        for(int r=0;r<rows;++r) {
-            for(int c=0;c<cols;++c) {
-                int raw = levels_brick_at(c,r);
-                if(!is_moving_type(raw)) continue;
-                int idx = r*cols + c;
-        if(idx >= (int)G.moving.size() || G.moving[idx].pos < 0.f) continue;
-                float bx = G.moving[idx].pos; float by = ts + r*ch; float br = bx + cw; float bb = by + ch;
-                float ballL = logicalL, ballR = logicalR, ballT = logicalT, ballB = logicalB;
-                if(ballR <= bx || ballL >= br || ballB <= by || ballT >= bb) continue;
-                BrickType bt = (BrickType)raw;
-                // Same logic for moving bricks (dynamic bx)
-                float penX = std::min(ballR - bx, br - ballL);
-                float penY = std::min(ballB - by, bb - ballT);
-                bool crossedTopEdge    = (ball.vy > 0) && (prevLogicalB <= by) && (logicalB >= by);
-                bool crossedBottomEdge = (ball.vy < 0) && (prevLogicalT >= bb) && (logicalT <= bb);
-                bool centerInsideHoriz = (centerX > bx && centerX < br);
                 bool destroyed = true;
                 if(bt == BrickType::T5) {
                     destroyed = levels_damage_brick(c,r);
                 } else if(bt == BrickType::BO) {
                     levels_remove_brick(c,r);
-                    apply_brick_effect(BrickType::BO, ls + c*cw + cw/2, ts + r*ch + ch/2, ball);
-                    for(int k=0;k<8;k++){float angle=(float)k/8.f*6.28318f;float sp=0.6f+0.4f*(k%4);Particle p{(float)(ls + c*cw + cw/2),(float)(ts + r*ch + ch/2),std::cos(angle)*sp,std::sin(angle)*sp,32,C2D_Color32(255,200,50,255)};G.particles.push_back(p);} 
+                    apply_brick_effect(BrickType::BO, bx + kBrickW*0.5f, by + kBrickH*0.5f, ball);
+                    for(int k=0;k<8;k++){float angle=(float)k/8.f*6.28318f;float sp=0.6f+0.4f*(k%4);Particle p{bx + kBrickW*0.5f, by + kBrickH*0.5f, std::cos(angle)*sp, std::sin(angle)*sp, 32, C2D_Color32(255,200,50,255)};G.particles.push_back(p);} 
                     schedule_neighbor_bombs(c,r,15);
                 } else if(bt == BrickType::ID) {
                     destroyed = false;
                 } else {
                     levels_remove_brick(c,r);
                 }
-        apply_brick_effect(bt, centerX, centerY, ball);
-                if(G.murderTimer<=0) {
-                    bool forceVertical = centerInsideHoriz && (crossedTopEdge || crossedBottomEdge);
-                    if(!forceVertical && penX < penY) {
-                        if(centerX < bx) ball.x -= penX; else ball.x += penX; // X resolve for side hit
+                apply_brick_effect(bt, centerX, centerY, ball);
+                if(G.murderTimer <= 0) {
+                    if(penX < penY) {
+                        // Horizontal reflection
+                        if(penLeft < penRight) ball.x -= penLeft; else ball.x += penRight;
                         ball.vx = -ball.vx;
                     } else {
-                        if(centerY < by) ball.y -= penY; else ball.y += penY; // Y resolve for top/bottom hit
+                        if(penTop < penBottom) ball.y -= penTop; else ball.y += penBottom;
                         ball.vy = -ball.vy;
                     }
                 }
@@ -314,7 +254,40 @@ namespace game {
                     int next = (levels_current()+1) % levels_count();
                     levels_set_current(next); hw_log("LEVEL COMPLETE\n");
                 }
-                return; // only first moving brick hit
+                return; // only one brick per frame
+            }
+        }
+
+        // Moving bricks: test full set (rare) – still simple AABB overlap
+        for(int r=0; r<kBrickRows; ++r) {
+            for(int c=0; c<kBrickCols; ++c) {
+                int raw = levels_brick_at(c,r); if(!is_moving_type(raw)) continue; int idx = r*kBrickCols + c; if(idx >= (int)G.moving.size()) continue; auto &mb = G.moving[idx]; if(mb.pos < 0.f) continue;
+                float bx = mb.pos; float by = ts + r * kBrickH; float br = bx + kBrickW; float bb = by + kBrickH;
+                if(ballR <= bx || ballL >= br || ballB <= by || ballT >= bb) continue;
+                BrickType bt = (BrickType)raw; bool destroyed = true;
+                if(bt == BrickType::T5) {
+                    destroyed = levels_damage_brick(c,r);
+                } else if(bt == BrickType::BO) {
+                    levels_remove_brick(c,r);
+                    apply_brick_effect(BrickType::BO, bx + kBrickW*0.5f, by + kBrickH*0.5f, ball);
+                    for(int k=0;k<8;k++){float angle=(float)k/8.f*6.28318f;float sp=0.6f+0.4f*(k%4);Particle p{bx + kBrickW*0.5f, by + kBrickH*0.5f, std::cos(angle)*sp, std::sin(angle)*sp,32,C2D_Color32(255,200,50,255)};G.particles.push_back(p);} 
+                    schedule_neighbor_bombs(c,r,15);
+                } else if(bt == BrickType::ID) { destroyed = false; }
+                else { levels_remove_brick(c,r); }
+                apply_brick_effect(bt, centerX, centerY, ball);
+                if(G.murderTimer <= 0) {
+                    float penLeft   = ballR - bx;
+                    float penRight  = br - ballL;
+                    float penTop    = ballB - by;
+                    float penBottom = bb - ballT;
+                    float penX = std::min(penLeft, penRight);
+                    float penY = std::min(penTop, penBottom);
+                    if(penX < penY) { if(penLeft < penRight) ball.x -= penLeft; else ball.x += penRight; ball.vx = -ball.vx; }
+                    else { if(penTop < penBottom) ball.y -= penTop; else ball.y += penBottom; ball.vy = -ball.vy; }
+                }
+                if(destroyed && levels_remaining_breakable()==0 && levels_count()>0) {
+                    int next = (levels_current()+1) % levels_count(); levels_set_current(next); hw_log("LEVEL COMPLETE\n"); }
+                return;
             }
         }
     }
