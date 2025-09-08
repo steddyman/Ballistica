@@ -165,6 +165,7 @@ void hw_poll_input(InputState& out) {
     u32 kDown = hidKeysDown();
     touchPosition tp{};
     out.touching = (kHeld & KEY_TOUCH) != 0;
+    out.touchPressed = (kDown & KEY_TOUCH) != 0;
     if(out.touching) { hidTouchRead(&tp); out.stylusX = tp.px; out.stylusY = tp.py; }
     else { out.stylusX = out.stylusY = -1; }
     out.fireHeld = (kHeld & KEY_DUP) != 0;

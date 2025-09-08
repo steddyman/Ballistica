@@ -50,3 +50,7 @@ void levels_refresh_files();
 void levels_set_active_file(const char* filename); // set desired .DAT (basename)
 const char* levels_get_active_file();
 void levels_reload_active();
+
+// Duplicate currently selected level file to a new 8-char (max) uppercase name (without extension).
+// Returns true on success.
+bool levels_duplicate_active(const char* newBaseName);
