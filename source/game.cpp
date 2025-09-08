@@ -217,8 +217,25 @@ namespace game {
                     else if(bt == BrickType::ID) destroyed = false; else levels_remove_brick(c,r);
                     apply_brick_effect(bt, centerX, centerY, ball);
                     if(G.murderTimer <= 0) {
-                        if(penX < penY) { if(penLeft < penRight) ball.x -= penLeft; else ball.x += penRight; ball.vx = -ball.vx; }
-                        else { if(penTop < penBottom) ball.y -= penTop; else ball.y += penBottom; ball.vy = -ball.vy; }
+                        // Seam handling: if we are in a solid band of indestructible bricks and
+                        // the collision is near a vertical seam (between two adjacent ID bricks),
+                        // prefer a vertical bounce to avoid artificial horizontal reversals.
+                        bool preferVertical = false;
+                        if(bt == BrickType::ID && penX < penY && std::fabs(ball.vy) >= std::fabs(ball.vx)) {
+                            // Determine which side we would resolve on horizontally and check neighbor brick
+                            bool resolveLeftSide = (penLeft < penRight);
+                            int neighborType = 0;
+                            if(resolveLeftSide && c > 0) neighborType = levels_brick_at(c-1, r);
+                            if(!resolveLeftSide && c < kBrickCols-1) neighborType = levels_brick_at(c+1, r);
+                            if(neighborType == (int)BrickType::ID) preferVertical = true; // continuous wall
+                        }
+                        if(!preferVertical && penX < penY) {
+                            if(penLeft < penRight) ball.x -= penLeft; else ball.x += penRight;
+                            ball.vx = -ball.vx;
+                        } else {
+                            if(penTop < penBottom) ball.y -= penTop; else ball.y += penBottom;
+                            ball.vy = -ball.vy;
+                        }
                     }
                     if(destroyed && levels_remaining_breakable()==0 && levels_count()>0) { int next=(levels_current()+1)%levels_count(); levels_set_current(next); hw_log("LEVEL COMPLETE\n"); }
                     return true;
@@ -238,8 +255,19 @@ namespace game {
                     if(G.murderTimer <= 0) {
                         float penLeft = ballR - bx; float penRight = br - ballL; float penTop = ballB - by; float penBottom = bb - ballT;
                         float penX = std::min(penLeft, penRight); float penY = std::min(penTop, penBottom);
-                        if(penX < penY) { if(penLeft < penRight) ball.x -= penLeft; else ball.x += penRight; ball.vx = -ball.vx; }
-                        else { if(penTop < penBottom) ball.y -= penTop; else ball.y += penBottom; ball.vy = -ball.vy; }
+                        bool preferVertical = false;
+                        if(bt == BrickType::ID && penX < penY && std::fabs(ball.vy) >= std::fabs(ball.vx)) {
+                            bool resolveLeftSide = (penLeft < penRight);
+                            int neighborType = 0; // moving bricks rarely form continuous walls; still check
+                            if(resolveLeftSide && c > 0) neighborType = levels_brick_at(c-1, r);
+                            if(!resolveLeftSide && c < kBrickCols-1) neighborType = levels_brick_at(c+1, r);
+                            if(neighborType == (int)BrickType::ID) preferVertical = true;
+                        }
+                        if(!preferVertical && penX < penY) {
+                            if(penLeft < penRight) ball.x -= penLeft; else ball.x += penRight; ball.vx = -ball.vx;
+                        } else {
+                            if(penTop < penBottom) ball.y -= penTop; else ball.y += penBottom; ball.vy = -ball.vy;
+                        }
                     }
                     if(destroyed && levels_remaining_breakable()==0 && levels_count()>0) { int next=(levels_current()+1)%levels_count(); levels_set_current(next); hw_log("LEVEL COMPLETE\n"); }
                     return true;
