@@ -262,3 +262,12 @@ C2D_DrawImageAt(img, x, y, 0.0f);
 - Add a compile‑time **PLATFORM** define (`-DPLATFORM_3DS`) and ensure non‑3DS stubs continue to build.
 - Add a simple FPS limiter/measure using `svcSleepThread` or `gspWaitForVBlank` if needed.
 - Add a minimal **asset manager** wrapper that owns `C2D_SpriteSheet` and provides name→image lookups using your generated index headers.
+
+
+-- Debug notes
+I see the following lines in the debugging output:
+
+GAME_INIT
+NO ROMFS LEVELS.DAT
+OPEN SD LEVELS FAIL
+ASSETS LOADED

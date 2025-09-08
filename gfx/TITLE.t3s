@@ -1,13 +1,5 @@
-output: TITLE.t3x
-atlas: true
-maxsize: 1024x1024
-miplevels: 1
-format: rgba8
-wrapS: clamp
-wrapT: clamp
-filterMin: linear
-filterMag: linear
-allowRotate: false
-trim: false
-files:
-  - images/TITLE.png
+-f
+rgba8
+-z
+auto
+images/TITLE.png

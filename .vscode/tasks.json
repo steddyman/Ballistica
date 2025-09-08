@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "3ds: Build",
+      "type": "shell",
+      "command": "make",
+      "problemMatcher": "$gcc",
+      "options": { "env": { "DEVKITPRO": "/opt/devkitpro", "DEVKITARM": "/opt/devkitpro/devkitARM" } }
+    },
+    {
+      "label": "3ds: Clean",
+      "type": "shell",
+      "command": "make clean",
+      "problemMatcher": "$gcc",
+      "options": { "env": { "DEVKITPRO": "/opt/devkitpro", "DEVKITARM": "/opt/devkitpro/devkitARM" } }
+    },
+    {
+      "label": "3ds: Run Azahar (.3dsx, GDB stub)",
+      "type": "shell",
+      "command": "/Applications/Azahar.app/Contents/MacOS/Azahar --gdbport=4003 \"${workspaceFolder}/${workspaceFolderBasename}.3dsx\"",
+      "problemMatcher": []
+    }
+  ]
+}
