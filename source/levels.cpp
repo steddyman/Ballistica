@@ -8,6 +8,8 @@
 #include <cstring>
 #include <unordered_map>
 #include <sys/stat.h>
+#include <dirent.h>
+#include <algorithm>
 #include "hardware.hpp"
 #include "IMAGE.h"
 #include "brick.hpp"
@@ -22,7 +24,9 @@ namespace levels {
     static const int TOPSTART=18;
 
     static const char* kSdDir = "sdmc:/ballistica";
-    static const char* kLevelFile = "LEVELS.DAT";
+    static const char* kLevelsSubDir = "sdmc:/ballistica/levels";
+    static std::string g_activeLevelFile = "LEVELS.DAT"; // default
+    static std::vector<std::string> g_fileList; // cached .DAT names
 
     struct Level {
         std::string name;
@@ -83,15 +87,73 @@ namespace levels {
 
     static void ensureOnSdmc() {
         mkdir(kSdDir, 0777); // ignore errors
-        char sdPath[256]; snprintf(sdPath, sizeof(sdPath), "%s/%s", kSdDir, kLevelFile);
-        if(fileExists(sdPath)) return; // already present
-        FILE* in = fopen("romfs:/LEVELS.DAT", "rb");
-        if(!in) { hw_log("no romfs LEVELS.DAT\n"); return; }
-        FILE* out = fopen(sdPath, "wb");
-        if(!out) { fclose(in); hw_log("cant create sd LEVELS.DAT\n"); return; }
-        char buf[512]; size_t r; while((r=fread(buf,1,sizeof buf,in))>0) fwrite(buf,1,r,out);
-        fclose(in); fclose(out); hw_log("copied LEVELS.DAT -> sdmc\n");
+        mkdir(kLevelsSubDir, 0777);
+        auto copyIfMissing = [&](const char* romfsPath, const char* baseName){
+            char dst[256]; snprintf(dst,sizeof dst, "%s/%s", kLevelsSubDir, baseName);
+            if(fileExists(dst)) return;
+            FILE* in = fopen(romfsPath, "rb");
+            if(!in) { hw_log("romfs open fail (copy)\n"); return; }
+            FILE* out = fopen(dst, "wb");
+            if(!out) { fclose(in); hw_log("copy fail open dst\n"); return; }
+            char buf[1024]; size_t r; while((r=fread(buf,1,sizeof buf,in))>0) fwrite(buf,1,r,out);
+            fclose(in); fclose(out);
+            hw_log("copied level file\n");
+        };
+        // Always attempt default
+        copyIfMissing("romfs:/LEVELS.DAT","LEVELS.DAT");
+        // Enumerate romfs root & /levels for additional .DAT
+        auto scanRomfsDir = [&](const char* dirPath){
+            DIR* d = opendir(dirPath);
+            if(!d) { hw_log("romfs scan: cannot open dir (fallback list used)\n"); return; }
+            struct dirent* ent;
+            size_t dirLen = strlen(dirPath);
+            bool endsWithSlash = dirLen>0 && dirPath[dirLen-1]=='/';
+            while((ent=readdir(d))!=nullptr) {
+                const char* name = ent->d_name; if(!name) continue; size_t len=strlen(name); if(len<4) continue; const char* ext = name+len-4;
+                char up[5]; for(int i=0;i<4;i++) up[i]=(char)toupper((unsigned char)ext[i]); up[4]='\0';
+                if(strcmp(up,".DAT")==0) {
+                    char full[320];
+                    if(endsWithSlash) snprintf(full,sizeof full, "%s%s", dirPath, name); else snprintf(full,sizeof full, "%s/%s", dirPath, name);
+                    copyIfMissing(full, name);
+                }
+            }
+            closedir(d);
+        };
+        scanRomfsDir("romfs:/");
+        scanRomfsDir("romfs:/levels"); // optional subdir
+        // Fallback static list for when directory enumeration is unsupported by romfs
+        static const char* kExtraDatFiles[] = {"SPIKE1.DAT","SPIKE2.DAT","SPIKE3.DAT","SPIKE4.DAT","LEVBAK.DAT","NASTY.DAT"};
+        for(const char* fname : kExtraDatFiles) {
+            char romPath[128]; snprintf(romPath,sizeof romPath,"romfs:/%s", fname);
+            copyIfMissing(romPath, fname);
+        }
+        // Clear cached list so new files appear on first open of Options
+        g_fileList.clear();
     }
+    // Enumerate .DAT files in levels directory
+    static std::vector<std::string> listDatFiles() {
+        std::vector<std::string> out; out.reserve(8);
+        DIR* d = opendir(kLevelsSubDir);
+        if(!d) return out;
+        struct dirent* ent; while((ent = readdir(d))!=nullptr) {
+            const char* name = ent->d_name; if(!name) continue; size_t len = strlen(name);
+            if(len>=4) {
+                const char* ext = name + len - 4;
+                char up[5]; up[0]= (char)toupper(ext[0]); up[1]=(char)toupper(ext[1]); up[2]=(char)toupper(ext[2]); up[3]=(char)toupper(ext[3]); up[4]='\0';
+                if(strcmp(up, ".DAT")==0) out.push_back(name);
+            }
+        }
+        closedir(d);
+        std::sort(out.begin(), out.end());
+        return out;
+    }
+    const std::vector<std::string>& available_level_files() {
+        if(g_fileList.empty()) g_fileList = listDatFiles();
+        return g_fileList;
+    }
+    void refresh_level_files() { g_fileList = listDatFiles(); }
+    void set_active_level_file(const std::string& f) { g_activeLevelFile = f; }
+    const std::string& get_active_level_file() { return g_activeLevelFile; }
 
     // ---------- Legacy shorthand mapping (2-char codes) ----------------------
     // Order must match brickMap order.
@@ -179,7 +241,7 @@ namespace levels {
     void load() {
         if(g_loaded) return;
         ensureOnSdmc();
-        char sdPath[256]; snprintf(sdPath, sizeof(sdPath), "%s/%s", kSdDir, kLevelFile);
+    char sdPath[256]; snprintf(sdPath, sizeof(sdPath), "%s/%s", kLevelsSubDir, g_activeLevelFile.c_str());
         FILE* f = fopen(sdPath, "rb");
         if(!f) { hw_log("open sd LEVELS fail\n"); buildFallback(); return; }
         parseAll(f); fclose(f);
@@ -323,3 +385,32 @@ int levels_brick_hp(int c,int r) { return levels::levels_brick_hp(c,r); }
 int levels_explode_bomb(int c,int r, std::vector<DestroyedBrick>* outDestroyed) { return levels::levels_explode_bomb(c,r,outDestroyed); }
 int levels_atlas_index(int rawType) { return levels::levels_atlas_index(rawType); }
 void levels_reset_level(int idx) { levels::levels_reset_level(idx); }
+// New selection APIs
+const std::vector<std::string>& levels_available_files() { return levels::available_level_files(); }
+void levels_refresh_files() { levels::refresh_level_files(); }
+void levels_set_active_file(const char* f) { if(f) levels::set_active_level_file(f); }
+const char* levels_get_active_file() { return levels::get_active_level_file().c_str(); }
+void levels_reload_active() { using namespace levels; g_loaded=false; g_levels.clear(); load(); }
+bool levels_duplicate_active(const char* newBase) {
+    if(!newBase || !*newBase) return false;
+    // Sanitize: uppercase, strip invalid, max 8 chars
+    char base[9]; int bi=0; for(const char* p=newBase; *p && bi<8; ++p) {
+        char c=*p; if(c>='a'&&c<='z') c = (char)(c-'a'+'A');
+        if(!((c>='A'&&c<='Z')||(c>='0'&&c<='9')||c=='_')) continue; // allow alnum underscore
+        base[bi++]=c;
+    }
+    if(bi==0) return false;
+    base[bi]='\0';
+    // Source file path
+    const char* active = levels_get_active_file(); if(!active) return false;
+    char src[256]; snprintf(src,sizeof src,"%s/%s", "sdmc:/ballistica/levels", active);
+    char dst[256]; snprintf(dst,sizeof dst,"%s/%s.DAT", "sdmc:/ballistica/levels", base);
+    // Prevent overwrite
+    struct stat st{}; if(stat(dst,&st)==0) return false;
+    FILE* in = fopen(src,"rb"); if(!in) return false;
+    FILE* out = fopen(dst,"wb"); if(!out) { fclose(in); return false; }
+    char buf[1024]; size_t r; while((r=fread(buf,1,sizeof buf,in))>0) fwrite(buf,1,r,out);
+    fclose(in); fclose(out);
+    levels_refresh_files();
+    return true;
+}

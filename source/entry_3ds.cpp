@@ -17,6 +17,20 @@ int main(int argc, char** argv) {
         game_update(in);
         hw_begin_frame();
         GameMode gm = game_mode();
+        // Dedicated handling: Editor and Options both own the bottom screen completely.
+        if(gm == GameMode::Options) {
+            // Top: simple dark backdrop (could show rotating title sequence later if desired)
+            hw_set_top();
+            C2D_DrawRectSolid(0,0,0,400,240,C2D_Color32(0,0,0,255));
+            hw_draw_text(8,8,"Options",0xFFFFFFFF);
+            // Bottom: full options UI (game_render draws it for this mode)
+            hw_set_bottom();
+            C2D_DrawRectSolid(0,0,0,320,240,C2D_Color32(0,0,0,255));
+            game_render();
+            hw_end_frame();
+            ++frame;
+            continue;
+        }
         if(gm == GameMode::Editor) {
             // Editor should live on the bottom screen for touch drawing
             // Clear top (optional placeholder/instructions)
@@ -39,7 +53,7 @@ int main(int argc, char** argv) {
             float pulse = 0.5f + 0.5f * std::sin(frame * 0.15f);
             uint8_t accent = (uint8_t)(100 + 80 * pulse);
             struct Btn { int x,y,w,h; const char* label; };
-            Btn btns[] = {{60,60,200,20,"PLAY  (START)"},{60,100,200,20,"EDITOR(SELECT)"},{60,140,200,20,"EXIT  (X)"}};
+            Btn btns[] = {{60,60,200,20,"PLAY   (START)"},{60,100,200,20,"EDITOR (SELECT)"},{60,140,200,20,"OPTIONS"},{60,180,200,20,"EXIT   (X)"}};
             // Touch handled inside game_update via y-band mapping; here only visual hover highlight
             int tx = in.stylusX, ty = in.stylusY;
             for(auto &bdef : btns) {
@@ -53,7 +67,7 @@ int main(int argc, char** argv) {
                 C2D_DrawRectSolid(bdef.x+bdef.w-1, bdef.y, 0, 1, bdef.h, C2D_Color32(10,10,10,255));
                 hw_draw_text(bdef.x + 20, bdef.y + 6, bdef.label, 0xFFFFFFFF);
             }
-            hw_draw_text(20, 20, "START=Play  SELECT=Editor  X=Exit", 0xFFFFFFFF);
+            hw_draw_text(20, 20, "START=Play  SELECT=Editor  X=Exit  (Touch OPTIONS)", 0xFFFFFFFF);
             } else {
             // Gameplay bottom screen: static TOUCH image prompt replaces text region.
             // If sheet not loaded fallback to minimal text.
