@@ -21,7 +21,7 @@ namespace levels {
     static const int LEFTSTART=28;
     static const int TOPSTART=18;
 
-    static const char* kSdDir = "sdmc:/murderball";
+    static const char* kSdDir = "sdmc:/ballistica";
     static const char* kLevelFile = "LEVELS.DAT";
 
     struct Level {

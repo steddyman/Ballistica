@@ -349,13 +349,13 @@ namespace game {
     void update(const InputState& in) {
         if(G.mode == Mode::Title) {
             // Physical button mappings: START=Play, SELECT=Editor, X=Exit
-            if(in.startPressed) { G.mode = Mode::Playing; hw_log("start (START)\n"); return; }
+            if(in.startPressed) { levels_set_current(0); levels_reset_level(0); G.mode = Mode::Playing; hw_log("start (START)\n"); return; }
             if(in.selectPressed) { G.mode = Mode::Editor; hw_log("editor (SELECT)\n"); return; }
             if(in.xPressed) { g_exitRequested = true; hw_log("exit (X)\n"); return; }
             // Touch buttons: we emulate three horizontal bars; map to actions by y band
             if(in.touching) {
                 int y = in.stylusY;
-                if(y>=60 && y<80) { G.mode = Mode::Playing; hw_log("start (touch)\n"); return; }
+                if(y>=60 && y<80) { levels_set_current(0); levels_reset_level(0); G.mode = Mode::Playing; hw_log("start (touch)\n"); return; }
                 if(y>=100 && y<120) { G.mode = Mode::Editor; hw_log("editor (touch)\n"); return; }
                 if(y>=140 && y<160) { g_exitRequested = true; hw_log("exit (touch)\n"); return; }
             }
@@ -459,7 +459,7 @@ namespace game {
                         seqPos = 1; seqTimer = 0; // jump to High screen
                     }
                     G.mode = Mode::Title; 
-                    levels_reset_level(levels_current());
+                    levels_set_current(0); levels_reset_level(0);
                     G.balls.clear(); G.balls.push_back({160.f - 4.f, 180.f, 0.0f, -1.5f, 160.f - 4.f, 180.f, true, G.imgBall});
                     G.lives = 5; G.score = 0; G.bonusBits=0; G.reverseTimer=G.lightsOffTimer=G.murderTimer=0; G.laserCharges=0; G.fireCooldown=0;
                     return; }
@@ -481,9 +481,13 @@ namespace game {
                 float batPadY = (G.bat.height - effBatH);        if(batPadY < 0) batPadY = 0; // assume extra space above
                 float batTop = G.bat.y + batPadY; // logical top surface
                 float batLeft = G.bat.x + batPadX;
-                float batRight = batLeft + effBatW;
-                // Detect crossing of the bat top line this frame
-                if(ballBottomPrev <= batTop && ballBottom >= batTop && ballCenterX + ballHalfW > batLeft && ballCenterX - ballHalfW < batRight) {
+                float batRight = batLeft + effBatW + 1.0f; // widen by 1px to include rightmost pixel
+                // Detect crossing of the bat top line this frame (sweep)
+                bool horizOverlap = (ballCenterX + ballHalfW) > batLeft && (ballCenterX - ballHalfW) < batRight;
+                bool crossedTop = (ballBottomPrev <= batTop && ballBottom >= batTop);
+                // Extra sweep: if moving fast diagonally, the bottom may skip the exact top line but center enters vertical span
+                bool enteredFromAbove = (ballCenterYPrev <= batTop && (ballCenterY + ballHalfH) >= batTop*0.999f);
+                if(horizOverlap && (crossedTop || enteredFromAbove)) {
                     // Place ball just above logical top using full rendered sprite alignment
                     float adjust = (ballBottom - batTop);
                     b.y -= adjust; // shift up so that logical bottom sits on top line
