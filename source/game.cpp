@@ -724,7 +724,28 @@ namespace game {
             int ddX=40, ddY=60, ddW=240; int itemH=16;
             C2D_DrawRectSolid(ddX,ddY,0,ddW,20,C2D_Color32(40,40,60,255));
             hw_draw_text(ddX+8, ddY+6, files.empty()?"(no .DAT)": (files.size()>(size_t)optSelectedIndex?files[optSelectedIndex].c_str():"?"), 0xFFFFFFFF);
-            C2D_DrawRectSolid(ddX+ddW-16, ddY+2,0,12,12,C2D_Color32(80,80,110,255));
+            // Dropdown arrow box (custom drawn triangle). Reserve 16px width.
+            int arrowBoxX = ddX + ddW - 16; int arrowBoxY = ddY; int arrowBoxW = 16; int arrowBoxH = 20;
+            C2D_DrawRectSolid(arrowBoxX, arrowBoxY, 0, arrowBoxW, arrowBoxH, C2D_Color32(55,55,85,255));
+            // Symmetric triangle (no stray tail). Show DOWN arrow when closed, UP arrow when open.
+            int triH = 7; // odd for symmetry
+            int triW = 1 + (triH-1)*2; if(triW > 11) triW = 11;
+            int triCx = arrowBoxX + arrowBoxW/2; int midY = arrowBoxY + arrowBoxH/2;
+            if(optDropdownOpen) {
+                // UP arrow: apex at top (pointing up)
+                int apexY = midY - triH/2;
+                for(int row=0; row<triH; ++row) {
+                    int span = 1 + row*2; if(span>triW) span=triW; int x0 = triCx - span/2; int y = apexY + row;
+                    C2D_DrawRectSolid(x0, y, 0, span, 1, C2D_Color32(200,200,230,255));
+                }
+            } else {
+                // DOWN arrow: apex at bottom (pointing down)
+                int apexY = midY + triH/2;
+                for(int row=0; row<triH; ++row) {
+                    int span = 1 + row*2; if(span>triW) span=triW; int x0 = triCx - span/2; int y = apexY - row;
+                    C2D_DrawRectSolid(x0, y, 0, span, 1, C2D_Color32(200,200,230,255));
+                }
+            }
             // Name input label and box
             hw_draw_text(40,92,"NAME:",0xFFFFFFFF);
             C2D_DrawRectSolid(40,100,0,120,20,C2D_Color32(40,40,60,255));
