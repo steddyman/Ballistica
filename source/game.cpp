@@ -19,6 +19,8 @@
 #include "brick.hpp"
 #include "SUPPORT.HPP" // legacy constants BATWIDTH, BATHEIGHT, BALLWIDTH, BALLHEIGHT
 #include <vector>
+#include <string>
+#include "OPTIONS.h"
 
 // Basic game state migrated from legacy structures (incremental port)
 namespace game {
@@ -32,7 +34,7 @@ namespace game {
     struct Ball { float x, y; float vx, vy; float px, py; bool active; C2D_Image img; };
     struct Laser { float x,y; bool active; };
     struct Bat  { float x, y; float width, height; C2D_Image img; };
-    enum class Mode { Title, Playing, Editor };
+    enum class Mode { Title, Playing, Editor, Options };
 
     struct MovingBrickData { float pos; float dir; float minX; float maxX; };
     struct Particle { float x,y,vx,vy; int life; uint32_t color; };
@@ -90,9 +92,10 @@ namespace game {
     }
 
     // Title screen configuration (button rectangles)
-    static const struct { int x,y,w,h; Mode next; } kTitleButtons[] = {
-        {16,28,22,12, Mode::Playing}, // New Game
-        {16,39,22,12, Mode::Editor}   // Edit Levels
+    static const struct { int x,y,w,h; Mode next; const char* label; } kTitleButtons[] = {
+        {16,28,22,12, Mode::Playing, "PLAY"},
+        {16,39,22,12, Mode::Editor,  "EDITOR"},
+        {16,50,22,12, Mode::Options, "OPTIONS"}
     };
 
     // Sequence of sheets to show while idling (fallback to BREAK if others missing)
@@ -362,10 +365,17 @@ namespace game {
         }
     }
 
+    // Options menu transient state
+    static int optSelectedIndex = 0; // index into available files
+    static bool optDropdownOpen = false;
+    static std::string optPendingFile; // selection not yet saved
+
     void update(const InputState& in) {
         if(G.mode == Mode::Title) {
             // Physical button mappings: START=Play, SELECT=Editor, X=Exit
             if(in.startPressed) { levels_set_current(0); levels_reset_level(0); G.mode = Mode::Playing; hw_log("start (START)\n"); return; }
+            if(in.selectPressed) { G.mode = Mode::Editor; hw_log("editor (SELECT)\n"); return; }
+            if(in.xPressed) { g_exitRequested = true; hw_log("exit (X)\n"); return; }
             if(in.selectPressed) { G.mode = Mode::Editor; hw_log("editor (SELECT)\n"); return; }
             if(in.xPressed) { g_exitRequested = true; hw_log("exit (X)\n"); return; }
             // Touch buttons: we emulate three horizontal bars; map to actions by y band
@@ -373,12 +383,47 @@ namespace game {
                 int y = in.stylusY;
                 if(y>=60 && y<80) { levels_set_current(0); levels_reset_level(0); G.mode = Mode::Playing; hw_log("start (touch)\n"); return; }
                 if(y>=100 && y<120) { G.mode = Mode::Editor; hw_log("editor (touch)\n"); return; }
-                if(y>=140 && y<160) { g_exitRequested = true; hw_log("exit (touch)\n"); return; }
+                if(y>=140 && y<160) { hw_log("TOUCH->OPTIONS\n"); G.mode = Mode::Options; levels_refresh_files(); optDropdownOpen=false; optSelectedIndex=0; const auto &files=levels_available_files(); if(!files.empty()) { // set current highlight to active file
+                        const char* active = levels_get_active_file(); for(size_t i=0;i<files.size();++i) if(files[i]==active) { optSelectedIndex=(int)i; break; }
+                        optPendingFile = files[optSelectedIndex];
+                    } hw_log("options (touch)\n"); return; }
+                if(y>=180 && y<200) { g_exitRequested = true; hw_log("exit (touch)\n"); return; }
             }
             // Cycle sequence if user idle
             if(++seqTimer > kSeqDelayFrames) { seqTimer = 0; seqPos = (seqPos + 1) % (int)(sizeof(kSequence)/sizeof(kSequence[0])); }
             return;
         }
+    if(G.mode == Mode::Options) {
+        // guard against re-entrancy issues
+        const auto &filesDbg = levels_available_files(); char dbgBuf[96]; snprintf(dbgBuf,sizeof dbgBuf,"OPTIONS update files=%d sel=%d open=%d\n", (int)filesDbg.size(), optSelectedIndex, optDropdownOpen?1:0); hw_log(dbgBuf);
+        // Basic touch UI: a single dropdown listing files and two buttons SAVE / CANCEL
+        if(in.touching) {
+            int x = in.stylusX; int y = in.stylusY;
+            // Dropdown box area (positioned at 40,60 width 240 height dynamic)
+            int ddX=40, ddY=60, ddW=240, ddH=20; // closed height
+            const auto &files = levels_available_files();
+            if(!optPendingFile.size() && !files.empty()) optPendingFile = files[0];
+            if(optDropdownOpen) ddH = 20 + (int)files.size()*16;
+            if(x>=ddX && x<ddX+ddW && y>=ddY && y<ddY+ddH) {
+                if(!optDropdownOpen) { optDropdownOpen = true; }
+                else {
+                    if(y > ddY+20) {
+                        int rel = y - (ddY+20);
+                        int idx = rel / 16;
+                        if(idx >=0 && idx < (int)files.size()) { optSelectedIndex=idx; optPendingFile = files[idx]; optDropdownOpen=false; }
+                    } else { optDropdownOpen=false; }
+                }
+            }
+            // Buttons at bottom: CANCEL (60,190)-(120,210) SAVE (200,190)-(260,210)
+            if(x>=60 && x<120 && y>=190 && y<210) { // cancel
+                G.mode = Mode::Title; hw_log("options cancel\n"); return; }
+            if(x>=200 && x<260 && y>=190 && y<210) { // save
+                if(!optPendingFile.empty()) { levels_set_active_file(optPendingFile.c_str()); levels_reload_active(); levels_set_current(0); levels_reset_level(0); }
+                G.mode = Mode::Title; hw_log("options save\n"); return; }
+        }
+        if(in.selectPressed) { G.mode = Mode::Title; hw_log("options->title (SELECT)\n"); return; }
+        return;
+    }
     if(G.mode == Mode::Editor) {
         // SELECT returns to title screen
         if(in.selectPressed) {
@@ -574,6 +619,36 @@ namespace game {
             }
             return;
         }
+        if(G.mode == Mode::Options) {
+            char dbgBuf[64]; const auto &filesDbg = levels_available_files(); snprintf(dbgBuf,sizeof dbgBuf,"OPT render files=%d sel=%d\n", (int)filesDbg.size(), optSelectedIndex); hw_log(dbgBuf);
+            // Background image from OPTIONS sheet if available
+            C2D_Image img = hw_image_from(HwSheet::Options, OPTIONS_idx);
+            if(img.tex) hw_draw_sprite(img,0,0); else {
+                C2D_DrawRectSolid(0,0,0,320,240,C2D_Color32(20,20,40,255));
+                hw_draw_text(100,20,"OPTIONS",0xFFFFFFFF);
+            }
+            // Draw dropdown
+            const auto &files = levels_available_files();
+            int ddX=40, ddY=60, ddW=240; int itemH=16;
+            C2D_DrawRectSolid(ddX,ddY,0,ddW,20,C2D_Color32(40,40,60,255));
+            hw_draw_text(ddX+8, ddY+6, files.empty()?"(no .DAT)": (files.size()> (size_t)optSelectedIndex? files[optSelectedIndex].c_str():"?"), 0xFFFFFFFF);
+            // indicator
+            C2D_DrawRectSolid(ddX+ddW-16, ddY+2,0,12,12,C2D_Color32(80,80,110,255));
+            if(optDropdownOpen) {
+                int h = (int)files.size()*itemH;
+                C2D_DrawRectSolid(ddX, ddY+20,0,ddW,h,C2D_Color32(30,30,50,255));
+                for(size_t i=0;i<files.size();++i) {
+                    int iy = ddY+20 + (int)i*itemH;
+                    uint32_t col = (i== (size_t)optSelectedIndex)? C2D_Color32(70,70,110,255):C2D_Color32(50,50,80,255);
+                    C2D_DrawRectSolid(ddX+2,iy+1,0,ddW-4,itemH-2,col);
+                    hw_draw_text(ddX+6,iy+4, files[i].c_str(), 0xFFFFFFFF);
+                }
+            }
+            // Buttons
+            C2D_DrawRectSolid(60,190,0,60,20,C2D_Color32(50,30,30,255)); hw_draw_text(70,198,"CANCEL",0xFFFFFFFF);
+            C2D_DrawRectSolid(200,190,0,60,20,C2D_Color32(30,50,30,255)); hw_draw_text(212,198,"SAVE",0xFFFFFFFF);
+            return;
+        }
     // Render static bricks first then overwrite dynamic moving bricks at their current x
     levels_render();
     int cols = levels_grid_width(); int rows = levels_grid_height(); int ls=levels_left(); int ts=levels_top(); int cw=levels_brick_width(); int ch=levels_brick_height();
@@ -663,5 +738,5 @@ namespace game {
 void game_init() { game::init(); }
 void game_update(const InputState& in) { game::update(in); }
 void game_render() { game::render(); }
-GameMode game_mode() { using namespace game; switch(G.mode){case game::Mode::Title: return GameMode::Title; case game::Mode::Playing: return GameMode::Playing; case game::Mode::Editor: return GameMode::Editor;} return GameMode::Title; }
+GameMode game_mode() { using namespace game; switch(G.mode){case game::Mode::Title: return GameMode::Title; case game::Mode::Playing: return GameMode::Playing; case game::Mode::Editor: return GameMode::Editor; case game::Mode::Options: return GameMode::Options;} return GameMode::Title; }
 bool exit_requested() { return game::exit_requested_internal(); }

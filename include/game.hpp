@@ -9,7 +9,7 @@ void game_init();
 void game_update(const InputState&);
 void game_render();
 
-enum class GameMode { Title, Playing, Editor };
+enum class GameMode { Title, Playing, Editor, Options };
 GameMode game_mode();
 
 // Level helpers (temporary minimal port)
