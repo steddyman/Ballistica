@@ -432,6 +432,44 @@ namespace game {
 
         if(in.touchPressed) {
             int x=in.stylusX, y=in.stylusY;
+            // If dropdown open, capture interactions first so underlying buttons don't trigger
+            if(optDropdownOpen) {
+                bool scrolling = files.size() > (size_t)kMaxVisibleDropdown;
+                int listStartY = ddY + 20; // top of list box
+                int overlayH = scrolling ? (kMaxVisibleDropdown + 2)*itemH : (int)files.size()*itemH; // +2 for arrows in scrolling case
+                int overlayY1 = listStartY + overlayH;
+                if(x>=ddX && x<ddX+ddW && y>=listStartY && y<overlayY1) {
+                    if(scrolling) {
+                        int topArrowY0 = listStartY;
+                        int itemsY0 = topArrowY0 + itemH; // skip top arrow
+                        int itemsY1 = itemsY0 + kMaxVisibleDropdown*itemH;
+                        int bottomArrowY0 = itemsY1; // bottom arrow row
+                        if(y>=topArrowY0 && y<topArrowY0+itemH) {
+                            if(optScrollOffset>0) optScrollOffset--; 
+                            return; 
+                        }
+                        if(y>=bottomArrowY0 && y<bottomArrowY0+itemH) {
+                            if(optScrollOffset + kMaxVisibleDropdown < (int)files.size()) optScrollOffset++; 
+                            return; 
+                        }
+                        if(y>=itemsY0 && y<itemsY1) {
+                            int rel = (y - itemsY0)/itemH; int idx = optScrollOffset + rel;
+                            if(idx>=0 && idx < (int)files.size()) { optSelectedIndex=idx; optPendingFile=files[idx]; optDropdownOpen=false; }
+                            return;
+                        }
+                        // Click inside overlay but not on defined rows: close only
+                        optDropdownOpen=false; return;
+                    } else { // non-scrolling
+                        int rel = (y - listStartY)/itemH; int idx = rel;
+                        if(idx>=0 && idx < (int)files.size()) { optSelectedIndex=idx; optPendingFile=files[idx]; optDropdownOpen=false; }
+                        else optDropdownOpen=false; // safety
+                        return;
+                    }
+                }
+                // Tapped outside list (maybe header or elsewhere): close and swallow this tap
+                if(x>=ddX && x<ddX+ddW && y>=ddY && y<ddY+ddH) { optDropdownOpen=false; return; }
+                optDropdownOpen=false; return; // outside entirely: close without activating underlying control this frame
+            }
 
             // NAME field -> software keyboard
             if(x>=nameX && x<nameX+nameW && y>=nameY && y<nameY+nameH) {
@@ -463,47 +501,12 @@ namespace game {
                 G.mode = Mode::Title; hw_log("options save\n"); return; }
             // Dropdown header / arrow toggle
             else if(x>=ddX && x<ddX+ddW && y>=ddY && y<ddY+ddH) {
-                int arrowX0 = ddX + ddW - 32; // extended arrow zone
+                // int arrowX0 = ddX + ddW - 32; // extended arrow zone (not needed for open state)
                 if(!optDropdownOpen) {
                     optDropdownOpen = true;
                     if(optSelectedIndex < optScrollOffset) optScrollOffset = optSelectedIndex;
                     if(optSelectedIndex >= optScrollOffset + kMaxVisibleDropdown) optScrollOffset = optSelectedIndex - kMaxVisibleDropdown + 1;
-                } else if(x>=arrowX0) {
-                    // only close when pressing on arrow while open
-                    optDropdownOpen = false;
-                }
-            }
-            // Dropdown list interactions
-            else if(optDropdownOpen) {
-                int listStartY = ddY + 20;
-                if(files.size() > (size_t)kMaxVisibleDropdown) {
-                    int topArrowY0 = listStartY;
-                    int itemsY0 = topArrowY0 + itemH; // skip top arrow
-                    int itemsY1 = itemsY0 + kMaxVisibleDropdown*itemH;
-                    int bottomArrowY0 = itemsY1; // bottom arrow row
-                    if(x>=ddX && x<ddX+ddW) {
-                        if(y>=topArrowY0 && y<topArrowY0+itemH) {
-                            if(optScrollOffset>0) optScrollOffset--; }
-                        else if(y>=bottomArrowY0 && y<bottomArrowY0+itemH) {
-                            if(optScrollOffset + kMaxVisibleDropdown < (int)files.size()) optScrollOffset++; }
-                        else if(y>=itemsY0 && y<itemsY1) {
-                            int rel = (y - itemsY0)/itemH; int idx = optScrollOffset + rel;
-                            if(idx>=0 && idx < (int)files.size()) { optSelectedIndex=idx; optPendingFile=files[idx]; optDropdownOpen=false; }
-                        } else {
-                            optDropdownOpen=false; // clicked within x bounds but outside known rows
-                        }
-                    } else {
-                        optDropdownOpen=false; // outside x bounds
-                    }
-                } else { // non-scrolling list
-                    int listH = (int)files.size()*itemH;
-                    if(x>=ddX && x<ddX+ddW && y>=listStartY && y<listStartY+listH) {
-                        int rel = (y - listStartY)/itemH; int idx = rel;
-                        if(idx>=0 && idx < (int)files.size()) { optSelectedIndex=idx; optPendingFile=files[idx]; optDropdownOpen=false; }
-                    } else {
-                        optDropdownOpen=false; // outside list
-                    }
-                }
+                } // closing handled in capture block when open
             }
             else {
                 // Click outside anything closes dropdown if open (handled above) else no-op
