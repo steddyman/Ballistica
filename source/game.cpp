@@ -67,6 +67,8 @@ namespace game {
     float bh = (G.imgBatNormal.subtex) ? G.imgBatNormal.subtex->height : 8.f;
     G.bat = { 160.f - bw/2.f, 200.f, bw, bh, G.imgBatNormal };
     G.balls.push_back({160.f - 4.f, 180.f, 0.0f, -1.5f, 160.f - 4.f, 180.f, true, G.imgBall});
+    char buf[96];
+    snprintf(buf,sizeof buf,"bat sprite w=%.1f h=%.1f\n",bw,bh); hw_log(buf);
     }
 
     void init() {
@@ -471,8 +473,12 @@ namespace game {
             if(b.vy > 0) {
                 constexpr float ballCollW = (float)BALLWIDTH;   // legacy collision width
                 constexpr float ballCollH = (float)BALLHEIGHT;  // legacy collision height
-                // We render an 8x8 ball; align collision box centered within sprite
-                float ballCenterX = b.x + 4.f; float ballCenterYPrev = b.py + 4.f; float ballCenterY = b.y + 4.f;
+                // Align logical collision box centered within the ACTUAL rendered sprite (handles atlas trims)
+                float spriteW = (b.img.subtex ? b.img.subtex->width : 8.f);
+                float spriteH = (b.img.subtex ? b.img.subtex->height : 8.f);
+                float ballCenterX = b.x + spriteW * 0.5f;
+                float ballCenterYPrev = b.py + spriteH * 0.5f;
+                float ballCenterY = b.y + spriteH * 0.5f;
                 float ballHalfW = ballCollW * 0.5f; float ballHalfH = ballCollH * 0.5f;
                 float ballBottomPrev = ballCenterYPrev + ballHalfH;
                 float ballBottom = ballCenterY + ballHalfH;
@@ -480,12 +486,16 @@ namespace game {
                 float effBatW = (float)BATWIDTH;
                 float effBatH = (float)BATHEIGHT;
                 float batPadX = (G.bat.width  - effBatW) * 0.5f; if(batPadX < 0) batPadX = 0;
-                float batPadY = (G.bat.height - effBatH);        if(batPadY < 0) batPadY = 0; // assume extra space above
+                // Center the logical (legacy) bat height within the rendered sprite height
+                float batPadY = (G.bat.height - effBatH) * 0.5f; if(batPadY < 0) batPadY = 0;
                 float batTop = G.bat.y + batPadY; // logical top surface
                 float batLeft = G.bat.x + batPadX;
-                float batRight = batLeft + effBatW + 1.0f; // widen by 1px to include rightmost pixel
+                // Full sprite bounds for broad-phase (avoid off-by-one visual mismatch)
+                float atlasLeft = (G.bat.img.subtex ? G.bat.img.subtex->left : 0.0f);
+                float fullLeft = G.bat.x - atlasLeft;
+                float fullRight = fullLeft + G.bat.width;
                 // Detect crossing of the bat top line this frame (sweep)
-                bool horizOverlap = (ballCenterX + ballHalfW) > batLeft && (ballCenterX - ballHalfW) < batRight;
+                bool horizOverlap = (ballCenterX + ballHalfW) > fullLeft && (ballCenterX - ballHalfW) < fullRight;
                 bool crossedTop = (ballBottomPrev <= batTop && ballBottom >= batTop);
                 // Extra sweep: if moving fast diagonally, the bottom may skip the exact top line but center enters vertical span
                 bool enteredFromAbove = (ballCenterYPrev <= batTop && (ballCenterY + ballHalfH) >= batTop*0.999f);
@@ -584,22 +594,28 @@ namespace game {
         C2D_DrawRectSolid(0,0,0,320,240, C2D_Color32(0,0,0,140));
     }
     // TODO: overlay HUD (score/lives/bonus) using tiny font logger or future UI layer
-        // Draw bat
-        hw_draw_sprite(G.bat.img, G.bat.x, G.bat.y);
+    // Draw bat (account for atlas left trim so column 0 visible)
+    float batAtlasLeft = (G.bat.img.subtex ? G.bat.img.subtex->left : 0.0f);
+    float batDrawX = G.bat.x - batAtlasLeft;
+    hw_draw_sprite(G.bat.img, batDrawX, G.bat.y);
         #if defined(DEBUG) && DEBUG
         // Draw logical bat collision rectangle (centered reduced width & height)
         float effBatW = (float)BATWIDTH;
         float effBatH = (float)BATHEIGHT;
         float batPadX = (G.bat.width  - effBatW) * 0.5f; if(batPadX < 0) batPadX = 0;
-        float batPadY = (G.bat.height - effBatH);        if(batPadY < 0) batPadY = 0;
-        float batLeft = G.bat.x + batPadX; float batTop = G.bat.y + batPadY;
+    // Match centered padding logic from collision code
+    float batPadY = (G.bat.height - effBatH) * 0.5f; if(batPadY < 0) batPadY = 0;
+    float batLeft = G.bat.x + batPadX - batAtlasLeft; float batTop = G.bat.y + batPadY;
         C2D_DrawRectSolid(batLeft, batTop, 0, effBatW, 1, C2D_Color32(255,0,0,180)); // top line
         C2D_DrawRectSolid(batLeft, batTop+effBatH-1, 0, effBatW, 1, C2D_Color32(255,0,0,80)); // bottom line
         C2D_DrawRectSolid(batLeft, batTop, 0, 1, effBatH, C2D_Color32(255,0,0,80)); // left
         C2D_DrawRectSolid(batLeft+effBatW-1, batTop, 0, 1, effBatH, C2D_Color32(255,0,0,80)); // right
         // Draw ball logical footprint(s)
         for(auto &b : G.balls) if(b.active) {
-            float ballCenterX = b.x + 4.f; float ballCenterY = b.y + 4.f;
+            float spriteW = (b.img.subtex ? b.img.subtex->width : 8.f);
+            float spriteH = (b.img.subtex ? b.img.subtex->height : 8.f);
+            float ballCenterX = b.x + spriteW * 0.5f;
+            float ballCenterY = b.y + spriteH * 0.5f;
             float halfW = BALLWIDTH * 0.5f; float halfH = BALLHEIGHT * 0.5f;
             float lx = ballCenterX - halfW; float ly = ballCenterY - halfH;
             C2D_DrawRectSolid(lx, ly, 0, BALLWIDTH, BALLHEIGHT, C2D_Color32(0,255,0,90));
