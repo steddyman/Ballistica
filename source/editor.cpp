@@ -237,7 +237,7 @@ void render() {
     hw_draw_text(40, 153, "Effect:", 0xFFFFFFFF);
     static const char *effectNames[] = {"Empty","10 Points","20 Points","30 Points","40 Points","50 Points","100 Points","Extra Life","Slow Ball","Fast Ball","Skull Slow","Skull Fast","Bonus B","Bonus O","Bonus N","Bonus U","Bonus S","Bat Small","Bat Big","Indestruct","Rewind","Reverse","Slow Now","Fast Now","Another Ball","Forward","Laser","MurderBall","Bonus","Five Hit","Bomb","Lights Off","Lights On","Side Slow","Side Hard"};
     if (E.curBrick >=0 && E.curBrick < (int)(sizeof(effectNames)/sizeof(effectNames[0]))) hw_draw_text(90, 153, effectNames[E.curBrick], 0xFFFFFFFF);
-    hw_draw_text(LabelNameX, LabelNameY, "Name", 0xFFFFFFFF);
+    // hw_draw_text(LabelNameX, LabelNameY, "Name", 0xFFFFFFFF);
     hw_draw_text(56, 9, E.name.c_str(), 0xFFFFFFFF);
     hw_draw_text(10, 230, "Tap Exit to Save", 0xFFFFFFFF);
 }
