@@ -785,24 +785,30 @@ namespace game {
             // Display current values
             snprintf(buf,sizeof buf,"%02d", E.curLevel+1); hw_draw_text(235,170,buf,0xFFFFFFFF);
             snprintf(buf,sizeof buf,"%02d", E.speed); hw_draw_text(235,185,buf,0xFFFFFFFF);
-            // Button highlight helper lambda
-            auto hl = [](int x,int y,int w,int h,uint32_t col){ C2D_DrawRectSolid(x,y,0,w,h,col); };
-            uint32_t baseHL = C2D_Color32(80,80,120,180);
-            uint32_t smallHL = C2D_Color32(70,70,110,180);
-            // Highlight areas (matching legacy coordinates)
-            // Name button (28,7,22x9)
-            hl(28,7,22,9,baseHL);
-            // Test button (196,141,40x9)
-            hl(196,141,40,9,baseHL);
-            // Clear (108,169,21x9)
-            hl(108,169,21,9,baseHL);
-            // Exit (59,184,18x9)
-            hl(59,184,18,9,baseHL);
-            // Level - / + (139,169,10x9) & (218,169,10x9)
-            hl(139,169,10,9,smallHL); hl(218,169,10,9,smallHL);
-            // Speed - / + (139,184,10x9) & (218,184,10x9)
-            hl(139,184,10,9,smallHL); hl(218,184,10,9,smallHL);
-            // Labels atop highlights
+            // Dynamic label background helper (aligns gray box under text)
+            auto label_bg = [](int textX,int textY,const char* txt,bool small=false){
+                if(!txt) return;
+                int len = (int)std::strlen(txt); if(len<=0) return;
+                int charW = 6; // fixed from hw_draw_text
+                int padX = 2; // minimal horizontal padding
+                int w = len*charW + padX*2;
+                int h = 8; // font rows=6 + vertical padding
+                int boxX = textX - padX;
+                int boxY = textY - 2; // raise so glyph sits vertically centered
+                uint32_t col = small ? C2D_Color32(70,70,110,180) : C2D_Color32(80,80,120,180);
+                C2D_DrawRectSolid(boxX,boxY,0,w,h,col);
+            };
+            // Draw backgrounds first, then text so text appears on top
+            label_bg(30,9,"Name");
+            label_bg(196,141,"TEST");
+            label_bg(75,170,"Clear");
+            label_bg(60,185,"Exit");
+            label_bg(139,170,"-",true); label_bg(220,170,"+",true);
+            label_bg(139,185,"-",true); label_bg(220,185,"+",true);
+            // Additional descriptive text to left of action buttons
+            hw_draw_text(10,170,"Clear Level",0xFFFFFFFF);
+            hw_draw_text(10,185,"Save & Exit",0xFFFFFFFF);
+            // Render labels
             hw_draw_text(75,170,"Clear",0xFFFFFFFF);
             hw_draw_text(60,185,"Exit",0xFFFFFFFF);
             hw_draw_text(196,141,"TEST",0xFFFFFFFF);
