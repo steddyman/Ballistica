@@ -174,7 +174,10 @@ struct InputState {
 	int  stylusY = -1;
 	bool touching = false;
 	bool touchPressed = false; // edge: became touching this frame
-	bool fireHeld = false; // D-Pad Up
+	bool fireHeld = false; // D-Pad Up (held) legacy
+	bool dpadUpPressed = false;   // D-Pad Up edge
+	bool dpadDownPressed = false; // D-Pad Down edge
+	bool dpadDownHeld = false;    // D-Pad Down held
 	bool startPressed = false; // START key (edge)
 	bool selectPressed = false; // SELECT key (edge)
 	bool aPressed = false; // A key (edge)
@@ -182,6 +185,8 @@ struct InputState {
 	bool xPressed = false; // X key (edge)
 	bool levelPrevPressed = false; // L edge (debug)
 	bool levelNextPressed = false; // R edge (debug)
+	bool lHeld = false; // L held
+	bool rHeld = false; // R held
 };
 
 // Initialise graphics (citro2d) and load embedded sprite sheets (.t3x via headers)

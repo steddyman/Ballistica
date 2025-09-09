@@ -92,22 +92,29 @@ namespace levels {
             char dst[256]; snprintf(dst,sizeof dst, "%s/%s", kLevelsSubDir, baseName);
             if(fileExists(dst)) return;
             FILE* in = fopen(romfsPath, "rb");
-            if(!in) { hw_log("romfs open fail (copy)\n"); return; }
+            if(!in) {
+                // Short path logging with explicit max lengths to avoid -Wformat-truncation
+                char dbg[128];
+                snprintf(dbg,sizeof dbg,"romfs miss '%.64s' => %.32s\n", romfsPath, baseName);
+                hw_log(dbg);
+                return; }
             FILE* out = fopen(dst, "wb");
             if(!out) { fclose(in); hw_log("copy fail open dst\n"); return; }
             char buf[1024]; size_t r; while((r=fread(buf,1,sizeof buf,in))>0) fwrite(buf,1,r,out);
             fclose(in); fclose(out);
-            hw_log("copied level file\n");
+            char dbg[128]; snprintf(dbg,sizeof dbg,"copied level file %s\n", baseName); hw_log(dbg);
         };
-        // Always attempt default
-        copyIfMissing("romfs:/LEVELS.DAT","LEVELS.DAT");
+    // Always attempt default (root and new subdir variant)
+    copyIfMissing("romfs:/LEVELS.DAT","LEVELS.DAT");
+    copyIfMissing("romfs:/levels/LEVELS.DAT","LEVELS.DAT");
         // Enumerate romfs root & /levels for additional .DAT
-        auto scanRomfsDir = [&](const char* dirPath){
+    auto scanRomfsDir = [&](const char* dirPath){
             DIR* d = opendir(dirPath);
-            if(!d) { hw_log("romfs scan: cannot open dir (fallback list used)\n"); return; }
+        if(!d) { char dbg[160]; snprintf(dbg,sizeof dbg,"romfs scan: cannot open dir '%s' (fallback list used)\n", dirPath); hw_log(dbg); return; }
             struct dirent* ent;
             size_t dirLen = strlen(dirPath);
             bool endsWithSlash = dirLen>0 && dirPath[dirLen-1]=='/';
+        int datFound=0;
             while((ent=readdir(d))!=nullptr) {
                 const char* name = ent->d_name; if(!name) continue; size_t len=strlen(name); if(len<4) continue; const char* ext = name+len-4;
                 char up[5]; for(int i=0;i<4;i++) up[i]=(char)toupper((unsigned char)ext[i]); up[4]='\0';
@@ -115,9 +122,11 @@ namespace levels {
                     char full[320];
                     if(endsWithSlash) snprintf(full,sizeof full, "%s%s", dirPath, name); else snprintf(full,sizeof full, "%s/%s", dirPath, name);
                     copyIfMissing(full, name);
+            ++datFound;
                 }
             }
             closedir(d);
+        char dbg[128]; snprintf(dbg,sizeof dbg,"romfs scan '%s' DAT=%d\n", dirPath, datFound); hw_log(dbg);
         };
         scanRomfsDir("romfs:/");
         scanRomfsDir("romfs:/levels"); // optional subdir
