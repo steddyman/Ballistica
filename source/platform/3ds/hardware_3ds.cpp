@@ -33,6 +33,7 @@
 namespace {
     C3D_RenderTarget* g_bottom = nullptr;
     C3D_RenderTarget* g_top = nullptr;
+    int g_targetWidth = 320; // updated when switching targets (top=400, bottom=320)
     C2D_SpriteSheet g_sheetImage = nullptr;
     C2D_SpriteSheet g_sheetBreak = nullptr;
     C2D_SpriteSheet g_sheetTitle = nullptr;
@@ -91,6 +92,16 @@ namespace {
         {'_',{0x00,0x00,0x00,0x00,0x1F,0x00}},
     {'/',{0x01,0x02,0x04,0x08,0x10,0x00}},
         {' ' ,{0x00,0x00,0x00,0x00,0x00,0x00}},
+    {'(' ,{0x06,0x08,0x08,0x08,0x06,0x00}},
+    {')' ,{0x0C,0x02,0x02,0x02,0x0C,0x00}},
+    {'+' ,{0x00,0x04,0x0E,0x04,0x00,0x00}},
+    {'=' ,{0x00,0x0E,0x00,0x0E,0x00,0x00}},
+    {'%' ,{0x19,0x19,0x02,0x04,0x13,0x13}},
+    {',' ,{0x00,0x00,0x00,0x06,0x02,0x04}},
+    {'>' ,{0x10,0x08,0x04,0x08,0x10,0x00}},
+    {'<' ,{0x01,0x02,0x04,0x02,0x01,0x00}},
+    {']' ,{0x1C,0x04,0x04,0x04,0x1C,0x00}},
+    {'[' ,{0x07,0x04,0x04,0x04,0x07,0x00}},
     };
 
     const Glyph* findGlyph(char c) {
@@ -110,7 +121,7 @@ namespace {
                     C2D_DrawRectSolid(x+rx, y+ry, 0, 1,1, C2D_Color32(r,g,b,a));
             }
             x += 6;
-            if(x > 320-6) break; // bottom width 320
+            if(x > g_targetWidth-6) break; // dynamic width
         }
     }
 }
@@ -170,6 +181,9 @@ void hw_poll_input(InputState& out) {
     if(out.touching) { hidTouchRead(&tp); out.stylusX = tp.px; out.stylusY = tp.py; }
     else { out.stylusX = out.stylusY = -1; }
     out.fireHeld = (kHeld & KEY_DUP) != 0;
+    out.dpadUpPressed = (kDown & KEY_DUP) != 0;
+    out.dpadDownPressed = (kDown & KEY_DDOWN) != 0;
+    out.dpadDownHeld = (kHeld & KEY_DDOWN) != 0;
     out.startPressed = (kDown & KEY_START) != 0;
     out.selectPressed = (kDown & KEY_SELECT) != 0;
     out.aPressed = (kDown & KEY_A) != 0;
@@ -177,6 +191,8 @@ void hw_poll_input(InputState& out) {
     out.xPressed = (kDown & KEY_X) != 0;
     out.levelPrevPressed = (kDown & KEY_L) != 0;
     out.levelNextPressed = (kDown & KEY_R) != 0;
+    out.lHeld = (kHeld & KEY_L) != 0;
+    out.rHeld = (kHeld & KEY_R) != 0;
 }
 
 void hw_begin_frame() {
@@ -231,7 +247,7 @@ void hw_draw_logs(int x,int y,int maxPixelsY) {
                 for(int rx=0; rx<5; ++rx) if(row & (1<<(4-rx))) C2D_DrawRectSolid(xx+rx, yy+ry, 0,1,1,C2D_Color32(180,180,180,255));
             }
             xx += 6;
-            if(xx > 320-6) break;
+        if(xx > g_targetWidth-6) break;
         }
     yy += lineH;
     if(yy + lineH > y + maxPixelsY) break;
@@ -239,10 +255,10 @@ void hw_draw_logs(int x,int y,int maxPixelsY) {
 }
 
 void hw_set_top() {
-    if(g_top) C2D_SceneBegin(g_top);
+    if(g_top) { C2D_SceneBegin(g_top); g_targetWidth = 400; }
 }
 void hw_set_bottom() {
-    if(g_bottom) C2D_SceneBegin(g_bottom);
+    if(g_bottom) { C2D_SceneBegin(g_bottom); g_targetWidth = 320; }
 }
 
 C2D_Image hw_image(int index) {

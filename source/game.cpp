@@ -20,6 +20,7 @@
 #include "SUPPORT.HPP" // legacy constants BATWIDTH, BATHEIGHT, BALLWIDTH, BALLHEIGHT
 #include "editor.hpp"
 #include "options.hpp"
+#include "ui_button.hpp"
 #include <vector>
 #include <string>
 #include "OPTIONS.h"
@@ -28,6 +29,7 @@
 // Basic game state migrated from legacy structures (incremental port)
 namespace game
 {
+    // Title buttons declared later and initialized in init()
     // (Editor UI constants moved to editor.cpp)
     // Fixed geometry (design guarantees these never change now)
     static constexpr int kBrickCols = 13;
@@ -62,6 +64,10 @@ namespace game
         Editor,
         Options
     };
+
+    // Title buttons
+    struct TitleBtn { UIButton btn; Mode next; };
+    static TitleBtn kTitleButtons[3];
 
     struct MovingBrickData
     {
@@ -131,6 +137,11 @@ namespace game
         hw_log("game_init\n");
         init_assets();
         levels_load();
+        // Initialize title buttons
+    // Title buttons sized for 320x240 bottom screen (w/h in pixels)
+    kTitleButtons[0].btn.x=60; kTitleButtons[0].btn.y=60; kTitleButtons[0].btn.w=200; kTitleButtons[0].btn.h=24; kTitleButtons[0].btn.label="PLAY"; kTitleButtons[0].btn.color=C2D_Color32(50,50,70,255); kTitleButtons[0].next=Mode::Playing;
+    kTitleButtons[1].btn.x=60; kTitleButtons[1].btn.y=100; kTitleButtons[1].btn.w=200; kTitleButtons[1].btn.h=24; kTitleButtons[1].btn.label="EDITOR"; kTitleButtons[1].btn.color=C2D_Color32(50,50,70,255); kTitleButtons[1].next=Mode::Editor;
+    kTitleButtons[2].btn.x=60; kTitleButtons[2].btn.y=140; kTitleButtons[2].btn.w=200; kTitleButtons[2].btn.h=24; kTitleButtons[2].btn.label="OPTIONS"; kTitleButtons[2].btn.color=C2D_Color32(50,50,70,255); kTitleButtons[2].next=Mode::Options;
         hw_log("assets loaded\n");
         // Initialize moving brick buffers
         int total = levels_grid_width() * levels_grid_height();
@@ -139,15 +150,6 @@ namespace game
     }
 
     // Title screen configuration (button rectangles)
-    static const struct
-    {
-        int x, y, w, h;
-        Mode next;
-        const char *label;
-    } kTitleButtons[] = {
-        {16, 28, 22, 12, Mode::Playing, "PLAY"},
-        {16, 39, 22, 12, Mode::Editor, "EDITOR"},
-        {16, 50, 22, 12, Mode::Options, "OPTIONS"}};
 
     // Sequence of sheets to show while idling (fallback to BREAK if others missing)
     struct SeqEntry
@@ -757,37 +759,23 @@ namespace game
                 hw_log("exit (X)\n");
                 return;
             }
-            // Touch buttons: we emulate three horizontal bars; map to actions by y band
-        if (in.touching)
+            if (in.touchPressed)
             {
-                int y = in.stylusY;
-                if (y >= 60 && y < 80)
+                int tx = in.stylusX, ty = in.stylusY;
+                for (auto &tb : kTitleButtons)
                 {
-                    levels_set_current(0);
-                    levels_reset_level(0);
-                    G.mode = Mode::Playing;
-                    hw_log("start (touch)\n");
-                    return;
-                }
-                if (y >= 100 && y < 120)
-                {
-                    G.mode = Mode::Editor;
-                    hw_log("editor (touch)\n");
-                    return;
-                }
-                if (y >= 140 && y < 160)
-                {
-            hw_log("TOUCH->OPTIONS\n");
-            options::begin();
-            G.mode = Mode::Options;
-            hw_log("options (touch)\n");
-            return;
-                }
-                if (y >= 180 && y < 200)
-                {
-                    g_exitRequested = true;
-                    hw_log("exit (touch)\n");
-                    return;
+                    if (tb.btn.contains(tx, ty))
+                    {
+                        if (tb.next == Mode::Playing)
+                        {
+                            levels_set_current(0);
+                            levels_reset_level(0);
+                        }
+                        if (tb.next == Mode::Options)
+                            options::begin();
+                        G.mode = tb.next;
+                        return;
+                    }
                 }
             }
             // Cycle sequence if user idle
@@ -1082,6 +1070,7 @@ namespace game
                     hw_draw_text_scaled(baseX + 1, baseY + 1, line, 0x000000FF, scale);
                     hw_draw_text_scaled(baseX, baseY, line, 0xFFFFFFFF, scale);
                 }
+                // NOTE: Logs are drawn in entry_3ds when toggled; no need here unless we add a param.
             }
             return;
         }
@@ -1268,6 +1257,15 @@ namespace game
 void game_init() { game::init(); }
 void game_update(const InputState &in) { game::update(in); }
 void game_render() { game::render(); }
+void game_render_title_buttons(const InputState &in) {
+    using namespace game;
+    if (G.mode != Mode::Title) return;
+    // Draw the three title buttons (PLAY/EDITOR/OPTIONS) using bottom-screen coordinate system.
+    for (auto &tb : kTitleButtons) {
+        bool pressed = in.touching && tb.btn.contains(in.stylusX, in.stylusY);
+        ui_draw_button(tb.btn, pressed);
+    }
+}
 GameMode game_mode()
 {
     using namespace game;

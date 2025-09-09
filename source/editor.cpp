@@ -9,6 +9,7 @@
 #include "editor.hpp"
 #include "DESIGNER.h"
 #include "INSTRUCT.h"
+#include "ui_button.hpp"
 
 namespace editor {
 
@@ -46,6 +47,10 @@ struct EditorState {
     int fadeTimer = 0;         // countdown for fade overlay
 };
 static EditorState E;
+static std::vector<UIButton> g_buttons; // cached buttons built after init
+
+// Forward decl for name edit (used in button lambda)
+static void edit_level_name();
 
 // Forward helpers -------------------------------------------------------------
 static void init_if_needed() {
@@ -58,6 +63,14 @@ static void init_if_needed() {
     const char *nm = levels_get_name(E.curLevel);
     E.name = nm ? nm : "Level";
     E.init = true;
+    // Build UI buttons (palette excluded)
+    using namespace ui;
+    g_buttons.clear();
+    UIButton b;
+    b = {}; b.x=NameBtnX; b.y=NameBtnY; b.w=NameBtnW; b.h=NameBtnH; b.label="Name"; b.color=C2D_Color32(80,80,120,180); b.onTap=[](){ edit_level_name(); }; g_buttons.push_back(b);
+    b = {}; b.x=TestBtnX; b.y=TestBtnY; b.w=TestBtnW; b.h=TestBtnH; b.label="TEST"; b.color=C2D_Color32(80,80,120,180); g_buttons.push_back(b);
+    b = {}; b.x=ClearBtnX; b.y=ClearBtnY; b.w=ClearBtnW; b.h=ClearBtnH; b.label="Clear"; b.color=C2D_Color32(80,80,120,180); g_buttons.push_back(b);
+    b = {}; b.x=ExitBtnX; b.y=ExitBtnY; b.w=ExitBtnW; b.h=ExitBtnH; b.label="Exit"; b.color=C2D_Color32(80,80,120,180); g_buttons.push_back(b);
 }
 
 void persist_current_level() {
@@ -211,23 +224,13 @@ void render() {
         C2D_DrawRectSolid(boxX, boxY, 0, w, h, col);
     };
     using namespace ui;
-    label_bg(LabelNameX, LabelNameY, "Name");
-    label_bg(LabelTestX, LabelTestY, "TEST");
-    label_bg(LabelClearX, LabelClearY, "Clear");
-    label_bg(LabelExitX, LabelExitY, "Exit");
-    label_bg(LabelLevelMinusX, LabelLevelMinusY, "-", true);
-    label_bg(LabelLevelPlusX, LabelLevelPlusY, "+", true);
-    label_bg(LabelSpeedMinusX, LabelSpeedMinusY, "-", true);
-    label_bg(LabelSpeedPlusX, LabelSpeedPlusY, "+", true);
-    hw_draw_text(10, 170, "Clear Level", 0xFFFFFFFF);
-    hw_draw_text(10, 185, "Save & Exit", 0xFFFFFFFF);
-    hw_draw_text(LabelClearX, LabelClearY, "Clear", 0xFFFFFFFF);
-    hw_draw_text(LabelExitX, LabelExitY, "Exit", 0xFFFFFFFF);
-    hw_draw_text(LabelTestX, LabelTestY, "TEST", 0xFFFFFFFF);
-    hw_draw_text(LabelLevelMinusX, LabelLevelMinusY, "-", 0xFFFFFFFF);
-    hw_draw_text(LabelLevelPlusX, LabelLevelPlusY, "+", 0xFFFFFFFF);
-    hw_draw_text(LabelSpeedMinusX, LabelSpeedMinusY, "-", 0xFFFFFFFF);
-    hw_draw_text(LabelSpeedPlusX, LabelSpeedPlusY, "+", 0xFFFFFFFF);
+    // Draw standard buttons
+    for (const auto &b : g_buttons) ui_draw_button(b, false);
+    // Minus/plus small buttons (rendered as mini labels)
+    label_bg(LabelLevelMinusX, LabelLevelMinusY, "-", true); hw_draw_text(LabelLevelMinusX, LabelLevelMinusY, "-", 0xFFFFFFFF);
+    label_bg(LabelLevelPlusX, LabelLevelPlusY, "+", true);  hw_draw_text(LabelLevelPlusX, LabelLevelPlusY, "+", 0xFFFFFFFF);
+    label_bg(LabelSpeedMinusX, LabelSpeedMinusY, "-", true); hw_draw_text(LabelSpeedMinusX, LabelSpeedMinusY, "-", 0xFFFFFFFF);
+    label_bg(LabelSpeedPlusX, LabelSpeedPlusY, "+", true);  hw_draw_text(LabelSpeedPlusX, LabelSpeedPlusY, "+", 0xFFFFFFFF);
     int atlas = levels_atlas_index(E.curBrick);
     if (atlas >= 0) hw_draw_sprite(hw_image(atlas), 124, 142);
     hw_draw_text(40, 142, "Current Brick", 0xFFFFFFFF);
