@@ -54,3 +54,14 @@ void levels_reload_active();
 // Duplicate currently selected level file to a new 8-char (max) uppercase name (without extension).
 // Returns true on success.
 bool levels_duplicate_active(const char* newBaseName);
+
+// -------- Editor support (in-place modification) --------
+// Get/set brick in current level (0..levels_count-1) at grid coordinate.
+int  levels_edit_get_brick(int levelIndex, int col, int row); // returns -1 on invalid
+void levels_edit_set_brick(int levelIndex, int col, int row, int brickType); // silently ignores invalid
+int  levels_get_speed(int levelIndex); // 0 if invalid
+void levels_set_speed(int levelIndex, int speed); // clamps reasonable range (1..99)
+const char* levels_get_name(int levelIndex); // empty string if invalid
+void levels_set_name(int levelIndex, const char* name); // truncates to 32 chars
+// Save all current in-memory levels back to active .DAT file (overwrite)
+bool levels_save_active();

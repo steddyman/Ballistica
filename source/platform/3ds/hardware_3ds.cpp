@@ -109,7 +109,8 @@ namespace {
                 for(int rx=0; rx<5; ++rx) if(row & (1 << (4-rx)))
                     C2D_DrawRectSolid(x+rx, y+ry, 0, 1,1, C2D_Color32(r,g,b,a));
             }
-            x += 6; if(x > 320-6) break; // bottom width 320
+            x += 6;
+            if(x > 320-6) break; // bottom width 320
         }
     }
 }
@@ -208,14 +209,19 @@ void hw_draw_text_scaled(int x,int y,const char* text, uint32_t rgba, float scal
                 C2D_DrawRectSolid(px, py, 0, scale, scale, C2D_Color32(r,g,b,a));
             }
         }
-        cursorX += 6*scale; if(cursorX > 400 - 6*scale) break;
+    cursorX += 6*scale;
+    if(cursorX > 400 - 6*scale) break;
     }
 }
 
 void hw_draw_logs(int x,int y,int maxPixelsY) {
     // Render logs onto whichever target is current (caller sets scene)
-    const int lineH=7; int maxLines = maxPixelsY / lineH; if(maxLines<=0) return;
-    int start = (int)g_logs.size() - maxLines; if(start<0) start=0; int yy=y;
+    const int lineH=7;
+    int maxLines = maxPixelsY / lineH;
+    if(maxLines<=0) return;
+    int start = (int)g_logs.size() - maxLines;
+    if(start<0) start=0;
+    int yy=y;
     for(size_t i=start;i<g_logs.size();++i) {
         int xx=x;
         for(char c : g_logs[i]) {
@@ -224,9 +230,11 @@ void hw_draw_logs(int x,int y,int maxPixelsY) {
                 uint8_t row = g->rows[ry];
                 for(int rx=0; rx<5; ++rx) if(row & (1<<(4-rx))) C2D_DrawRectSolid(xx+rx, yy+ry, 0,1,1,C2D_Color32(180,180,180,255));
             }
-            xx += 6; if(xx > 320-6) break;
+            xx += 6;
+            if(xx > 320-6) break;
         }
-        yy += lineH; if(yy + lineH > y + maxPixelsY) break;
+    yy += lineH;
+    if(yy + lineH > y + maxPixelsY) break;
     }
 }
 
