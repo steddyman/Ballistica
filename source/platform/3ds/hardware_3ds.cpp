@@ -131,7 +131,8 @@ bool hw_init() {
     hw_log("hw_init start\n");
     romfsInit();
     if (!C3D_Init(C3D_DEFAULT_CMDBUF_SIZE)) { hw_log("C3D_Init FAILED\n"); return false; }
-    if (!C2D_Init(C2D_DEFAULT_MAX_OBJECTS)) { hw_log("C2D_Init FAILED\n"); return false; }
+    // Increase max objects budget to reduce risk of overflow when drawing many scaled font quads
+    if (!C2D_Init(C2D_DEFAULT_MAX_OBJECTS * 2)) { hw_log("C2D_Init FAILED\n"); return false; }
     C2D_Prepare();
     g_bottom = C2D_CreateScreenTarget(GFX_BOTTOM, GFX_LEFT);
     g_top = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
@@ -228,6 +229,44 @@ void hw_draw_text_scaled(int x,int y,const char* text, uint32_t rgba, float scal
     cursorX += 6*scale;
     if(cursorX > 400 - 6*scale) break;
     }
+}
+
+void hw_draw_text_shadow_scaled(int x,int y,const char* text, uint32_t mainRGBA, uint32_t shadowRGBA, float scale) {
+    if(scale <= 1.01f) {
+        if((shadowRGBA & 0xFF) != 0) hw_draw_text(x+1,y+1,text,shadowRGBA);
+        hw_draw_text(x,y,text,mainRGBA);
+        return;
+    }
+    auto drawLayer = [&](int ox,int oy,uint32_t rgba){
+        if((rgba & 0xFF)==0) return; // skip if alpha zero
+        uint8_t r=(rgba>>24)&0xFF,g=(rgba>>16)&0xFF,b=(rgba>>8)&0xFF,a=rgba&0xFF;
+        float cursorX = (float)(x+ox);
+        int baseY = y+oy;
+        for(const char* p=text; *p; ++p) {
+            char c=*p; if(c=='\n'){ baseY += (int)std::ceil(6*scale + scale); cursorX=(float)(x+ox); continue; }
+            const Glyph* glyph = findGlyph(c);
+            // For each row merge consecutive set bits into one rect
+            for(int ry=0; ry<6; ++ry) {
+                uint8_t row = glyph->rows[ry];
+                int rx=0;
+                while(rx<5) {
+                    while(rx<5 && !(row & (1<<(4-rx)))) ++rx; // skip unset
+                    if(rx>=5) break;
+                    int start=rx;
+                    while(rx<5 && (row & (1<<(4-rx)))) ++rx; // advance run
+                    int run = rx-start;
+                    float px = cursorX + start*scale;
+                    float py = (float)baseY + ry*scale;
+                    C2D_DrawRectSolid(px, py, 0, run*scale, scale, C2D_Color32(r,g,b,a));
+                }
+            }
+            cursorX += 6*scale;
+            if(cursorX > 400 - 6*scale) break;
+        }
+    };
+    // Shadow first
+    drawLayer(1,1,shadowRGBA);
+    drawLayer(0,0,mainRGBA);
 }
 
 void hw_draw_logs(int x,int y,int maxPixelsY) {

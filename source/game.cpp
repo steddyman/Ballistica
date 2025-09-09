@@ -1066,9 +1066,8 @@ namespace game
                     int baseX = 32;
                     int baseY = 48 + i * 18;
                     float scale = 2.0f; // 10% smaller than previous 2.0
-                    // Shadow (offset 1px)
-                    // hw_draw_text_scaled(baseX + 1, baseY + 1, line, 0x000000FF, scale);
-                    // hw_draw_text_scaled(baseX, baseY, line, 0xFFFFFFFF, scale);
+                    // Optimised merged-run shadow text (significantly fewer draw objects)
+                    hw_draw_text_shadow_scaled(baseX, baseY, line, 0xFFFFFFFF, 0x000000FF, scale);
                 }
                 // NOTE: Logs are drawn in entry_3ds when toggled; no need here unless we add a param.
             }

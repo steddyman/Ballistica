@@ -217,6 +217,9 @@ C2D_Image hw_image_from(HwSheet sheet, int index); // returns empty image if mis
 // Minimal 5x6 debug font rendering on bottom screen for HUD
 void hw_draw_text(int x,int y,const char* text, uint32_t rgba = 0xC8C8C8FF);
 void hw_draw_text_scaled(int x,int y,const char* text, uint32_t rgba, float scale);
+// Optimised scaled text with optional 1px shadow (merges horizontal pixel runs to reduce C2D objects).
+// Draws shadow first (offset +1,+1) if shadowRGBA alpha >0 then main text.
+void hw_draw_text_shadow_scaled(int x,int y,const char* text, uint32_t mainRGBA, uint32_t shadowRGBA, float scale);
 
 // Draw recent log lines into current target starting at (x,y); maxPixelsY caps height (optional).
 void hw_draw_logs(int x,int y,int maxPixelsY=240);
