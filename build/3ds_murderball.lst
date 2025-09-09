@@ -83,876 +83,892 @@
 00100b88 00000390 T strcmp
 00100f10 t __do_global_dtors_aux
 00100f60 t frame_dummy
-00100f8c 000004e4 T main
-00101470 000001d8 t game::schedule_neighbor_bombs(int, int, int) [clone .constprop.0]
-00101648 0000003c t std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::assign(char const*) [clone .isra.0]
-00101684 0000179c T game::render()
-00102e20 00000004 T game_render()
-00102e24 0000001c T game_mode()
-00102e40 00000010 T exit_requested()
-00102e50 0000015c W std::vector<game::MovingBrickData, std::allocator<game::MovingBrickData> >::_M_fill_assign(unsigned int, game::MovingBrickData const&)
-00102fac 000000d8 W void std::vector<game::Particle, std::allocator<game::Particle> >::_M_realloc_append<game::Particle const&>(game::Particle const&)
-00103084 000000e0 W void std::vector<game::Ball, std::allocator<game::Ball> >::_M_realloc_append<game::Ball>(game::Ball&&)
-00103164 0000038c t game::apply_brick_effect(BrickType, float, float, game::Ball&)
-001034f0 00000814 t game::handle_ball_bricks(game::Ball&)::{lambda(bool)#1}::operator()(bool) const
-00103d04 00000184 T game::init_assets()
-00103e88 00000068 T game::init()
-00103ef0 00000004 T game_init()
-00103ef4 000020e0 T game::update(InputState const&)
-00105fd4 00000004 T game_update(InputState const&)
-00105fd8 000000e8 t _GLOBAL__sub_I__ZN4game23exit_requested_internalEv
-001060c0 00000070 t _GLOBAL__sub_D__ZN4game23exit_requested_internalEv
-00106130 00000058 T highscores::set_name(int, char const*)
-00106188 00000094 T highscores::save()
-0010621c 0000020c T highscores::init()
-00106428 0000009c T highscores::submit(unsigned long, int)
-001064c4 00000014 T highscores::table()
-001064d8 000000d4 t std::_Hashtable<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, int>, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, int> >, std::__detail::_Select1st, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true> >::_M_find_before_node(unsigned int, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, unsigned int) const [clone .isra.0]
-001065ac 000000f0 t std::_Hashtable<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, int>, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, int> >, std::__detail::_Select1st, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true> >::_M_rehash(unsigned int, std::integral_constant<bool, true>) [clone .isra.0]
-0010669c 00000130 t std::vector<unsigned char, std::allocator<unsigned char> >::operator=(std::vector<unsigned char, std::allocator<unsigned char> > const&) [clone .isra.0]
-001067cc 00000094 t void std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_construct<char const*>(char const*, char const*, std::forward_iterator_tag) [clone .isra.0]
-00106860 000001ec t levels::ensureOnSdmc()::{lambda(char const*)#1}::operator()(char const*) const [clone .isra.0]
-00106a4c 00000248 t void std::__unguarded_linear_insert<__gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, __gnu_cxx::__ops::_Val_less_iter>(__gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, __gnu_cxx::__ops::_Val_less_iter) [clone .isra.0]
-00106c94 000002e4 t void std::__insertion_sort<__gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, __gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, __gnu_cxx::__ops::_Iter_less_iter) [clone .isra.0]
-00106f78 00000604 t void std::__adjust_heap<__gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, int, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, int, int, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, __gnu_cxx::__ops::_Iter_less_iter) [clone .isra.0]
-0010757c 00000120 T levels::renderBricks()
-0010769c 00000074 T levels::levels_remaining_breakable()
-00107710 000003b8 T levels::levels_explode_bomb(int, int, std::vector<DestroyedBrick, std::allocator<DestroyedBrick> >*)
-00107ac8 000000f4 T levels::levels_reset_level(int)
-00107bbc 000000dc T levels::edit_set_brick(int, int, int, int)
-00107c98 000002a4 T levels::set_name(int, char const*)
-00107f3c 000001c8 T levels::save_active()
-00108104 00000004 T levels_render()
-00108108 00000030 T levels_count()
-00108138 00000010 T levels_current()
-00108148 00000050 T levels_set_current(int)
-00108198 00000008 T levels_grid_width()
-001081a0 00000008 T levels_grid_height()
-001081a8 00000008 T levels_left()
-001081b0 00000008 T levels_top()
-001081b8 00000008 T levels_brick_width()
-001081c0 00000008 T levels_brick_height()
-001081c8 00000060 T levels_brick_at(int, int)
-00108228 00000088 T levels_remove_brick(int, int)
-001082b0 00000004 T levels_remaining_breakable()
-001082b4 00000004 T levels_explode_bomb(int, int, std::vector<DestroyedBrick, std::allocator<DestroyedBrick> >*)
-001082b8 0000001c T levels_atlas_index(int)
-001082d4 00000004 T levels_reset_level(int)
-001082d8 000000c8 T levels_set_active_file(char const*)
-001083a0 00000010 T levels_get_active_file()
-001083b0 00000004 T levels_edit_set_brick(int, int, int, int)
-001083b4 00000054 T levels_get_speed(int)
-00108408 0000005c T levels_set_speed(int, int)
-00108464 00000054 T levels_get_name(int)
-001084b8 00000004 T levels_set_name(int, char const*)
-001084bc 00000004 T levels_save_active()
-001084c0 00000098 W std::vector<unsigned char, std::allocator<unsigned char> >::reserve(unsigned int)
-00108558 00000108 W std::vector<unsigned char, std::allocator<unsigned char> >::_M_fill_assign(unsigned int, unsigned char const&)
-00108660 0000016c T levels::levels_damage_brick(int, int)
-001087cc 00000004 T levels_damage_brick(int, int)
-001087d0 0000036c W void std::vector<levels::Level, std::allocator<levels::Level> >::_M_realloc_append<levels::Level const&>(levels::Level const&)
-00108b3c 0000025c W std::vector<levels::Level, std::allocator<levels::Level> >::push_back(levels::Level const&)
-00108d98 000003b0 t levels::buildFallback()
-00109148 000000f4 W std::_Hashtable<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, int>, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, int> >, std::__detail::_Select1st, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true> >::find(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const
-00109240 00000b0c T levels::load()
-00109d4c 00000004 T levels_load()
-00109d50 00000098 T levels_reload_active()
-00109de8 00000174 W void std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >::_M_realloc_append<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&)
-00109f5c 00000338 W void std::__heap_select<__gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, __gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, __gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, __gnu_cxx::__ops::_Iter_less_iter)
-0010a294 00000450 t void std::__introsort_loop<__gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, int, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, __gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, int, __gnu_cxx::__ops::_Iter_less_iter) [clone .isra.0]
-0010a6e4 0000026c t levels::listDatFiles()
-0010a950 00000088 t levels::available_level_files[abi:cxx11]() [clone .part.0]
-0010a9d8 00000030 T levels_available_files[abi:cxx11]()
-0010aa08 00000088 T levels::refresh_level_files()
-0010aa90 00000004 T levels_refresh_files()
-0010aa94 000001b4 T levels_duplicate_active(char const*)
-0010ac48 000002ac t _GLOBAL__sub_I__ZN6levels21available_level_filesB5cxx11Ev
-0010aef4 00000130 t _GLOBAL__sub_D__ZN6levels21available_level_filesB5cxx11Ev
-0010b024 0000014c t (anonymous namespace)::drawGlyphString(int, int, char const*, unsigned long)
-0010b170 00000018 t __tcf_ZZ6hw_logPKcE8lastLine
-0010b188 000000e8 T hw_shutdown()
-0010b270 000000d0 T hw_poll_input(InputState&)
-0010b340 00000030 T hw_begin_frame()
-0010b370 00000008 T hw_end_frame()
-0010b378 00000068 T hw_draw_sprite(C2D_Image, float, float, float, float, float)
-0010b3e0 00000004 T hw_draw_text(int, int, char const*, unsigned long)
-0010b3e4 00000198 T hw_draw_text_scaled(int, int, char const*, unsigned long, float)
-0010b57c 00000038 T hw_set_top()
-0010b5b4 00000038 T hw_set_bottom()
-0010b5ec 00000038 T hw_image(int)
-0010b624 000000c8 T hw_sheet_loaded(HwSheet)
-0010b6ec 000000b0 T hw_image_from(HwSheet, int)
-0010b79c 000000a8 W void std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_construct<true>(char const*, unsigned int)
-0010b844 00000d6c t hw_log(char const*) [clone .part.0]
-0010c5b0 0000000c T hw_log(char const*)
-0010c5bc 00000250 T hw_init()
-0010c80c 0000001c t _GLOBAL__sub_I__Z7hw_initv
-0010c828 00000054 t _GLOBAL__sub_D__Z7hw_initv
-0010c87c 00000044 t C2Di_FrameEndHook
-0010c8c0 0000036c T C2D_Init
-0010cc2c 0000004c T C2D_Fini
-0010cc78 000000b8 T C2D_Prepare
-0010cd30 00000048 T C2D_Flush
-0010cd78 00000104 T C2D_SceneSize
-0010ce7c 00000058 T C2D_CreateScreenTarget
-0010ced4 00000064 T C2D_TargetClear
-0010cf38 0000013c T C2Di_CalcQuad
-0010d074 00000058 T C2Di_AppendQuad
-0010d0cc 00000550 T C2Di_Update
-0010d61c 000002b0 T C2D_DrawImage
-0010d8cc 00000158 T C2D_DrawRectangle
-0010da24 0000007c T C2D_SpriteSheetLoadFromMem
-0010daa0 00000028 T C2D_SpriteSheetFree
-0010dac8 0000002c T C2D_SpriteSheetGetImage
-0010daf4 00000028 T AttrInfo_Init
-0010db1c 00000094 T AttrInfo_AddLoader
-0010dbb0 00000054 T C3D_SetAttrInfo
-0010dc04 00000080 T C3Di_AttrInfoBind
-0010dc84 00000004 W C3Di_LightEnvUpdate
-0010dc88 00000004 W C3Di_LightEnvDirty
-0010dc8c 000000b4 t C3Di_AptEventHook
-0010dd40 00000004 W C3Di_GasUpdate
-0010dd44 000001d0 T C3D_Init
-0010df14 00000098 T C3D_SetViewport
-0010dfac 000004e8 T C3Di_UpdateContext
-0010e494 000000e0 T C3Di_SplitFrame
-0010e574 00000044 T C3D_Fini
-0010e5b8 00000194 T C3D_BindProgram
-0010e74c 00000024 T BufInfo_Init
-0010e770 00000080 T BufInfo_Add
-0010e7f0 0000003c T C3D_SetBufInfo
-0010e82c 00000048 T C3Di_BufInfoBind
-0010e874 0000021c T C3D_DrawElements
-0010ea90 00000040 T C3D_DepthMap
-0010ead0 0000001c T C3D_CullFace
-0010eaec 00000040 T C3D_StencilTest
-0010eb2c 00000024 T C3D_StencilOp
-0010eb50 0000001c T C3D_BlendingColor
-0010eb6c 00000024 T C3D_EarlyDepthTest
-0010eb90 0000002c T C3D_DepthTest
-0010ebbc 0000002c T C3D_AlphaTest
-0010ebe8 00000050 T C3D_AlphaBlend
-0010ec38 00000030 T C3D_FragOpMode
-0010ec68 00000044 T C3D_FragOpShadow
-0010ecac 000001ac T C3Di_EffectBind
-0010ee58 0000001c T C3D_CalcColorBufSize
-0010ee74 0000001c T C3D_CalcDepthBufSize
-0010ee90 00000044 T C3D_SetFrameBuf
-0010eed4 0000016c T C3Di_FrameBufBind
-0010f040 000000c8 T C3D_FrameBufClear
-0010f108 00000044 T C3D_FrameBufTransfer
-0010f14c 000000a8 T C3D_ImmSendAttrib
-0010f1f4 00000070 T C3D_ProcTexInit
-0010f264 00000054 T C3D_ProcTexBind
-0010f2b8 0000005c T C3D_ProcTexLutBind
-0010f314 000000a4 T ProcTexLut_FromArray
-0010f3b8 00000178 T C3Di_ProcTexUpdate
-0010f530 00000068 T C3Di_ProcTexDirty
-0010f598 0000004c t onVBlank0
-0010f5e4 0000004c t onVBlank1
-0010f630 00000080 t C3Di_RenderTargetDestroy
-0010f6b0 000000f4 t onQueueFinish
-0010f7a4 00000038 T C3Di_RenderQueueEnableVBlank
-0010f7dc 00000030 T C3Di_RenderQueueDisableVBlank
-0010f80c 00000060 T C3Di_RenderQueueInit
-0010f86c 000000b4 T C3Di_RenderQueueExit
-0010f920 00000034 T C3Di_RenderQueueWaitDone
-0010f954 000000e8 T C3D_FrameBegin
-0010fa3c 00000048 T C3D_FrameDrawOn
-0010fa84 00000058 T C3D_FrameSplit
-0010fadc 000001d0 T C3D_FrameEnd
-0010fcac 0000001c T C3D_FrameEndHook
-0010fcc8 00000170 T C3D_RenderTargetCreate
-0010fe38 000000a8 T C3D_RenderTargetSetOutput
-0010fee0 000000fc T C3D_SyncTextureCopy
-0010ffdc 000003d8 t Tex3DSi_ImportCommon
-001103b4 00000034 T Tex3DS_TextureImport
-001103e8 0000001c T Tex3DS_GetSubTexture
-00110404 00000004 T Tex3DS_TextureFree
-00110408 00000034 T C3D_GetTexEnv
-0011043c 00000024 T C3Di_TexEnvBind
-00110460 00000290 T C3D_TexInitWithParams
-001106f0 000000c8 T C3D_TexLoadImage
-001107b8 00000044 T C3D_TexBind
-001107fc 00000074 T C3D_TexDelete
-00110870 0000014c T C3Di_SetTex
-001109bc 00000290 T C3D_UpdateUniforms
-00110c4c 000000c0 T C3Di_DirtyUniforms
-00110d0c 000000d8 T C3Di_LoadShaderUniforms
-00110de4 00000028 T C3Di_ClearShaderUniforms
-00110e0c 000000cc T Mtx_Ortho
-00110ed8 000000cc T Mtx_OrthoTilt
-00110fa4 00000024 t addrMapNodeComparator(rbtree_node const*, rbtree_node const*)
-00110fc8 00000004 t addrMapNodeDestructor(rbtree_node*)
-00110fcc 0000012c T linearMemAlign
-001110f8 00000008 T linearAlloc
-00111100 0000005c T linearFree
-0011115c 00000088 T MemPool::CoalesceRight(MemBlock*)
-001111e4 00000178 T MemPool::Allocate(MemChunk&, unsigned long, int)
-0011135c 00000118 T MemPool::Deallocate(MemChunk const&)
-00111474 00000030 T MemPool::GetFreeSpace()
-001114a4 00000024 t addrMapNodeComparator(rbtree_node const*, rbtree_node const*)
-001114c8 00000004 t addrMapNodeDestructor(rbtree_node*)
-001114cc 00000248 T vramMemAlignAt
-00111714 0000000c T vramAlloc
-00111720 0000000c T vramAllocAt
-0011172c 00000094 T vramFree
-001117c0 000000cc t gfxPresentFramebuffer
-0011188c 0000001c T gfxIsWide
-001118a8 000000f8 T gfxSetScreenFormat
-001119a0 000000d8 T gfxInit
-00111a78 00000010 T gfxInitDefault
-00111a88 000000b8 T gfxExit
-00111b40 000000a0 T gfxGetFramebuffer
-00111be0 00000028 T gfxScreenSwapBuffers
-00111c08 00000074 T osConvertVirtToPhys
-00111c7c 00000054 T osGetTimeRef
-00111cd0 000000ec T osGetTime
-00111dbc 00000034 T __ctru_speedup_config
-00111df0 00000008 t romfs_close
-00111df8 000000ac t romfs_seek
-00111ea4 00000024 t romfs_dirreset
-00111ec8 000000c0 t fill_dir
-00111f88 000002ac t romfs_dirnext
-00112234 00000074 t romfs_free
-001122a8 000000d0 t searchForFile.constprop.0
-00112378 000000d4 t searchForDir.constprop.0
-0011244c 000001c0 t navigateToDir.constprop.0
-0011260c 00000114 t romfs_open
-00112720 0000004c t romfs_chdir
-0011276c 00000068 t romfs_diropen
-001127d4 00000178 t romfs_stat
-0011294c 00000008 t romfs_dirclose
-00112958 0000007c t romfs_fstat
-001129d4 000000d0 t romfs_read
-00112aa4 0000028c T romfsMountFromFile
-00112d30 00000098 T romfsMountFromCurrentProcess
-00112dc8 00000258 T romfsMountSelf
-00113020 000000a0 T romfsUnmount
-001130c0 0000013c T GPUCMD_Add
-001131fc 000000b0 T GPUCMD_Split
-001132ac 00000034 T f32tof16
-001132e0 00000034 T f32tof24
-00113314 00000038 T f32tof31
-0011334c 00000010 T GX_BindQueue
-0011335c 0000007c T GX_ProcessCommandList
-001133d8 00000074 T GX_MemoryFill
-0011344c 00000074 T GX_DisplayTransfer
-001134c0 00000078 T GX_TextureCopy
-00113538 00000064 t gxCmdQueueDoCommands.part.0
-0011359c 000000e4 T gxCmdQueueInterrupt
-00113680 00000068 T gxCmdQueueClear
-001136e8 00000108 T gxCmdQueueAdd
-001137f0 00000080 T gxCmdQueueRun
-00113870 00000064 T gxCmdQueueStop
-001138d4 0000008c T gxCmdQueueWait
-00113960 000001e0 T shaderInstanceInit
-00113b40 00000018 T shaderInstanceGetUniformLocation
-00113b58 0000001c T shaderProgramInit
-00113b74 00000074 T shaderProgramFree
-00113be8 00000094 T shaderProgramSetVsh
-00113c7c 000008d0 T shaderProgramConfigure
-0011454c 000001dc t DVLE_GenerateOutmap.part.0
-00114728 000001ac T DVLB_ParseFile
-001148d4 00000050 T DVLB_Free
-00114924 00000074 T DVLE_GetUniformRegister
-00114998 00000180 t aptConvertScreenForCapture
-00114b18 00000008 W aptDspSleep
-00114b20 00000004 W aptDspWakeup
-00114b24 00000004 W aptDspCancel
-00114b28 00000138 T aptSendCommand
-00114c60 00000044 t aptExitProcess
-00114ca4 00000394 T aptExit
-00115038 000000d8 T aptHandleSleep
-00115110 00000034 T aptHook
-00115144 00000030 T aptUnhook
-00115174 0000001c T aptSetMessageCallback
-00115190 00000084 T APT_SleepIfShellClosed
-00115214 00000078 T aptSetSleepAllowed
-0011528c 00000084 T APT_UnlockTransition
-00115310 00000470 t aptEventHandler
-00115780 000000bc T APT_ReceiveParameter
-0011583c 000000b0 t aptReceiveParameter.constprop.0
-001158f0 00000294 t aptScreenTransfer
-00115b84 000002d0 t aptWaitForWakeUp.isra.0
-00115e54 00000114 T aptLaunchLibraryApplet
-00115f68 000000f4 T aptJumpToHomeMenu
-0011605c 00000058 T aptMainLoop
-001160b4 00000240 T aptInit
-001162f4 0000005c T APT_SendParameter
-00116350 00000090 T APT_CheckNew3DS
-001163e0 00000104 T fsInit
-001164e4 0000003c T fsExit
-00116520 00000068 T fsExemptFromSession
-00116588 00000050 T fsUnexemptFromSession
-001165d8 000000cc T FSUSER_OpenFile
-001166a4 000000cc T FSUSER_OpenFileDirectly
-00116770 000000b8 T FSUSER_DeleteFile
-00116828 000000f4 T FSUSER_RenameFile
-0011691c 000000b8 T FSUSER_DeleteDirectory
-001169d4 000000d0 T FSUSER_CreateFile
-00116aa4 000000c0 T FSUSER_CreateDirectory
-00116b64 000000f4 T FSUSER_RenameDirectory
-00116c58 000000b4 T FSUSER_OpenDirectory
-00116d0c 00000090 T FSUSER_OpenArchive
-00116d9c 0000008c T FSUSER_CloseArchive
-00116e28 00000074 T FSUSER_GetSdmcArchiveResource
-00116e9c 00000064 T FSUSER_IsSdmcWritable
-00116f00 00000064 T FSFILE_Read
-00116f64 0000006c T FSFILE_Write
-00116fd0 00000044 T FSFILE_GetSize
-00117014 00000028 T FSFILE_SetSize
-0011703c 0000003c T FSFILE_Close
-00117078 00000024 T FSFILE_Flush
-0011709c 00000060 T FSDIR_Read
-001170fc 0000003c T FSDIR_Close
-00117138 00000c70 t gspHardwareInit
-00117da8 00000280 T gspInit
-00118028 00000110 T gspExit
-00118138 00000010 T gspHasGpuRight
-00118148 000000a4 T gspPresentBuffer
-001181ec 00000030 T gspSetEventCallback
-0011821c 00000050 T gspWaitForEvent
-0011826c 0000004c T gspWaitForAnyEvent
-001182b8 00000154 t gspEventThreadMain
-0011840c 0000012c T gspSubmitGxCommand
-00118538 00000050 T GSPGPU_FlushDataCache
-00118588 00000034 T GSPGPU_SetLcdForceBlack
-001185bc 00000080 T GSPGPU_AcquireRight
-0011863c 0000005c T GSPGPU_ReleaseRight
-00118698 0000007c T GSPGPU_ImportDisplayCaptureInfo
-00118714 0000002c T GSPGPU_SaveVramSysArea
-00118740 0000002c T GSPGPU_RestoreVramSysArea
-0011876c 00000024 W hidShouldUseIrrst
-00118790 000001cc T hidInit
-0011895c 000000e8 T hidExit
-00118a44 000002a0 T hidScanInput
-00118ce4 00000010 T hidKeysHeld
-00118cf4 00000010 T hidKeysDown
-00118d04 00000018 T hidTouchRead
-00118d1c 000001a4 T irrstInit
-00118ec0 000000dc T irrstExit
-00118f9c 000000b4 T irrstScanInput
-00119050 00000024 T irrstKeysHeld
-00119074 00000078 T ptmSysmInit
-001190ec 0000003c T ptmSysmExit
-00119128 00000034 T PTMSYSM_ConfigureNew3DSCPU
-0011915c 00000190 t swkbdMessageCallback
-001192ec 00000084 T swkbdInit
-00119370 00000064 T swkbdSetHintText
-001193d4 00000008 T swkbdSetInitialText
-001193dc 000003a8 T swkbdInputText
-00119784 000000e0 t buffer_read
-00119864 000000cc t iov_read
-00119930 00000164 t iov_memmove
-00119a94 000001e0 t decompress_rle
-00119c74 00000264 t decompress_lzss
-00119ed8 00000418 t decompress_lz11
-0011a2f0 0000031c t decompress_huff.isra.0
-0011a60c 000000e4 T decompressHeader
-0011a6f0 0000021c T decompressV
-0011a90c 00000074 T rbtree_find
-0011a980 00000010 T rbtree_init
-0011a990 00000198 t do_insert
-0011ab28 00000008 T rbtree_insert
-0011ab30 00000310 T rbtree_remove
-0011ae40 00000090 T rbtree_rotate
-0011aed0 000000e8 T utf16_to_utf8
-0011afb8 000000c0 T utf8_to_utf16
-0011b078 000001e8 W __system_allocateHeaps
-0011b260 00000038 W __libctru_init
-0011b298 0000016c W __system_initArgv
-0011b404 00000030 T __syscall_getreent
-0011b434 00000064 T __syscall_gettod_r
-0011b498 00000004 T __syscall_lock_acquire
-0011b49c 00000004 T __syscall_lock_release
-0011b4a0 00000004 T __syscall_lock_acquire_recursive
-0011b4a4 00000004 T __syscall_lock_release_recursive
-0011b4a8 00000004 T __syscall_exit
-0011b4ac 00000054 T initThreadVars
-0011b500 00000080 T __system_initSyscalls
-0011b580 T svcControlMemory
-0011b5a0 T svcQueryMemory
-0011b5d0 T svcExitProcess
-0011b5d8 T svcCreateThread
-0011b5f8 T svcExitThread
-0011b600 T svcSleepThread
-0011b608 T svcReleaseMutex
-0011b610 T svcCreateEvent
-0011b624 T svcSignalEvent
-0011b62c T svcClearEvent
-0011b634 T svcCreateMemoryBlock
-0011b64c T svcMapMemoryBlock
-0011b654 T svcUnmapMemoryBlock
-0011b65c T svcCreateAddressArbiter
-0011b670 T svcArbitrateAddressNoTimeout
-0011b678 T svcCloseHandle
-0011b680 T svcWaitSynchronization
-0011b688 T svcWaitSynchronizationN
-0011b6b0 T svcDuplicateHandle
-0011b6c4 T svcGetSystemTick
-0011b6cc T svcConnectToPort
-0011b6e0 T svcSendSyncRequest
-0011b6e8 T svcGetResourceLimit
-0011b6fc T svcGetResourceLimitLimitValues
-0011b704 T svcGetResourceLimitCurrentValues
-0011b70c T svcBreak
-0011b714 T svcOutputDebugString
-0011b71c T __aeabi_read_tp
-0011b728 W initSystem
-0011b778 W __ctru_exit
-0011b78c 0000008c W envGetHandle
-0011b818 00000050 W envDestroyHandles
-0011b868 00000164 T srvInit
-0011b9cc 00000064 T srvExit
-0011ba30 00000060 T srvEnableNotification
-0011ba90 000000a0 T srvGetServiceHandleDirect
-0011bb30 00000048 T srvGetServiceHandle
-0011bb78 00000034 T srvSubscribe
-0011bbac 00000060 T srvReceiveNotification
-0011bc0c 00000038 T srvPublishToSubscriber
-0011bc44 0000000c T __sync_init
-0011bc50 00000018 T __sync_fini
-0011bc68 00000028 T syncArbitrateAddress
-0011bc90 000000ac T LightLock_Lock
-0011bd3c 00000040 T LightLock_Unlock
-0011bd7c 00000054 T RecursiveLock_Lock
-0011bdd0 00000054 T RecursiveLock_Unlock
-0011be24 00000044 T LightEvent_Init
-0011be68 000000b8 T LightEvent_Clear
-0011bf20 000000dc T LightEvent_Signal
-0011bffc 00000050 T LightEvent_TryWait
-0011c04c 000000ac T LightEvent_Wait
-0011c0f8 000001fc T threadCreate
-0011c2f4 00000038 T threadFree
-0011c32c 00000024 T threadJoin
-0011c350 00000030 T threadGetCurrent
-0011c380 00000040 T threadExit
-0011c3c0 00000020 t _thread_begin
-0011c3e0 00000090 t mappableFindAddressWithin
-0011c470 00000028 T mappableInit
-0011c498 0000007c T mappableAlloc
-0011c514 00000004 T mappableFree
-0011c518 0000000c T srvPmGetSessionHandle
-0011c524 00000060 T rbtree_node_next
-0011c584 00000054 T decode_utf16
-0011c5d8 00000140 T decode_utf8
-0011c718 00000054 T encode_utf16
-0011c76c 000000e0 T encode_utf8
-0011c84c 00000030 W __appExit
-0011c87c 00000030 W __appInit
-0011c8ac 00000090 W __libctru_exit
-0011c93c 00000014 t archive_link
-0011c950 00000014 t archive_dirreset
-0011c964 00000014 t archive_chmod
-0011c978 00000024 t error_cmp
-0011c99c 00000050 t archive_translate_error
-0011c9ec 000000c0 t archive_seek
-0011caac 00000078 t _archiveInit.part.0
-0011cb24 000000d4 t archiveFindDevice.part.0
-0011cbf8 00000298 t archive_utf16path
-0011ce90 00000098 t _archiveUnmountDeviceStruct.part.0
-0011cf28 00000014 t archive_statvfs
-0011cf3c 00000014 t archive_fchmod
-0011cf50 00000178 t _archiveMountDevice
-0011d0c8 000000f8 t archive_diropen
-0011d1c0 000000ac t archive_fstat
-0011d26c 00000074 t archive_fsync
-0011d2e0 00000074 t archive_close
-0011d354 00000078 t archive_dirclose
-0011d3cc 000000ec t sdmc_statvfs
-0011d4b8 000000f8 t archive_chdir
-0011d5b0 0000008c t archive_ftruncate
-0011d63c 000000bc t archive_read
-0011d6f8 000000a8 t archive_unlink
-0011d7a0 000000c0 t archive_rmdir
-0011d860 000000d8 t archive_mkdir
-0011d938 000001a0 t archive_stat
-0011dad8 00000164 t archive_dirnext
-0011dc3c 0000013c t archive_write
-0011dd78 00000254 t archive_open
-0011dfcc 00000270 t archive_rename
-0011e23c 000001c8 T archiveMountSdmc
-0011e404 00000054 T archiveUnmountAll
-0011e458 00000004 T operator delete(void*)
-0011e45c 0000000c W __gnu_cxx::__concurrence_lock_error::what() const
-0011e468 0000000c W __gnu_cxx::__concurrence_unlock_error::what() const
-0011e474 0000000c W __gnu_cxx::__concurrence_broadcast_error::what() const
-0011e480 0000000c W __gnu_cxx::__concurrence_wait_error::what() const
-0011e490 00000038 t (anonymous namespace)::init()
-0011e4c8 00000024 t (anonymous namespace)::init_static_cond()
-0011e4ec 00000020 W __gnu_cxx::__concurrence_lock_error::~__concurrence_lock_error()
-0011e4ec 00000020 W __gnu_cxx::__concurrence_lock_error::~__concurrence_lock_error()
-0011e50c 0000002c W __gnu_cxx::__concurrence_lock_error::~__concurrence_lock_error()
-0011e538 00000020 W __gnu_cxx::__concurrence_wait_error::~__concurrence_wait_error()
-0011e538 00000020 W __gnu_cxx::__concurrence_wait_error::~__concurrence_wait_error()
-0011e558 0000002c W __gnu_cxx::__concurrence_wait_error::~__concurrence_wait_error()
-0011e584 00000020 W __gnu_cxx::__concurrence_unlock_error::~__concurrence_unlock_error()
-0011e584 00000020 W __gnu_cxx::__concurrence_unlock_error::~__concurrence_unlock_error()
-0011e5a4 0000002c W __gnu_cxx::__concurrence_unlock_error::~__concurrence_unlock_error()
-0011e5d0 00000020 W __gnu_cxx::__concurrence_broadcast_error::~__concurrence_broadcast_error()
-0011e5d0 00000020 W __gnu_cxx::__concurrence_broadcast_error::~__concurrence_broadcast_error()
-0011e5f0 0000002c W __gnu_cxx::__concurrence_broadcast_error::~__concurrence_broadcast_error()
-0011e61c 0000002c W __gnu_cxx::__throw_concurrence_lock_error()
-0011e648 0000002c W __gnu_cxx::__throw_concurrence_unlock_error()
-0011e674 0000002c W __gnu_cxx::__throw_concurrence_broadcast_error()
-0011e6a0 000001b0 T __cxa_guard_acquire
-0011e850 000000f0 T __cxa_guard_release
-0011e940 00000020 T __gnu_cxx::recursive_init_error::~recursive_init_error()
-0011e940 00000020 T __gnu_cxx::recursive_init_error::~recursive_init_error()
-0011e960 0000002c T __gnu_cxx::recursive_init_error::~recursive_init_error()
-0011e98c 00000010 T __gnu_cxx::recursive_init_error::recursive_init_error()
-0011e98c 00000010 T __gnu_cxx::recursive_init_error::recursive_init_error()
-0011e99c 000000ac T std::_Hash_bytes(void const*, unsigned int, unsigned int)
-0011ea48 0000005c T operator new(unsigned int)
-0011eaa4 00000020 T __cxxabiv1::__si_class_type_info::~__si_class_type_info()
-0011eaa4 00000020 T __cxxabiv1::__si_class_type_info::~__si_class_type_info()
-0011eac4 0000002c T __cxxabiv1::__si_class_type_info::~__si_class_type_info()
-0011eaf0 00000140 T __cxxabiv1::__si_class_type_info::__do_dyncast(int, __cxxabiv1::__class_type_info::__sub_kind, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info::__dyncast_result&) const
-0011ec30 00000088 T __cxxabiv1::__si_class_type_info::__do_find_public_src(int, void const*, __cxxabiv1::__class_type_info const*, void const*) const
-0011ecb8 00000044 T __cxxabiv1::__si_class_type_info::__do_upcast(__cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info::__upcast_result&) const
-0011ecfc 00000004 T std::type_info::~type_info()
-0011ecfc 00000004 T std::type_info::~type_info()
-0011ed00 00000008 T std::type_info::__is_pointer_p() const
-0011ed00 00000008 T std::type_info::__is_function_p() const
-0011ed08 0000002c T std::__throw_bad_alloc()
-0011ed34 0000002c T std::__throw_bad_array_new_length()
-0011ed60 00000040 T std::__throw_logic_error(char const*)
-0011eda0 00000040 T std::__throw_length_error(char const*)
-0011ede0 00000040 T std::__throw_out_of_range(char const*)
-0011ee20 00000010 T std::__throw_out_of_range_fmt(char const*, ...)
-0011ee30 00000104 T std::__detail::_Prime_rehash_policy::_M_next_bkt(unsigned int) const
-0011ef38 000000f0 T std::__detail::_Prime_rehash_policy::_M_need_rehash(unsigned int, unsigned int, unsigned int) const
-0011f028 00000054 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_create(unsigned int&, unsigned int)
-0011f07c 00000014 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_dispose()
-0011f090 000000c8 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_assign(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
-0011f158 00000104 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_mutate(unsigned int, unsigned int, char const*, unsigned int)
-0011f25c 00000098 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::reserve(unsigned int)
-0011f2f4 00000110 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace_aux(unsigned int, unsigned int, unsigned int, char)
-0011f404 00000044 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::resize(unsigned int, char)
-0011f448 00000140 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace_cold(char*, unsigned int, char const*, unsigned int, unsigned int)
-0011f588 00000130 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace(unsigned int, unsigned int, char const*, unsigned int)
-0011f6b8 00000090 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_append(char const*, unsigned int)
-0011f748 00000050 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::append(char const*)
-0011f798 00000194 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::swap(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&)
-0011f92c 0000000c T std::bad_alloc::what() const
-0011f938 00000020 T std::bad_alloc::~bad_alloc()
-0011f938 00000020 T std::bad_alloc::~bad_alloc()
-0011f958 0000002c T std::bad_alloc::~bad_alloc()
-0011f984 0000000c T std::bad_array_new_length::what() const
-0011f990 00000020 T std::bad_array_new_length::~bad_array_new_length()
-0011f990 00000020 T std::bad_array_new_length::~bad_array_new_length()
-0011f9b0 0000002c T std::bad_array_new_length::~bad_array_new_length()
-0011f9dc 0000005c T __cxxabiv1::__class_type_info::__do_upcast(__cxxabiv1::__class_type_info const*, void**) const
-0011fa38 00000014 T __cxxabiv1::__class_type_info::__do_find_public_src(int, void const*, __cxxabiv1::__class_type_info const*, void const*) const
-0011fa4c 00000020 T __cxxabiv1::__class_type_info::~__class_type_info()
-0011fa4c 00000020 T __cxxabiv1::__class_type_info::~__class_type_info()
-0011fa6c 0000002c T __cxxabiv1::__class_type_info::~__class_type_info()
-0011fa98 00000070 T __cxxabiv1::__class_type_info::__do_upcast(__cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info::__upcast_result&) const
-0011fb08 00000090 T __cxxabiv1::__class_type_info::__do_catch(std::type_info const*, void**, unsigned int) const
-0011fb98 000000f8 T __cxxabiv1::__class_type_info::__do_dyncast(int, __cxxabiv1::__class_type_info::__sub_kind, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info::__dyncast_result&) const
-0011fc90 00000004 T operator delete(void*, unsigned int)
-0011fc94 0000012c t (anonymous namespace)::pool::free(void*) [clone .constprop.0]
-0011fdc0 000000f0 t (anonymous namespace)::pool::allocate(unsigned int) [clone .constprop.0]
-0011feb0 00000044 T __cxa_allocate_exception
-0011fef4 00000028 T __cxa_free_exception
-0011ff1c 000001a4 t _GLOBAL__sub_I__ZN9__gnu_cxx9__freeresEv
-001200c0 T __cxa_end_cleanup
-001200d0 00000138 T __cxa_type_match
-00120208 000000b4 T __cxa_begin_cleanup
-001202bc 000000b4 T __gnu_end_cleanup
-00120370 000000e0 T __cxa_begin_catch
-00120450 000000e0 T __cxa_end_catch
-00120530 00000004 T std::exception::~exception()
-00120530 00000004 T std::exception::~exception()
-00120534 00000004 T std::bad_exception::~bad_exception()
-00120534 00000004 T std::bad_exception::~bad_exception()
-00120538 0000000c T transaction clone for std::exception::what() const
-00120538 0000000c T std::exception::what() const
-00120544 0000000c T transaction clone for std::bad_exception::what() const
-00120544 0000000c T std::bad_exception::what() const
-00120550 00000020 T std::bad_exception::~bad_exception()
-00120570 00000038 t eh_globals_dtor(void*)
-001205a8 00000038 T __cxa_get_globals_fast
-001205e0 00000090 T __cxa_get_globals
-00120670 00000040 t _GLOBAL__sub_I__ZN17__eh_globals_init7_S_initE
-001206b0 00000034 t _GLOBAL__sub_D__ZN17__eh_globals_init7_S_initE
-001206e4 00000150 t read_encoded_value_with_base(unsigned char, unsigned int, unsigned char const*, unsigned int*)
-00120834 0000005c t base_of_encoded_value(unsigned char, _Unwind_Context*)
-00120890 000000f0 t parse_lsda_header(_Unwind_Context*, unsigned char const*, lsda_header_info*)
-00120980 000006c8 T __gxx_personality_v0
-00121048 00000014 T __cxxabiv1::__terminate(void (*)())
-0012105c 00000018 T std::terminate()
-00121074 0000000c T __cxxabiv1::__unexpected(void (*)())
-00121080 00000018 T std::unexpected()
-00121098 00000014 T std::get_terminate()
-001210ac 00000014 T std::get_unexpected()
-001210c0 00000070 t __gxx_exception_cleanup(_Unwind_Reason_Code, _Unwind_Control_Block*)
-00121130 00000054 T __cxa_init_primary_exception
-00121184 00000054 T __cxa_throw
-001211d8 000000b0 T __cxa_rethrow
-00121288 00000014 T std::get_new_handler()
-0012129c 00000008 T std::logic_error::what() const
-0012129c 00000008 T std::runtime_error::what() const
-001212a4 00000098 T std::logic_error::~logic_error()
-001212a4 00000098 T std::logic_error::~logic_error()
-0012133c 00000098 T std::length_error::~length_error()
-0012133c 00000098 T std::length_error::~length_error()
-001213d4 00000098 T std::out_of_range::~out_of_range()
-001213d4 00000098 T std::out_of_range::~out_of_range()
-0012146c 000000a0 T std::logic_error::~logic_error()
-0012150c 000000a0 T std::length_error::~length_error()
-001215ac 000000a0 T std::out_of_range::~out_of_range()
-0012164c 000000d8 T std::logic_error::logic_error(char const*)
-0012164c 000000d8 T std::logic_error::logic_error(char const*)
-00121724 00000020 T std::length_error::length_error(char const*)
-00121724 00000020 T std::length_error::length_error(char const*)
-00121744 00000020 T std::out_of_range::out_of_range(char const*)
-00121744 00000020 T std::out_of_range::out_of_range(char const*)
-00121764 00000088 W std::string::_Rep::_S_create(unsigned int, unsigned int, std::allocator<char> const&)
-001217ec 00000004 W std::string::_Rep::_M_destroy(std::allocator<char> const&)
-001217f0 00000070 t __cxxabiv1::__is_gxx_exception_class(char*)
-00121860 0000002c T __cxa_call_terminate
-0012188c 00000148 T __cxa_call_unexpected
-001219d8 00000264 T sinf
-00121c3c 00000024 t with_errnof
-00121c60 0000001c T __math_invalidf
-00121c7c 000000c0 T ceilf
-00121d40 00000144 T floor
-00121e88 0000025c T cosf
-001220e4 0000002c T __aeabi_d2lz
-001220e4 0000002c T __fixdfdi
-00122110 00000040 T __aeabi_d2ulz
-00122110 00000040 T __fixunsdfdi
-00122150 00000130 T __udivmoddi4
-00122280 00000018 t selfrel_offset31
-00122298 00000090 t search_EIT_table
-00122328 00000040 t __gnu_unwind_get_pr_addr
-00122368 00000110 t get_eit_entry
-00122478 00000088 t restore_non_core_regs
-00122500 00000014 t _Unwind_decode_typeinfo_ptr.constprop.0
-00122514 00000004 t _Unwind_DebugHook
-00122518 00000064 t unwind_phase2
-0012257c 0000013c t unwind_phase2_forced
-001226b8 000000a4 T __gnu_Unwind_RaiseException
-0012275c 00000020 T __gnu_Unwind_ForcedUnwind
-0012277c 00000074 T __gnu_Unwind_Resume
-001227f0 00000020 T __gnu_Unwind_Resume_or_Rethrow
-00122810 00000004 T _Unwind_Complete
-00122814 00000018 T _Unwind_DeleteException
-0012282c 00000064 T _Unwind_VRS_Get
-00122890 0000002c t _Unwind_GetGR
-001228bc 00000064 T _Unwind_VRS_Set
-00122920 0000002c t _Unwind_SetGR
-0012294c 000000c0 T __gnu_Unwind_Backtrace
-00122a0c 0000040c t __gnu_unwind_pr_common
-00122e18 00000008 T __aeabi_unwind_cpp_pr0
-00122e20 00000008 W __aeabi_unwind_cpp_pr1
-00122e28 00000008 W __aeabi_unwind_cpp_pr2
-00122e30 00000458 T _Unwind_VRS_Pop
-00123288 00000064 t next_unwind_byte
-001232ec 0000002c t _Unwind_GetGR.constprop.0
-00123318 00000004 t unwind_UCB_from_context
-0012331c 00000464 T __gnu_unwind_execute
-00123780 00000048 T __gnu_unwind_frame
-001237c8 00000010 T _Unwind_GetRegionStart
-001237d8 0000001c T _Unwind_GetLanguageSpecificData
-001237f4 00000008 T _Unwind_GetDataRelBase
-001237fc 00000008 T _Unwind_GetTextRelBase
-00123804 000000d8 T strncmp
-001238dc 00000140 T strchr
-00123a1c 00000024 T getenv
-00123a40 0000016c T memmove
-00123bac 00000144 T _fclose_r
-00123cf0 00000020 T fclose
-00123d10 000000c0 T _fputs_r
-00123dd0 00000028 T fputs
-00123df8 0000003c T fprintf
-00123e34 00000028 T stat
-00123e5c 00000104 T _fwrite_r
-00123f60 00000038 T fwrite
-00123f98 0000008c T strlen
-00124024 0000003c T fscanf
-00124060 000000d8 T memcmp
-00124138 0000001c t stdio_exit_handler
-00124154 0000005c t cleanup_stdio
-001241b0 00000154 t global_stdio_init.part.0
-00124304 00000138 T __sfp
-0012443c 0000005c T __sinit
-00124498 0000000c T __sfp_lock_acquire
-001244a4 0000000c T __sfp_lock_release
-001244b0 000001ec t _strtoul_l.isra.0
-0012469c 00000038 T _strtoul_r
-001246d4 0000003c T strtoul
-00124710 00000084 T __libc_init_array
-00124794 0000009c T strncat
-00124830 00000070 T _fwalk_sglue
-001248a0 00000078 T bsearch
-00124918 0000000c T __errno
-00124924 00000028 T calloc
-0012494c 00000014 T abort
-00124960 000005e0 t get_arg
-00124f40 00003554 T _vfprintf_r
-00128494 000000b4 t __sbprintf
-00128548 000000d8 T _calloc_r
-00128620 000000d8 T fgetc
-001286f8 00000028 T memalign
-00128720 0000082c T _malloc_r
-00128f4c 000000e8 T memchr
-00129034 000001c0 t quorem
-001291f8 000013f0 T _dtoa_r
-0012a5e8 000000a0 T _wcrtomb_r
-0012a688 00000114 T _malloc_trim_r
-0012a79c 00000314 T _free_r
-0012aab0 000000a0 T snprintf
-0012ab50 000005e0 t get_arg
-0012b130 0000345c T _svfprintf_r
-0012e58c 00000018 T isspace
-0012e5a4 0000003c T strnlen
-0012e5e0 00000040 T malloc
-0012e620 00000020 T free
-0012e640 0000022c T __sflush_r
-0012e86c 000000c4 T _fflush_r
-0012e930 00000048 T time
-0012e978 000000dc T _findenv_r
-0012ea54 000000e4 T memset
-0012eb38 00000050 t get_arg
-0012eb88 00002bc4 T __svfscanf_r
-0013174c 00000040 T _vfscanf_r
-0013178c 00000334 T _fread_r
-00131ac0 00000038 T fread
-00131af8 0000000c T __malloc_lock
-00131b04 0000000c T __malloc_unlock
-00131b10 000000b8 T fputc
-00131bc8 00000030 T exit
-00131bf8 00000134 T _fopen_r
-00131d2c 00000028 T fopen
-00131d54 00000014 T atexit
-00131d68 00000024 T isupper
-00131d8c 00000068 T __srget_r
-00131df4 000000d4 T strncpy
-00131ec8 0000001c T toupper
-00131ee4 00000264 t _strtoull_l.isra.0
-00132148 00000038 T _strtoull_r
-00132180 0000012c T memcpy
-001322ac 00000028 T _wcsrtombs_r
-001322d4 000000c4 T _mbrtowc_r
-00132398 00000140 T __swsetup_r
-001324d8 0000000c T nanf
-001324e8 00000088 T frexp
-00132570 000004a4 T __sfvwrite_r
-00132a14 00000044 T __sread
-00132a58 00000068 T __swrite
-00132ac0 00000040 T __sseek
-00132b00 00000008 T __sclose
-00132b08 0000009c T _raise_r
-00132ba4 00000020 T raise
-00132bc4 0000000c T __env_lock
-00132bd0 0000000c T __env_unlock
-00132bdc 0000005c T __assert_func
-00132c38 00000088 T _Balloc
-00132cc0 0000001c T _Bfree
-00132cdc 000000f4 T __multadd
-00132dd0 0000010c T __s2b
-00132edc 00000080 T __hi0bits
-00132f5c 000000f0 T __lo0bits
-0013304c 000000a4 T __i2b
-001330f0 00000230 T __multiply
-00133320 00000130 T __pow5mult
-00133450 00000138 T __lshift
-00133588 00000058 T __mcmp
-001335e0 00000218 T __mdiff
-001337f8 00000068 T __ulp
-00133860 000000d4 T __b2d
-00133934 00000120 T __d2b
-00133a54 00000078 T __ratio
-00133acc 0000008c T __copybits
-00133b58 0000005c T __any_on
-00133bb4 0000047c t _strtoll_l.isra.0
-00134030 00000038 T _strtoll_r
-00134068 00000024 T __locale_mb_cur_max
-0013408c 000000b8 T __submore
-00134144 00000230 T _ungetc_r
-00134374 00000060 t sulp
-001343d8 00001428 T _strtod_l
-00135800 00000044 T _strtod_r
-00135844 000000a4 T __ssprint_r
-001358e8 0000003c T fiprintf
-00135924 0000016c T _memalign_r
-00135a90 0000015c T _wcsnrtombs_l
-00135bec 00000064 T _wcsnrtombs_r
-00135c50 000000f4 t rshift
-00135d44 000008b4 T __gethex
-001365f8 00000068 T sprintf
-00136660 000000fc T _putc_r
-0013675c 00000340 T __utf8_mbtowc
-00136a9c 00000030 T __sprint_r
-00136acc 00000008 T iswspace
-00136ad4 00000024 T _localeconv_r
-00136af8 00000028 T realloc
-00136b20 0000001c T _fseek_r
-00136b3c 000000b8 T __sflags
-00136bf4 00000384 t _strtol_l.part.0
-00136f78 0000006c T _strtol_r
-00136fe4 000000f8 T __sccl
-001370dc 000000bc T __register_exitproc
-00137198 00000038 t lflush
-001371d0 000001a8 T __srefill_r
-00137378 00000164 T __smakebuf_r
-001374dc 000000dc T stpncpy
-001375b8 000004f0 T _realloc_r
-00137aa8 0000012c T __ssputs_r
-00137bd4 000000f8 T __utf8_wctomb
-00137ccc 00000070 T __match
-00137d3c 000002a8 T __hexnan
-00137fe8 00000010 T nan
-00137ff8 00000038 T iswspace_l
-00138030 000005e0 t get_arg
-00138610 000022f8 T _vfiprintf_r
-0013a908 000000b4 t __sbprintf
-0013a9bc 00000124 T __swbuf_r
-0013aae0 00000588 T _fseeko_r
-0013b068 00000134 T __call_exitprocs
-0013b19c 00000090 T category
-0013b22c 00000020 T _exit
-0013b24c 00000140 T chdir
-0013b38c 000001c8 T _concatenate_path
-0013b554 00000070 t __dirnext
-0013b5c4 00000114 T opendir
-0013b6d8 00000098 T closedir
-0013b770 000000f8 T readdir_r
-0013b868 00000048 T readdir
-0013b8b0 0000009c T _fstat_r
-0013b94c 00000014 T _getpid_r
-0013b960 0000002c T __getreent
-0013b98c 00000030 T _gettimeofday_r
-0013b9bc 000000a0 T __release_handle
-0013ba5c 000000b0 T __alloc_handle
-0013bb0c 00000058 T __get_handle
-0013bb64 00000110 T _close_r
-0013bc74 00000008 t null_write
-0013bc7c 00000018 T setDefaultDevice
-0013bc94 000000c4 T FindDevice
-0013bd58 00000028 T RemoveDevice
-0013bd80 00000098 T AddDevice
-0013be18 00000020 T GetDeviceOpTab
-0013be38 00000008 T _isatty_r
-0013be40 00000014 T _kill_r
-0013be54 00000094 T _lseek_r
-0013bee8 00000068 T mkdir
-0013bf50 000000c0 T _open_r
-0013c010 00000094 T _read_r
-0013c0a4 00000078 W _sbrk_r
-0013c11c 00000080 T _stat_r
-0013c19c 0000001c T __libc_lock_acquire
-0013c1b8 0000001c T __libc_lock_release
-0013c1d4 0000001c T __libc_lock_acquire_recursive
-0013c1f0 0000001c T __libc_lock_release_recursive
-0013c20c 00000094 T _write_r
-0013c2a0 00000048 T strrchr
-0013c2e8 T _fini
-0013d070 00000018 r game::kSequence
-0013d088 0000008c r game::render()::effectNames
+00100f8c 00000088 t editor::init_if_needed() [clone .part.0]
+00101014 000000b4 t editor::edit_level_name()
+001010c8 0000003c T editor::persist_current_level()
+00101104 00000364 T editor::update(InputState const&)
+00101468 000005f0 T editor::render()
+00101a58 00000018 T editor::fade_overlay_active()
+00101a70 000000a0 T editor::render_fade_overlay()
+00101b10 00000010 T editor::test_return_active()
+00101b20 00000010 T editor::current_level_index()
+00101b30 00000018 T editor::on_return_from_test()
+00101b48 00000044 t _GLOBAL__sub_I__ZN6editor21persist_current_levelEv
+00101b8c 0000000c t _GLOBAL__sub_D__ZN6editor21persist_current_levelEv
+00101b98 000004e4 T main
+0010207c 000001d8 t game::schedule_neighbor_bombs(int, int, int) [clone .constprop.0]
+00102254 00000a68 T game::render()
+00102cbc 00000004 T game_render()
+00102cc0 0000001c T game_mode()
+00102cdc 00000010 T exit_requested()
+00102cec 0000015c W std::vector<game::MovingBrickData, std::allocator<game::MovingBrickData> >::_M_fill_assign(unsigned int, game::MovingBrickData const&)
+00102e48 000000d8 W void std::vector<game::Particle, std::allocator<game::Particle> >::_M_realloc_append<game::Particle const&>(game::Particle const&)
+00102f20 000000e0 W void std::vector<game::Ball, std::allocator<game::Ball> >::_M_realloc_append<game::Ball>(game::Ball&&)
+00103000 0000038c t game::apply_brick_effect(BrickType, float, float, game::Ball&)
+0010338c 00000814 t game::handle_ball_bricks(game::Ball&)::{lambda(bool)#1}::operator()(bool) const
+00103ba0 00000184 T game::init_assets()
+00103d24 00000068 T game::init()
+00103d8c 00000004 T game_init()
+00103d90 00001610 T game::update(InputState const&)
+001053a0 00000004 T game_update(InputState const&)
+001053a4 000000a4 t _GLOBAL__sub_I__ZN4game23exit_requested_internalEv
+00105448 00000060 t _GLOBAL__sub_D__ZN4game23exit_requested_internalEv
+001054a8 00000058 T highscores::set_name(int, char const*)
+00105500 00000094 T highscores::save()
+00105594 0000020c T highscores::init()
+001057a0 0000009c T highscores::submit(unsigned long, int)
+0010583c 00000014 T highscores::table()
+00105850 000000d4 t std::_Hashtable<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, int>, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, int> >, std::__detail::_Select1st, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true> >::_M_find_before_node(unsigned int, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, unsigned int) const [clone .isra.0]
+00105924 000000f0 t std::_Hashtable<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, int>, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, int> >, std::__detail::_Select1st, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true> >::_M_rehash(unsigned int, std::integral_constant<bool, true>) [clone .isra.0]
+00105a14 00000130 t std::vector<unsigned char, std::allocator<unsigned char> >::operator=(std::vector<unsigned char, std::allocator<unsigned char> > const&) [clone .isra.0]
+00105b44 00000094 t void std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_construct<char const*>(char const*, char const*, std::forward_iterator_tag) [clone .isra.0]
+00105bd8 000001ec t levels::ensureOnSdmc()::{lambda(char const*)#1}::operator()(char const*) const [clone .isra.0]
+00105dc4 00000248 t void std::__unguarded_linear_insert<__gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, __gnu_cxx::__ops::_Val_less_iter>(__gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, __gnu_cxx::__ops::_Val_less_iter) [clone .isra.0]
+0010600c 000002e4 t void std::__insertion_sort<__gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, __gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, __gnu_cxx::__ops::_Iter_less_iter) [clone .isra.0]
+001062f0 00000604 t void std::__adjust_heap<__gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, int, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, int, int, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, __gnu_cxx::__ops::_Iter_less_iter) [clone .isra.0]
+001068f4 00000120 T levels::renderBricks()
+00106a14 00000074 T levels::levels_remaining_breakable()
+00106a88 000003b8 T levels::levels_explode_bomb(int, int, std::vector<DestroyedBrick, std::allocator<DestroyedBrick> >*)
+00106e40 000000f4 T levels::levels_reset_level(int)
+00106f34 000000dc T levels::edit_set_brick(int, int, int, int)
+00107010 000002a4 T levels::set_name(int, char const*)
+001072b4 000001c8 T levels::save_active()
+0010747c 00000004 T levels_render()
+00107480 00000030 T levels_count()
+001074b0 00000010 T levels_current()
+001074c0 00000050 T levels_set_current(int)
+00107510 00000008 T levels_grid_width()
+00107518 00000008 T levels_grid_height()
+00107520 00000008 T levels_left()
+00107528 00000008 T levels_top()
+00107530 00000008 T levels_brick_width()
+00107538 00000008 T levels_brick_height()
+00107540 00000060 T levels_brick_at(int, int)
+001075a0 00000088 T levels_remove_brick(int, int)
+00107628 00000004 T levels_remaining_breakable()
+0010762c 00000004 T levels_explode_bomb(int, int, std::vector<DestroyedBrick, std::allocator<DestroyedBrick> >*)
+00107630 0000001c T levels_atlas_index(int)
+0010764c 00000004 T levels_reset_level(int)
+00107650 000000c8 T levels_set_active_file(char const*)
+00107718 00000010 T levels_get_active_file()
+00107728 00000004 T levels_edit_set_brick(int, int, int, int)
+0010772c 00000054 T levels_get_speed(int)
+00107780 0000005c T levels_set_speed(int, int)
+001077dc 00000054 T levels_get_name(int)
+00107830 00000004 T levels_set_name(int, char const*)
+00107834 00000004 T levels_save_active()
+00107838 00000098 W std::vector<unsigned char, std::allocator<unsigned char> >::reserve(unsigned int)
+001078d0 00000108 W std::vector<unsigned char, std::allocator<unsigned char> >::_M_fill_assign(unsigned int, unsigned char const&)
+001079d8 0000016c T levels::levels_damage_brick(int, int)
+00107b44 00000004 T levels_damage_brick(int, int)
+00107b48 0000036c W void std::vector<levels::Level, std::allocator<levels::Level> >::_M_realloc_append<levels::Level const&>(levels::Level const&)
+00107eb4 0000025c W std::vector<levels::Level, std::allocator<levels::Level> >::push_back(levels::Level const&)
+00108110 000003b0 t levels::buildFallback()
+001084c0 000000f4 W std::_Hashtable<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, int>, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, int> >, std::__detail::_Select1st, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true> >::find(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const
+001085b8 00000b0c T levels::load()
+001090c4 00000004 T levels_load()
+001090c8 00000098 T levels_reload_active()
+00109160 00000174 W void std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >::_M_realloc_append<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&)
+001092d4 00000338 W void std::__heap_select<__gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, __gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, __gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, __gnu_cxx::__ops::_Iter_less_iter)
+0010960c 00000450 t void std::__introsort_loop<__gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, int, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, __gnu_cxx::__normal_iterator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >, int, __gnu_cxx::__ops::_Iter_less_iter) [clone .isra.0]
+00109a5c 0000026c t levels::listDatFiles()
+00109cc8 00000088 t levels::available_level_files[abi:cxx11]() [clone .part.0]
+00109d50 00000030 T levels_available_files[abi:cxx11]()
+00109d80 00000088 T levels::refresh_level_files()
+00109e08 00000004 T levels_refresh_files()
+00109e0c 000001b4 T levels_duplicate_active(char const*)
+00109fc0 000002ac t _GLOBAL__sub_I__ZN6levels21available_level_filesB5cxx11Ev
+0010a26c 00000130 t _GLOBAL__sub_D__ZN6levels21available_level_filesB5cxx11Ev
+0010a39c 00000124 t options::show_name_keyboard()
+0010a4c0 000000f8 T options::begin()
+0010a5b8 000004ec T options::update(InputState const&)
+0010aaa4 00000698 T options::render()
+0010b13c 00000020 t _GLOBAL__sub_I__ZN7options5beginEv
+0010b15c 0000000c t _GLOBAL__sub_D__ZN7options5beginEv
+0010b168 0000014c t (anonymous namespace)::drawGlyphString(int, int, char const*, unsigned long)
+0010b2b4 00000018 t __tcf_ZZ6hw_logPKcE8lastLine
+0010b2cc 000000e8 T hw_shutdown()
+0010b3b4 000000d0 T hw_poll_input(InputState&)
+0010b484 00000030 T hw_begin_frame()
+0010b4b4 00000008 T hw_end_frame()
+0010b4bc 00000068 T hw_draw_sprite(C2D_Image, float, float, float, float, float)
+0010b524 00000004 T hw_draw_text(int, int, char const*, unsigned long)
+0010b528 00000198 T hw_draw_text_scaled(int, int, char const*, unsigned long, float)
+0010b6c0 00000038 T hw_set_top()
+0010b6f8 00000038 T hw_set_bottom()
+0010b730 00000038 T hw_image(int)
+0010b768 000000c8 T hw_sheet_loaded(HwSheet)
+0010b830 000000b0 T hw_image_from(HwSheet, int)
+0010b8e0 000000a8 W void std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_construct<true>(char const*, unsigned int)
+0010b988 00000d6c t hw_log(char const*) [clone .part.0]
+0010c6f4 0000000c T hw_log(char const*)
+0010c700 00000250 T hw_init()
+0010c950 0000001c t _GLOBAL__sub_I__Z7hw_initv
+0010c96c 00000054 t _GLOBAL__sub_D__Z7hw_initv
+0010c9c0 00000044 t C2Di_FrameEndHook
+0010ca08 0000036c T C2D_Init
+0010cd74 0000004c T C2D_Fini
+0010cdc0 000000b8 T C2D_Prepare
+0010ce78 00000048 T C2D_Flush
+0010cec0 00000104 T C2D_SceneSize
+0010cfc4 00000058 T C2D_CreateScreenTarget
+0010d01c 00000064 T C2D_TargetClear
+0010d080 0000013c T C2Di_CalcQuad
+0010d1bc 00000058 T C2Di_AppendQuad
+0010d214 00000550 T C2Di_Update
+0010d764 000002b0 T C2D_DrawImage
+0010da14 00000158 T C2D_DrawRectangle
+0010db6c 0000007c T C2D_SpriteSheetLoadFromMem
+0010dbe8 00000028 T C2D_SpriteSheetFree
+0010dc10 0000002c T C2D_SpriteSheetGetImage
+0010dc3c 00000028 T AttrInfo_Init
+0010dc64 00000094 T AttrInfo_AddLoader
+0010dcf8 00000054 T C3D_SetAttrInfo
+0010dd4c 00000080 T C3Di_AttrInfoBind
+0010ddcc 00000004 W C3Di_LightEnvUpdate
+0010ddd0 00000004 W C3Di_LightEnvDirty
+0010ddd4 000000b4 t C3Di_AptEventHook
+0010de88 00000004 W C3Di_GasUpdate
+0010de8c 000001d0 T C3D_Init
+0010e05c 00000098 T C3D_SetViewport
+0010e0f4 000004e8 T C3Di_UpdateContext
+0010e5dc 000000e0 T C3Di_SplitFrame
+0010e6bc 00000044 T C3D_Fini
+0010e700 00000194 T C3D_BindProgram
+0010e894 00000024 T BufInfo_Init
+0010e8b8 00000080 T BufInfo_Add
+0010e938 0000003c T C3D_SetBufInfo
+0010e974 00000048 T C3Di_BufInfoBind
+0010e9bc 0000021c T C3D_DrawElements
+0010ebd8 00000040 T C3D_DepthMap
+0010ec18 0000001c T C3D_CullFace
+0010ec34 00000040 T C3D_StencilTest
+0010ec74 00000024 T C3D_StencilOp
+0010ec98 0000001c T C3D_BlendingColor
+0010ecb4 00000024 T C3D_EarlyDepthTest
+0010ecd8 0000002c T C3D_DepthTest
+0010ed04 0000002c T C3D_AlphaTest
+0010ed30 00000050 T C3D_AlphaBlend
+0010ed80 00000030 T C3D_FragOpMode
+0010edb0 00000044 T C3D_FragOpShadow
+0010edf4 000001ac T C3Di_EffectBind
+0010efa0 0000001c T C3D_CalcColorBufSize
+0010efbc 0000001c T C3D_CalcDepthBufSize
+0010efd8 00000044 T C3D_SetFrameBuf
+0010f01c 0000016c T C3Di_FrameBufBind
+0010f188 000000c8 T C3D_FrameBufClear
+0010f250 00000044 T C3D_FrameBufTransfer
+0010f294 000000a8 T C3D_ImmSendAttrib
+0010f33c 00000070 T C3D_ProcTexInit
+0010f3ac 00000054 T C3D_ProcTexBind
+0010f400 0000005c T C3D_ProcTexLutBind
+0010f45c 000000a4 T ProcTexLut_FromArray
+0010f500 00000178 T C3Di_ProcTexUpdate
+0010f678 00000068 T C3Di_ProcTexDirty
+0010f6e0 0000004c t onVBlank0
+0010f72c 0000004c t onVBlank1
+0010f778 00000080 t C3Di_RenderTargetDestroy
+0010f7f8 000000f4 t onQueueFinish
+0010f8ec 00000038 T C3Di_RenderQueueEnableVBlank
+0010f924 00000030 T C3Di_RenderQueueDisableVBlank
+0010f954 00000060 T C3Di_RenderQueueInit
+0010f9b4 000000b4 T C3Di_RenderQueueExit
+0010fa68 00000034 T C3Di_RenderQueueWaitDone
+0010fa9c 000000e8 T C3D_FrameBegin
+0010fb84 00000048 T C3D_FrameDrawOn
+0010fbcc 00000058 T C3D_FrameSplit
+0010fc24 000001d0 T C3D_FrameEnd
+0010fdf4 0000001c T C3D_FrameEndHook
+0010fe10 00000170 T C3D_RenderTargetCreate
+0010ff80 000000a8 T C3D_RenderTargetSetOutput
+00110028 000000fc T C3D_SyncTextureCopy
+00110124 000003d8 t Tex3DSi_ImportCommon
+001104fc 00000034 T Tex3DS_TextureImport
+00110530 0000001c T Tex3DS_GetSubTexture
+0011054c 00000004 T Tex3DS_TextureFree
+00110550 00000034 T C3D_GetTexEnv
+00110584 00000024 T C3Di_TexEnvBind
+001105a8 00000290 T C3D_TexInitWithParams
+00110838 000000c8 T C3D_TexLoadImage
+00110900 00000044 T C3D_TexBind
+00110944 00000074 T C3D_TexDelete
+001109b8 0000014c T C3Di_SetTex
+00110b04 00000290 T C3D_UpdateUniforms
+00110d94 000000c0 T C3Di_DirtyUniforms
+00110e54 000000d8 T C3Di_LoadShaderUniforms
+00110f2c 00000028 T C3Di_ClearShaderUniforms
+00110f54 000000cc T Mtx_Ortho
+00111020 000000cc T Mtx_OrthoTilt
+001110ec 00000024 t addrMapNodeComparator(rbtree_node const*, rbtree_node const*)
+00111110 00000004 t addrMapNodeDestructor(rbtree_node*)
+00111114 0000012c T linearMemAlign
+00111240 00000008 T linearAlloc
+00111248 0000005c T linearFree
+001112a4 00000088 T MemPool::CoalesceRight(MemBlock*)
+0011132c 00000178 T MemPool::Allocate(MemChunk&, unsigned long, int)
+001114a4 00000118 T MemPool::Deallocate(MemChunk const&)
+001115bc 00000030 T MemPool::GetFreeSpace()
+001115ec 00000024 t addrMapNodeComparator(rbtree_node const*, rbtree_node const*)
+00111610 00000004 t addrMapNodeDestructor(rbtree_node*)
+00111614 00000248 T vramMemAlignAt
+0011185c 0000000c T vramAlloc
+00111868 0000000c T vramAllocAt
+00111874 00000094 T vramFree
+00111908 000000cc t gfxPresentFramebuffer
+001119d4 0000001c T gfxIsWide
+001119f0 000000f8 T gfxSetScreenFormat
+00111ae8 000000d8 T gfxInit
+00111bc0 00000010 T gfxInitDefault
+00111bd0 000000b8 T gfxExit
+00111c88 000000a0 T gfxGetFramebuffer
+00111d28 00000028 T gfxScreenSwapBuffers
+00111d50 00000074 T osConvertVirtToPhys
+00111dc4 00000054 T osGetTimeRef
+00111e18 000000ec T osGetTime
+00111f04 00000034 T __ctru_speedup_config
+00111f38 00000008 t romfs_close
+00111f40 000000ac t romfs_seek
+00111fec 00000024 t romfs_dirreset
+00112010 000000c0 t fill_dir
+001120d0 000002ac t romfs_dirnext
+0011237c 00000074 t romfs_free
+001123f0 000000d0 t searchForFile.constprop.0
+001124c0 000000d4 t searchForDir.constprop.0
+00112594 000001c0 t navigateToDir.constprop.0
+00112754 00000114 t romfs_open
+00112868 0000004c t romfs_chdir
+001128b4 00000068 t romfs_diropen
+0011291c 00000178 t romfs_stat
+00112a94 00000008 t romfs_dirclose
+00112aa0 0000007c t romfs_fstat
+00112b1c 000000d0 t romfs_read
+00112bec 0000028c T romfsMountFromFile
+00112e78 00000098 T romfsMountFromCurrentProcess
+00112f10 00000258 T romfsMountSelf
+00113168 000000a0 T romfsUnmount
+00113208 0000013c T GPUCMD_Add
+00113344 000000b0 T GPUCMD_Split
+001133f4 00000034 T f32tof16
+00113428 00000034 T f32tof24
+0011345c 00000038 T f32tof31
+00113494 00000010 T GX_BindQueue
+001134a4 0000007c T GX_ProcessCommandList
+00113520 00000074 T GX_MemoryFill
+00113594 00000074 T GX_DisplayTransfer
+00113608 00000078 T GX_TextureCopy
+00113680 00000064 t gxCmdQueueDoCommands.part.0
+001136e4 000000e4 T gxCmdQueueInterrupt
+001137c8 00000068 T gxCmdQueueClear
+00113830 00000108 T gxCmdQueueAdd
+00113938 00000080 T gxCmdQueueRun
+001139b8 00000064 T gxCmdQueueStop
+00113a1c 0000008c T gxCmdQueueWait
+00113aa8 000001e0 T shaderInstanceInit
+00113c88 00000018 T shaderInstanceGetUniformLocation
+00113ca0 0000001c T shaderProgramInit
+00113cbc 00000074 T shaderProgramFree
+00113d30 00000094 T shaderProgramSetVsh
+00113dc4 000008d0 T shaderProgramConfigure
+00114694 000001dc t DVLE_GenerateOutmap.part.0
+00114870 000001ac T DVLB_ParseFile
+00114a1c 00000050 T DVLB_Free
+00114a6c 00000074 T DVLE_GetUniformRegister
+00114ae0 00000180 t aptConvertScreenForCapture
+00114c60 00000008 W aptDspSleep
+00114c68 00000004 W aptDspWakeup
+00114c6c 00000004 W aptDspCancel
+00114c70 00000138 T aptSendCommand
+00114da8 00000044 t aptExitProcess
+00114dec 00000394 T aptExit
+00115180 000000d8 T aptHandleSleep
+00115258 00000034 T aptHook
+0011528c 00000030 T aptUnhook
+001152bc 0000001c T aptSetMessageCallback
+001152d8 00000084 T APT_SleepIfShellClosed
+0011535c 00000078 T aptSetSleepAllowed
+001153d4 00000084 T APT_UnlockTransition
+00115458 00000470 t aptEventHandler
+001158c8 000000bc T APT_ReceiveParameter
+00115984 000000b0 t aptReceiveParameter.constprop.0
+00115a38 00000294 t aptScreenTransfer
+00115ccc 000002d0 t aptWaitForWakeUp.isra.0
+00115f9c 00000114 T aptLaunchLibraryApplet
+001160b0 000000f4 T aptJumpToHomeMenu
+001161a4 00000058 T aptMainLoop
+001161fc 00000240 T aptInit
+0011643c 0000005c T APT_SendParameter
+00116498 00000090 T APT_CheckNew3DS
+00116528 00000104 T fsInit
+0011662c 0000003c T fsExit
+00116668 00000068 T fsExemptFromSession
+001166d0 00000050 T fsUnexemptFromSession
+00116720 000000cc T FSUSER_OpenFile
+001167ec 000000cc T FSUSER_OpenFileDirectly
+001168b8 000000b8 T FSUSER_DeleteFile
+00116970 000000f4 T FSUSER_RenameFile
+00116a64 000000b8 T FSUSER_DeleteDirectory
+00116b1c 000000d0 T FSUSER_CreateFile
+00116bec 000000c0 T FSUSER_CreateDirectory
+00116cac 000000f4 T FSUSER_RenameDirectory
+00116da0 000000b4 T FSUSER_OpenDirectory
+00116e54 00000090 T FSUSER_OpenArchive
+00116ee4 0000008c T FSUSER_CloseArchive
+00116f70 00000074 T FSUSER_GetSdmcArchiveResource
+00116fe4 00000064 T FSUSER_IsSdmcWritable
+00117048 00000064 T FSFILE_Read
+001170ac 0000006c T FSFILE_Write
+00117118 00000044 T FSFILE_GetSize
+0011715c 00000028 T FSFILE_SetSize
+00117184 0000003c T FSFILE_Close
+001171c0 00000024 T FSFILE_Flush
+001171e4 00000060 T FSDIR_Read
+00117244 0000003c T FSDIR_Close
+00117280 00000c70 t gspHardwareInit
+00117ef0 00000280 T gspInit
+00118170 00000110 T gspExit
+00118280 00000010 T gspHasGpuRight
+00118290 000000a4 T gspPresentBuffer
+00118334 00000030 T gspSetEventCallback
+00118364 00000050 T gspWaitForEvent
+001183b4 0000004c T gspWaitForAnyEvent
+00118400 00000154 t gspEventThreadMain
+00118554 0000012c T gspSubmitGxCommand
+00118680 00000050 T GSPGPU_FlushDataCache
+001186d0 00000034 T GSPGPU_SetLcdForceBlack
+00118704 00000080 T GSPGPU_AcquireRight
+00118784 0000005c T GSPGPU_ReleaseRight
+001187e0 0000007c T GSPGPU_ImportDisplayCaptureInfo
+0011885c 0000002c T GSPGPU_SaveVramSysArea
+00118888 0000002c T GSPGPU_RestoreVramSysArea
+001188b4 00000024 W hidShouldUseIrrst
+001188d8 000001cc T hidInit
+00118aa4 000000e8 T hidExit
+00118b8c 000002a0 T hidScanInput
+00118e2c 00000010 T hidKeysHeld
+00118e3c 00000010 T hidKeysDown
+00118e4c 00000018 T hidTouchRead
+00118e64 000001a4 T irrstInit
+00119008 000000dc T irrstExit
+001190e4 000000b4 T irrstScanInput
+00119198 00000024 T irrstKeysHeld
+001191bc 00000078 T ptmSysmInit
+00119234 0000003c T ptmSysmExit
+00119270 00000034 T PTMSYSM_ConfigureNew3DSCPU
+001192a4 00000190 t swkbdMessageCallback
+00119434 00000084 T swkbdInit
+001194b8 00000064 T swkbdSetHintText
+0011951c 00000008 T swkbdSetInitialText
+00119524 000003a8 T swkbdInputText
+001198cc 000000e0 t buffer_read
+001199ac 000000cc t iov_read
+00119a78 00000164 t iov_memmove
+00119bdc 000001e0 t decompress_rle
+00119dbc 00000264 t decompress_lzss
+0011a020 00000418 t decompress_lz11
+0011a438 0000031c t decompress_huff.isra.0
+0011a754 000000e4 T decompressHeader
+0011a838 0000021c T decompressV
+0011aa54 00000074 T rbtree_find
+0011aac8 00000010 T rbtree_init
+0011aad8 00000198 t do_insert
+0011ac70 00000008 T rbtree_insert
+0011ac78 00000310 T rbtree_remove
+0011af88 00000090 T rbtree_rotate
+0011b018 000000e8 T utf16_to_utf8
+0011b100 000000c0 T utf8_to_utf16
+0011b1c0 000001e8 W __system_allocateHeaps
+0011b3a8 00000038 W __libctru_init
+0011b3e0 0000016c W __system_initArgv
+0011b54c 00000030 T __syscall_getreent
+0011b57c 00000064 T __syscall_gettod_r
+0011b5e0 00000004 T __syscall_lock_acquire
+0011b5e4 00000004 T __syscall_lock_release
+0011b5e8 00000004 T __syscall_lock_acquire_recursive
+0011b5ec 00000004 T __syscall_lock_release_recursive
+0011b5f0 00000004 T __syscall_exit
+0011b5f4 00000054 T initThreadVars
+0011b648 00000080 T __system_initSyscalls
+0011b6c8 T svcControlMemory
+0011b6e8 T svcQueryMemory
+0011b718 T svcExitProcess
+0011b720 T svcCreateThread
+0011b740 T svcExitThread
+0011b748 T svcSleepThread
+0011b750 T svcReleaseMutex
+0011b758 T svcCreateEvent
+0011b76c T svcSignalEvent
+0011b774 T svcClearEvent
+0011b77c T svcCreateMemoryBlock
+0011b794 T svcMapMemoryBlock
+0011b79c T svcUnmapMemoryBlock
+0011b7a4 T svcCreateAddressArbiter
+0011b7b8 T svcArbitrateAddressNoTimeout
+0011b7c0 T svcCloseHandle
+0011b7c8 T svcWaitSynchronization
+0011b7d0 T svcWaitSynchronizationN
+0011b7f8 T svcDuplicateHandle
+0011b80c T svcGetSystemTick
+0011b814 T svcConnectToPort
+0011b828 T svcSendSyncRequest
+0011b830 T svcGetResourceLimit
+0011b844 T svcGetResourceLimitLimitValues
+0011b84c T svcGetResourceLimitCurrentValues
+0011b854 T svcBreak
+0011b85c T svcOutputDebugString
+0011b864 T __aeabi_read_tp
+0011b870 W initSystem
+0011b8c0 W __ctru_exit
+0011b8d4 0000008c W envGetHandle
+0011b960 00000050 W envDestroyHandles
+0011b9b0 00000164 T srvInit
+0011bb14 00000064 T srvExit
+0011bb78 00000060 T srvEnableNotification
+0011bbd8 000000a0 T srvGetServiceHandleDirect
+0011bc78 00000048 T srvGetServiceHandle
+0011bcc0 00000034 T srvSubscribe
+0011bcf4 00000060 T srvReceiveNotification
+0011bd54 00000038 T srvPublishToSubscriber
+0011bd8c 0000000c T __sync_init
+0011bd98 00000018 T __sync_fini
+0011bdb0 00000028 T syncArbitrateAddress
+0011bdd8 000000ac T LightLock_Lock
+0011be84 00000040 T LightLock_Unlock
+0011bec4 00000054 T RecursiveLock_Lock
+0011bf18 00000054 T RecursiveLock_Unlock
+0011bf6c 00000044 T LightEvent_Init
+0011bfb0 000000b8 T LightEvent_Clear
+0011c068 000000dc T LightEvent_Signal
+0011c144 00000050 T LightEvent_TryWait
+0011c194 000000ac T LightEvent_Wait
+0011c240 000001fc T threadCreate
+0011c43c 00000038 T threadFree
+0011c474 00000024 T threadJoin
+0011c498 00000030 T threadGetCurrent
+0011c4c8 00000040 T threadExit
+0011c508 00000020 t _thread_begin
+0011c528 00000090 t mappableFindAddressWithin
+0011c5b8 00000028 T mappableInit
+0011c5e0 0000007c T mappableAlloc
+0011c65c 00000004 T mappableFree
+0011c660 0000000c T srvPmGetSessionHandle
+0011c66c 00000060 T rbtree_node_next
+0011c6cc 00000054 T decode_utf16
+0011c720 00000140 T decode_utf8
+0011c860 00000054 T encode_utf16
+0011c8b4 000000e0 T encode_utf8
+0011c994 00000030 W __appExit
+0011c9c4 00000030 W __appInit
+0011c9f4 00000090 W __libctru_exit
+0011ca84 00000014 t archive_link
+0011ca98 00000014 t archive_dirreset
+0011caac 00000014 t archive_chmod
+0011cac0 00000024 t error_cmp
+0011cae4 00000050 t archive_translate_error
+0011cb34 000000c0 t archive_seek
+0011cbf4 00000078 t _archiveInit.part.0
+0011cc6c 000000d4 t archiveFindDevice.part.0
+0011cd40 00000298 t archive_utf16path
+0011cfd8 00000098 t _archiveUnmountDeviceStruct.part.0
+0011d070 00000014 t archive_statvfs
+0011d084 00000014 t archive_fchmod
+0011d098 00000178 t _archiveMountDevice
+0011d210 000000f8 t archive_diropen
+0011d308 000000ac t archive_fstat
+0011d3b4 00000074 t archive_fsync
+0011d428 00000074 t archive_close
+0011d49c 00000078 t archive_dirclose
+0011d514 000000ec t sdmc_statvfs
+0011d600 000000f8 t archive_chdir
+0011d6f8 0000008c t archive_ftruncate
+0011d784 000000bc t archive_read
+0011d840 000000a8 t archive_unlink
+0011d8e8 000000c0 t archive_rmdir
+0011d9a8 000000d8 t archive_mkdir
+0011da80 000001a0 t archive_stat
+0011dc20 00000164 t archive_dirnext
+0011dd84 0000013c t archive_write
+0011dec0 00000254 t archive_open
+0011e114 00000270 t archive_rename
+0011e384 000001c8 T archiveMountSdmc
+0011e54c 00000054 T archiveUnmountAll
+0011e5a0 00000004 T operator delete(void*)
+0011e5a4 0000000c W __gnu_cxx::__concurrence_lock_error::what() const
+0011e5b0 0000000c W __gnu_cxx::__concurrence_unlock_error::what() const
+0011e5bc 0000000c W __gnu_cxx::__concurrence_broadcast_error::what() const
+0011e5c8 0000000c W __gnu_cxx::__concurrence_wait_error::what() const
+0011e5d8 00000038 t (anonymous namespace)::init()
+0011e610 00000024 t (anonymous namespace)::init_static_cond()
+0011e634 00000020 W __gnu_cxx::__concurrence_lock_error::~__concurrence_lock_error()
+0011e634 00000020 W __gnu_cxx::__concurrence_lock_error::~__concurrence_lock_error()
+0011e654 0000002c W __gnu_cxx::__concurrence_lock_error::~__concurrence_lock_error()
+0011e680 00000020 W __gnu_cxx::__concurrence_wait_error::~__concurrence_wait_error()
+0011e680 00000020 W __gnu_cxx::__concurrence_wait_error::~__concurrence_wait_error()
+0011e6a0 0000002c W __gnu_cxx::__concurrence_wait_error::~__concurrence_wait_error()
+0011e6cc 00000020 W __gnu_cxx::__concurrence_unlock_error::~__concurrence_unlock_error()
+0011e6cc 00000020 W __gnu_cxx::__concurrence_unlock_error::~__concurrence_unlock_error()
+0011e6ec 0000002c W __gnu_cxx::__concurrence_unlock_error::~__concurrence_unlock_error()
+0011e718 00000020 W __gnu_cxx::__concurrence_broadcast_error::~__concurrence_broadcast_error()
+0011e718 00000020 W __gnu_cxx::__concurrence_broadcast_error::~__concurrence_broadcast_error()
+0011e738 0000002c W __gnu_cxx::__concurrence_broadcast_error::~__concurrence_broadcast_error()
+0011e764 0000002c W __gnu_cxx::__throw_concurrence_lock_error()
+0011e790 0000002c W __gnu_cxx::__throw_concurrence_unlock_error()
+0011e7bc 0000002c W __gnu_cxx::__throw_concurrence_broadcast_error()
+0011e7e8 000001b0 T __cxa_guard_acquire
+0011e998 000000f0 T __cxa_guard_release
+0011ea88 00000020 T __gnu_cxx::recursive_init_error::~recursive_init_error()
+0011ea88 00000020 T __gnu_cxx::recursive_init_error::~recursive_init_error()
+0011eaa8 0000002c T __gnu_cxx::recursive_init_error::~recursive_init_error()
+0011ead4 00000010 T __gnu_cxx::recursive_init_error::recursive_init_error()
+0011ead4 00000010 T __gnu_cxx::recursive_init_error::recursive_init_error()
+0011eae4 000000ac T std::_Hash_bytes(void const*, unsigned int, unsigned int)
+0011eb90 0000005c T operator new(unsigned int)
+0011ebec 00000020 T __cxxabiv1::__si_class_type_info::~__si_class_type_info()
+0011ebec 00000020 T __cxxabiv1::__si_class_type_info::~__si_class_type_info()
+0011ec0c 0000002c T __cxxabiv1::__si_class_type_info::~__si_class_type_info()
+0011ec38 00000140 T __cxxabiv1::__si_class_type_info::__do_dyncast(int, __cxxabiv1::__class_type_info::__sub_kind, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info::__dyncast_result&) const
+0011ed78 00000088 T __cxxabiv1::__si_class_type_info::__do_find_public_src(int, void const*, __cxxabiv1::__class_type_info const*, void const*) const
+0011ee00 00000044 T __cxxabiv1::__si_class_type_info::__do_upcast(__cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info::__upcast_result&) const
+0011ee44 00000004 T std::type_info::~type_info()
+0011ee44 00000004 T std::type_info::~type_info()
+0011ee48 00000008 T std::type_info::__is_pointer_p() const
+0011ee48 00000008 T std::type_info::__is_function_p() const
+0011ee50 0000002c T std::__throw_bad_alloc()
+0011ee7c 0000002c T std::__throw_bad_array_new_length()
+0011eea8 00000040 T std::__throw_logic_error(char const*)
+0011eee8 00000040 T std::__throw_length_error(char const*)
+0011ef28 00000040 T std::__throw_out_of_range(char const*)
+0011ef68 00000010 T std::__throw_out_of_range_fmt(char const*, ...)
+0011ef78 00000104 T std::__detail::_Prime_rehash_policy::_M_next_bkt(unsigned int) const
+0011f080 000000f0 T std::__detail::_Prime_rehash_policy::_M_need_rehash(unsigned int, unsigned int, unsigned int) const
+0011f170 00000054 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_create(unsigned int&, unsigned int)
+0011f1c4 00000014 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_dispose()
+0011f1d8 000000c8 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_assign(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+0011f2a0 00000104 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_mutate(unsigned int, unsigned int, char const*, unsigned int)
+0011f3a4 00000098 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::reserve(unsigned int)
+0011f43c 00000110 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace_aux(unsigned int, unsigned int, unsigned int, char)
+0011f54c 00000044 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::resize(unsigned int, char)
+0011f590 00000140 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace_cold(char*, unsigned int, char const*, unsigned int, unsigned int)
+0011f6d0 00000130 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace(unsigned int, unsigned int, char const*, unsigned int)
+0011f800 00000090 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_append(char const*, unsigned int)
+0011f890 00000194 W std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::swap(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&)
+0011fa24 0000000c T std::bad_alloc::what() const
+0011fa30 00000020 T std::bad_alloc::~bad_alloc()
+0011fa30 00000020 T std::bad_alloc::~bad_alloc()
+0011fa50 0000002c T std::bad_alloc::~bad_alloc()
+0011fa7c 0000000c T std::bad_array_new_length::what() const
+0011fa88 00000020 T std::bad_array_new_length::~bad_array_new_length()
+0011fa88 00000020 T std::bad_array_new_length::~bad_array_new_length()
+0011faa8 0000002c T std::bad_array_new_length::~bad_array_new_length()
+0011fad4 0000005c T __cxxabiv1::__class_type_info::__do_upcast(__cxxabiv1::__class_type_info const*, void**) const
+0011fb30 00000014 T __cxxabiv1::__class_type_info::__do_find_public_src(int, void const*, __cxxabiv1::__class_type_info const*, void const*) const
+0011fb44 00000020 T __cxxabiv1::__class_type_info::~__class_type_info()
+0011fb44 00000020 T __cxxabiv1::__class_type_info::~__class_type_info()
+0011fb64 0000002c T __cxxabiv1::__class_type_info::~__class_type_info()
+0011fb90 00000070 T __cxxabiv1::__class_type_info::__do_upcast(__cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info::__upcast_result&) const
+0011fc00 00000090 T __cxxabiv1::__class_type_info::__do_catch(std::type_info const*, void**, unsigned int) const
+0011fc90 000000f8 T __cxxabiv1::__class_type_info::__do_dyncast(int, __cxxabiv1::__class_type_info::__sub_kind, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info::__dyncast_result&) const
+0011fd88 00000004 T operator delete(void*, unsigned int)
+0011fd8c 0000012c t (anonymous namespace)::pool::free(void*) [clone .constprop.0]
+0011feb8 000000f0 t (anonymous namespace)::pool::allocate(unsigned int) [clone .constprop.0]
+0011ffa8 00000044 T __cxa_allocate_exception
+0011ffec 00000028 T __cxa_free_exception
+00120014 000001a4 t _GLOBAL__sub_I__ZN9__gnu_cxx9__freeresEv
+001201b8 T __cxa_end_cleanup
+001201c8 00000138 T __cxa_type_match
+00120300 000000b4 T __cxa_begin_cleanup
+001203b4 000000b4 T __gnu_end_cleanup
+00120468 000000e0 T __cxa_begin_catch
+00120548 000000e0 T __cxa_end_catch
+00120628 00000004 T std::exception::~exception()
+00120628 00000004 T std::exception::~exception()
+0012062c 00000004 T std::bad_exception::~bad_exception()
+0012062c 00000004 T std::bad_exception::~bad_exception()
+00120630 0000000c T transaction clone for std::exception::what() const
+00120630 0000000c T std::exception::what() const
+0012063c 0000000c T transaction clone for std::bad_exception::what() const
+0012063c 0000000c T std::bad_exception::what() const
+00120648 00000020 T std::bad_exception::~bad_exception()
+00120668 00000038 t eh_globals_dtor(void*)
+001206a0 00000038 T __cxa_get_globals_fast
+001206d8 00000090 T __cxa_get_globals
+00120768 00000040 t _GLOBAL__sub_I__ZN17__eh_globals_init7_S_initE
+001207a8 00000034 t _GLOBAL__sub_D__ZN17__eh_globals_init7_S_initE
+001207dc 00000150 t read_encoded_value_with_base(unsigned char, unsigned int, unsigned char const*, unsigned int*)
+0012092c 0000005c t base_of_encoded_value(unsigned char, _Unwind_Context*)
+00120988 000000f0 t parse_lsda_header(_Unwind_Context*, unsigned char const*, lsda_header_info*)
+00120a78 000006c8 T __gxx_personality_v0
+00121140 00000014 T __cxxabiv1::__terminate(void (*)())
+00121154 00000018 T std::terminate()
+0012116c 0000000c T __cxxabiv1::__unexpected(void (*)())
+00121178 00000018 T std::unexpected()
+00121190 00000014 T std::get_terminate()
+001211a4 00000014 T std::get_unexpected()
+001211b8 00000070 t __gxx_exception_cleanup(_Unwind_Reason_Code, _Unwind_Control_Block*)
+00121228 00000054 T __cxa_init_primary_exception
+0012127c 00000054 T __cxa_throw
+001212d0 000000b0 T __cxa_rethrow
+00121380 00000014 T std::get_new_handler()
+00121394 00000008 T std::logic_error::what() const
+00121394 00000008 T std::runtime_error::what() const
+0012139c 00000098 T std::logic_error::~logic_error()
+0012139c 00000098 T std::logic_error::~logic_error()
+00121434 00000098 T std::length_error::~length_error()
+00121434 00000098 T std::length_error::~length_error()
+001214cc 00000098 T std::out_of_range::~out_of_range()
+001214cc 00000098 T std::out_of_range::~out_of_range()
+00121564 000000a0 T std::logic_error::~logic_error()
+00121604 000000a0 T std::length_error::~length_error()
+001216a4 000000a0 T std::out_of_range::~out_of_range()
+00121744 000000d8 T std::logic_error::logic_error(char const*)
+00121744 000000d8 T std::logic_error::logic_error(char const*)
+0012181c 00000020 T std::length_error::length_error(char const*)
+0012181c 00000020 T std::length_error::length_error(char const*)
+0012183c 00000020 T std::out_of_range::out_of_range(char const*)
+0012183c 00000020 T std::out_of_range::out_of_range(char const*)
+0012185c 00000088 W std::string::_Rep::_S_create(unsigned int, unsigned int, std::allocator<char> const&)
+001218e4 00000004 W std::string::_Rep::_M_destroy(std::allocator<char> const&)
+001218e8 00000070 t __cxxabiv1::__is_gxx_exception_class(char*)
+00121958 0000002c T __cxa_call_terminate
+00121984 00000148 T __cxa_call_unexpected
+00121ad0 00000264 T sinf
+00121d34 00000024 t with_errnof
+00121d58 0000001c T __math_invalidf
+00121d74 000000c0 T ceilf
+00121e38 00000144 T floor
+00121f80 0000025c T cosf
+001221dc 0000002c T __aeabi_d2lz
+001221dc 0000002c T __fixdfdi
+00122208 00000040 T __aeabi_d2ulz
+00122208 00000040 T __fixunsdfdi
+00122248 00000130 T __udivmoddi4
+00122378 00000018 t selfrel_offset31
+00122390 00000090 t search_EIT_table
+00122420 00000040 t __gnu_unwind_get_pr_addr
+00122460 00000110 t get_eit_entry
+00122570 00000088 t restore_non_core_regs
+001225f8 00000014 t _Unwind_decode_typeinfo_ptr.constprop.0
+0012260c 00000004 t _Unwind_DebugHook
+00122610 00000064 t unwind_phase2
+00122674 0000013c t unwind_phase2_forced
+001227b0 000000a4 T __gnu_Unwind_RaiseException
+00122854 00000020 T __gnu_Unwind_ForcedUnwind
+00122874 00000074 T __gnu_Unwind_Resume
+001228e8 00000020 T __gnu_Unwind_Resume_or_Rethrow
+00122908 00000004 T _Unwind_Complete
+0012290c 00000018 T _Unwind_DeleteException
+00122924 00000064 T _Unwind_VRS_Get
+00122988 0000002c t _Unwind_GetGR
+001229b4 00000064 T _Unwind_VRS_Set
+00122a18 0000002c t _Unwind_SetGR
+00122a44 000000c0 T __gnu_Unwind_Backtrace
+00122b04 0000040c t __gnu_unwind_pr_common
+00122f10 00000008 T __aeabi_unwind_cpp_pr0
+00122f18 00000008 W __aeabi_unwind_cpp_pr1
+00122f20 00000008 W __aeabi_unwind_cpp_pr2
+00122f28 00000458 T _Unwind_VRS_Pop
+00123380 00000064 t next_unwind_byte
+001233e4 0000002c t _Unwind_GetGR.constprop.0
+00123410 00000004 t unwind_UCB_from_context
+00123414 00000464 T __gnu_unwind_execute
+00123878 00000048 T __gnu_unwind_frame
+001238c0 00000010 T _Unwind_GetRegionStart
+001238d0 0000001c T _Unwind_GetLanguageSpecificData
+001238ec 00000008 T _Unwind_GetDataRelBase
+001238f4 00000008 T _Unwind_GetTextRelBase
+001238fc 000000d8 T strncmp
+001239d4 00000140 T strchr
+00123b14 00000024 T getenv
+00123b38 0000016c T memmove
+00123ca4 00000144 T _fclose_r
+00123de8 00000020 T fclose
+00123e08 000000c0 T _fputs_r
+00123ec8 00000028 T fputs
+00123ef0 0000003c T fprintf
+00123f2c 00000028 T stat
+00123f54 00000104 T _fwrite_r
+00124058 00000038 T fwrite
+00124090 0000008c T strlen
+0012411c 0000003c T fscanf
+00124158 000000d8 T memcmp
+00124230 0000001c t stdio_exit_handler
+0012424c 0000005c t cleanup_stdio
+001242a8 00000154 t global_stdio_init.part.0
+001243fc 00000138 T __sfp
+00124534 0000005c T __sinit
+00124590 0000000c T __sfp_lock_acquire
+0012459c 0000000c T __sfp_lock_release
+001245a8 000001ec t _strtoul_l.isra.0
+00124794 00000038 T _strtoul_r
+001247cc 0000003c T strtoul
+00124808 00000084 T __libc_init_array
+0012488c 0000009c T strncat
+00124928 00000070 T _fwalk_sglue
+00124998 00000078 T bsearch
+00124a10 0000000c T __errno
+00124a1c 00000028 T calloc
+00124a44 00000014 T abort
+00124a58 000005e0 t get_arg
+00125038 00003554 T _vfprintf_r
+0012858c 000000b4 t __sbprintf
+00128640 000000d8 T _calloc_r
+00128718 000000d8 T fgetc
+001287f0 00000028 T memalign
+00128818 0000082c T _malloc_r
+00129044 000000e8 T memchr
+0012912c 000001c0 t quorem
+001292f0 000013f0 T _dtoa_r
+0012a6e0 000000a0 T _wcrtomb_r
+0012a780 00000114 T _malloc_trim_r
+0012a894 00000314 T _free_r
+0012aba8 000000a0 T snprintf
+0012ac48 000005e0 t get_arg
+0012b228 0000345c T _svfprintf_r
+0012e684 00000018 T isspace
+0012e69c 0000003c T strnlen
+0012e6d8 00000040 T malloc
+0012e718 00000020 T free
+0012e738 0000022c T __sflush_r
+0012e964 000000c4 T _fflush_r
+0012ea28 00000048 T time
+0012ea70 000000dc T _findenv_r
+0012eb4c 000000e4 T memset
+0012ec30 00000050 t get_arg
+0012ec80 00002bc4 T __svfscanf_r
+00131844 00000040 T _vfscanf_r
+00131884 00000334 T _fread_r
+00131bb8 00000038 T fread
+00131bf0 0000000c T __malloc_lock
+00131bfc 0000000c T __malloc_unlock
+00131c08 000000b8 T fputc
+00131cc0 00000030 T exit
+00131cf0 00000134 T _fopen_r
+00131e24 00000028 T fopen
+00131e4c 00000014 T atexit
+00131e60 00000024 T isupper
+00131e84 00000068 T __srget_r
+00131eec 000000d4 T strncpy
+00131fc0 0000001c T toupper
+00131fdc 00000264 t _strtoull_l.isra.0
+00132240 00000038 T _strtoull_r
+00132278 0000012c T memcpy
+001323a4 00000028 T _wcsrtombs_r
+001323cc 000000c4 T _mbrtowc_r
+00132490 00000140 T __swsetup_r
+001325d0 0000000c T nanf
+001325e0 00000088 T frexp
+00132668 000004a4 T __sfvwrite_r
+00132b0c 00000044 T __sread
+00132b50 00000068 T __swrite
+00132bb8 00000040 T __sseek
+00132bf8 00000008 T __sclose
+00132c00 0000009c T _raise_r
+00132c9c 00000020 T raise
+00132cbc 0000000c T __env_lock
+00132cc8 0000000c T __env_unlock
+00132cd4 0000005c T __assert_func
+00132d30 00000088 T _Balloc
+00132db8 0000001c T _Bfree
+00132dd4 000000f4 T __multadd
+00132ec8 0000010c T __s2b
+00132fd4 00000080 T __hi0bits
+00133054 000000f0 T __lo0bits
+00133144 000000a4 T __i2b
+001331e8 00000230 T __multiply
+00133418 00000130 T __pow5mult
+00133548 00000138 T __lshift
+00133680 00000058 T __mcmp
+001336d8 00000218 T __mdiff
+001338f0 00000068 T __ulp
+00133958 000000d4 T __b2d
+00133a2c 00000120 T __d2b
+00133b4c 00000078 T __ratio
+00133bc4 0000008c T __copybits
+00133c50 0000005c T __any_on
+00133cac 0000047c t _strtoll_l.isra.0
+00134128 00000038 T _strtoll_r
+00134160 00000024 T __locale_mb_cur_max
+00134184 000000b8 T __submore
+0013423c 00000230 T _ungetc_r
+0013446c 00000060 t sulp
+001344d0 00001428 T _strtod_l
+001358f8 00000044 T _strtod_r
+0013593c 000000a4 T __ssprint_r
+001359e0 0000003c T fiprintf
+00135a1c 0000016c T _memalign_r
+00135b88 0000015c T _wcsnrtombs_l
+00135ce4 00000064 T _wcsnrtombs_r
+00135d48 000000f4 t rshift
+00135e3c 000008b4 T __gethex
+001366f0 00000068 T sprintf
+00136758 000000fc T _putc_r
+00136854 00000340 T __utf8_mbtowc
+00136b94 00000030 T __sprint_r
+00136bc4 00000008 T iswspace
+00136bcc 00000024 T _localeconv_r
+00136bf0 00000028 T realloc
+00136c18 0000001c T _fseek_r
+00136c34 000000b8 T __sflags
+00136cec 00000384 t _strtol_l.part.0
+00137070 0000006c T _strtol_r
+001370dc 000000f8 T __sccl
+001371d4 000000bc T __register_exitproc
+00137290 00000038 t lflush
+001372c8 000001a8 T __srefill_r
+00137470 00000164 T __smakebuf_r
+001375d4 000000dc T stpncpy
+001376b0 000004f0 T _realloc_r
+00137ba0 0000012c T __ssputs_r
+00137ccc 000000f8 T __utf8_wctomb
+00137dc4 00000070 T __match
+00137e34 000002a8 T __hexnan
+001380e0 00000010 T nan
+001380f0 00000038 T iswspace_l
+00138128 000005e0 t get_arg
+00138708 000022f8 T _vfiprintf_r
+0013aa00 000000b4 t __sbprintf
+0013aab4 00000124 T __swbuf_r
+0013abd8 00000588 T _fseeko_r
+0013b160 00000134 T __call_exitprocs
+0013b294 00000090 T category
+0013b324 00000020 T _exit
+0013b344 00000140 T chdir
+0013b484 000001c8 T _concatenate_path
+0013b64c 00000070 t __dirnext
+0013b6bc 00000114 T opendir
+0013b7d0 00000098 T closedir
+0013b868 000000f8 T readdir_r
+0013b960 00000048 T readdir
+0013b9a8 0000009c T _fstat_r
+0013ba44 00000014 T _getpid_r
+0013ba58 0000002c T __getreent
+0013ba84 00000030 T _gettimeofday_r
+0013bab4 000000a0 T __release_handle
+0013bb54 000000b0 T __alloc_handle
+0013bc04 00000058 T __get_handle
+0013bc5c 00000110 T _close_r
+0013bd6c 00000008 t null_write
+0013bd74 00000018 T setDefaultDevice
+0013bd8c 000000c4 T FindDevice
+0013be50 00000028 T RemoveDevice
+0013be78 00000098 T AddDevice
+0013bf10 00000020 T GetDeviceOpTab
+0013bf30 00000008 T _isatty_r
+0013bf38 00000014 T _kill_r
+0013bf4c 00000094 T _lseek_r
+0013bfe0 00000068 T mkdir
+0013c048 000000c0 T _open_r
+0013c108 00000094 T _read_r
+0013c19c 00000078 W _sbrk_r
+0013c214 00000080 T _stat_r
+0013c294 0000001c T __libc_lock_acquire
+0013c2b0 0000001c T __libc_lock_release
+0013c2cc 0000001c T __libc_lock_acquire_recursive
+0013c2e8 0000001c T __libc_lock_release_recursive
+0013c304 00000094 T _write_r
+0013c398 00000048 T strrchr
+0013c3e0 T _fini
+0013d000 0000008c r editor::render()::effectNames
+0013d0fc 00000018 r game::kSequence
 0013d124 0000008c r levels::brickMap
 0013d1b0 0000008c r levels::kBrickCodes
 0013d250 00000126 r (anonymous namespace)::kGlyphs
@@ -972,98 +988,98 @@
 001d2e45 R TITLE_t3x_end
 001d2e48 R TOUCH_t3x
 0020c3e9 R TOUCH_t3x_end
-0020cac4 r .LC23
-0020d0d8 r .LC2
-0020d258 00000008 r s_defaultTint.0
-0020d260 R render2d_shbin
-0020d3ec R render2d_shbin_end
-0020d3ec R render2d_shbin_size
-0020d3f0 00000004 r depthFmtSizes
-0020d3f4 00000005 r colorFmtSizes
-0020d3fc 00000010 r CSWTCH.11
-0020d40c 00000038 r CSWTCH.19
-0020d444 00000080 r romFS_devoptab
-0020d4ec 00000008 r morton_y.2
-0020d4f4 00000008 r morton_x.3
-0020d4fc 00000008 r s_sleepWakeEvents.4
-0020d504 0000000c r serviceNameTable.5
-0020d534 00000030 r error_table
-0020d564 00000080 r archive_devoptab
-0020d5e4 00000027 V typeinfo name for __gnu_cxx::__concurrence_lock_error
-0020d60c 0000000c V typeinfo for __gnu_cxx::__concurrence_lock_error
-0020d618 00000029 V typeinfo name for __gnu_cxx::__concurrence_unlock_error
-0020d644 0000000c V typeinfo for __gnu_cxx::__concurrence_unlock_error
-0020d650 0000002c V typeinfo name for __gnu_cxx::__concurrence_broadcast_error
-0020d67c 0000000c V typeinfo for __gnu_cxx::__concurrence_broadcast_error
-0020d688 00000027 V typeinfo name for __gnu_cxx::__concurrence_wait_error
-0020d6b0 0000000c V typeinfo for __gnu_cxx::__concurrence_wait_error
-0020d6bc 00000014 V vtable for __gnu_cxx::__concurrence_lock_error
-0020d6d0 00000014 V vtable for __gnu_cxx::__concurrence_unlock_error
-0020d6e4 00000014 V vtable for __gnu_cxx::__concurrence_broadcast_error
-0020d6f8 00000014 V vtable for __gnu_cxx::__concurrence_wait_error
-0020d70c 00000023 R typeinfo name for __gnu_cxx::recursive_init_error
-0020d730 0000000c R typeinfo for __gnu_cxx::recursive_init_error
-0020d73c 00000014 R vtable for __gnu_cxx::recursive_init_error
-0020d750 00000025 R typeinfo name for __cxxabiv1::__si_class_type_info
-0020d778 0000000c R typeinfo for __cxxabiv1::__si_class_type_info
-0020d784 0000002c R vtable for __cxxabiv1::__si_class_type_info
-0020d7b0 0000000d R typeinfo name for std::type_info
-0020d7c0 00000008 R typeinfo for std::type_info
-0020d7c8 0000000e r std::__detail::_Prime_rehash_policy::_M_next_bkt(unsigned int) const::__fast_bkt
-0020d7d8 00000404 R std::__detail::__prime_list
-0020dbdc 0000000d R typeinfo name for std::bad_alloc
-0020dbec 0000000c R typeinfo for std::bad_alloc
-0020dbf8 00000014 R vtable for std::bad_alloc
-0020dc0c 00000019 R typeinfo name for std::bad_array_new_length
-0020dc28 0000000c R typeinfo for std::bad_array_new_length
-0020dc34 00000014 R vtable for std::bad_array_new_length
-0020dc48 00000022 R typeinfo name for __cxxabiv1::__class_type_info
-0020dc6c 0000000c R typeinfo for __cxxabiv1::__class_type_info
-0020dc78 0000002c R vtable for __cxxabiv1::__class_type_info
-0020dca4 0000000d R typeinfo name for std::exception
-0020dcb4 00000008 R typeinfo for std::exception
-0020dcbc 00000012 R typeinfo name for std::bad_exception
-0020dcd0 0000000c R typeinfo for std::bad_exception
-0020dcdc 00000020 R typeinfo name for __cxxabiv1::__forced_unwind
-0020dcfc 00000008 R typeinfo for __cxxabiv1::__forced_unwind
-0020dd04 00000024 R typeinfo name for __cxxabiv1::__foreign_exception
-0020dd28 00000008 R typeinfo for __cxxabiv1::__foreign_exception
-0020dd30 00000014 R vtable for std::bad_exception
-0020dd58 00000010 R typeinfo name for std::logic_error
-0020dd68 0000000c R typeinfo for std::logic_error
-0020dd74 00000011 R typeinfo name for std::length_error
-0020dd88 0000000c R typeinfo for std::length_error
-0020dd94 00000011 R typeinfo name for std::out_of_range
-0020dda8 0000000c R typeinfo for std::out_of_range
-0020ddb4 00000014 R vtable for std::logic_error
-0020ddc8 00000014 R vtable for std::length_error
-0020dddc 00000014 R vtable for std::out_of_range
-0020ddf0 00000060 R __inv_pio4
-0020de50 000000e0 R __sincosf_table
-0020e074 00000010 r zeroes.0
-0020e084 00000010 r blanks.1
-0020e188 00000010 r zeroes.0
-0020e198 00000010 r blanks.1
-0020e1a8 00000101 R _ctype_
-0020e3c0 00000022 r basefix.0
-0020e3e4 0000006c R __action_table
-0020e450 0000006c R __state_table
-0020e4bc 00000100 R __chclass
-0020e5bc 0000000c r p05.0
-0020e5c8 00000028 R __mprec_bigtens
-0020e5f0 000000c8 R __mprec_tens
-0020e71c 00000014 r fpinan.0
-0020e730 00000014 r fpi.1
-0020e748 00000028 r tinytens
-0020e770 00000100 R __hexdig
-0020e95c 00000010 r zeroes.0
-0020e96c 00000010 r blanks.1
-0020e97c 000035dc r categories
-00211f58 00000080 R dotab_stdnull
-00211fd8 R __tdata_align
-00211fdc r __EH_FRAME_BEGIN__
-00212108 R __exidx_start
-00212388 R __exidx_end
+0020ca08 r .LC23
+0020d090 r .LC2
+0020d210 00000008 r s_defaultTint.0
+0020d218 R render2d_shbin
+0020d3a4 R render2d_shbin_end
+0020d3a4 R render2d_shbin_size
+0020d3a8 00000004 r depthFmtSizes
+0020d3ac 00000005 r colorFmtSizes
+0020d3b4 00000010 r CSWTCH.11
+0020d3c4 00000038 r CSWTCH.19
+0020d3fc 00000080 r romFS_devoptab
+0020d4a4 00000008 r morton_y.2
+0020d4ac 00000008 r morton_x.3
+0020d4b4 00000008 r s_sleepWakeEvents.4
+0020d4bc 0000000c r serviceNameTable.5
+0020d4ec 00000030 r error_table
+0020d51c 00000080 r archive_devoptab
+0020d59c 00000027 V typeinfo name for __gnu_cxx::__concurrence_lock_error
+0020d5c4 0000000c V typeinfo for __gnu_cxx::__concurrence_lock_error
+0020d5d0 00000029 V typeinfo name for __gnu_cxx::__concurrence_unlock_error
+0020d5fc 0000000c V typeinfo for __gnu_cxx::__concurrence_unlock_error
+0020d608 0000002c V typeinfo name for __gnu_cxx::__concurrence_broadcast_error
+0020d634 0000000c V typeinfo for __gnu_cxx::__concurrence_broadcast_error
+0020d640 00000027 V typeinfo name for __gnu_cxx::__concurrence_wait_error
+0020d668 0000000c V typeinfo for __gnu_cxx::__concurrence_wait_error
+0020d674 00000014 V vtable for __gnu_cxx::__concurrence_lock_error
+0020d688 00000014 V vtable for __gnu_cxx::__concurrence_unlock_error
+0020d69c 00000014 V vtable for __gnu_cxx::__concurrence_broadcast_error
+0020d6b0 00000014 V vtable for __gnu_cxx::__concurrence_wait_error
+0020d6c4 00000023 R typeinfo name for __gnu_cxx::recursive_init_error
+0020d6e8 0000000c R typeinfo for __gnu_cxx::recursive_init_error
+0020d6f4 00000014 R vtable for __gnu_cxx::recursive_init_error
+0020d708 00000025 R typeinfo name for __cxxabiv1::__si_class_type_info
+0020d730 0000000c R typeinfo for __cxxabiv1::__si_class_type_info
+0020d73c 0000002c R vtable for __cxxabiv1::__si_class_type_info
+0020d768 0000000d R typeinfo name for std::type_info
+0020d778 00000008 R typeinfo for std::type_info
+0020d780 0000000e r std::__detail::_Prime_rehash_policy::_M_next_bkt(unsigned int) const::__fast_bkt
+0020d790 00000404 R std::__detail::__prime_list
+0020db94 0000000d R typeinfo name for std::bad_alloc
+0020dba4 0000000c R typeinfo for std::bad_alloc
+0020dbb0 00000014 R vtable for std::bad_alloc
+0020dbc4 00000019 R typeinfo name for std::bad_array_new_length
+0020dbe0 0000000c R typeinfo for std::bad_array_new_length
+0020dbec 00000014 R vtable for std::bad_array_new_length
+0020dc00 00000022 R typeinfo name for __cxxabiv1::__class_type_info
+0020dc24 0000000c R typeinfo for __cxxabiv1::__class_type_info
+0020dc30 0000002c R vtable for __cxxabiv1::__class_type_info
+0020dc5c 0000000d R typeinfo name for std::exception
+0020dc6c 00000008 R typeinfo for std::exception
+0020dc74 00000012 R typeinfo name for std::bad_exception
+0020dc88 0000000c R typeinfo for std::bad_exception
+0020dc94 00000020 R typeinfo name for __cxxabiv1::__forced_unwind
+0020dcb4 00000008 R typeinfo for __cxxabiv1::__forced_unwind
+0020dcbc 00000024 R typeinfo name for __cxxabiv1::__foreign_exception
+0020dce0 00000008 R typeinfo for __cxxabiv1::__foreign_exception
+0020dce8 00000014 R vtable for std::bad_exception
+0020dd10 00000010 R typeinfo name for std::logic_error
+0020dd20 0000000c R typeinfo for std::logic_error
+0020dd2c 00000011 R typeinfo name for std::length_error
+0020dd40 0000000c R typeinfo for std::length_error
+0020dd4c 00000011 R typeinfo name for std::out_of_range
+0020dd60 0000000c R typeinfo for std::out_of_range
+0020dd6c 00000014 R vtable for std::logic_error
+0020dd80 00000014 R vtable for std::length_error
+0020dd94 00000014 R vtable for std::out_of_range
+0020dda8 00000060 R __inv_pio4
+0020de08 000000e0 R __sincosf_table
+0020e02c 00000010 r zeroes.0
+0020e03c 00000010 r blanks.1
+0020e140 00000010 r zeroes.0
+0020e150 00000010 r blanks.1
+0020e160 00000101 R _ctype_
+0020e378 00000022 r basefix.0
+0020e39c 0000006c R __action_table
+0020e408 0000006c R __state_table
+0020e474 00000100 R __chclass
+0020e574 0000000c r p05.0
+0020e580 00000028 R __mprec_bigtens
+0020e5a8 000000c8 R __mprec_tens
+0020e6d4 00000014 r fpinan.0
+0020e6e8 00000014 r fpi.1
+0020e700 00000028 r tinytens
+0020e728 00000100 R __hexdig
+0020e914 00000010 r zeroes.0
+0020e924 00000010 r blanks.1
+0020e934 000035dc r categories
+00211f10 00000080 R dotab_stdnull
+00211f90 R __tdata_align
+00211f94 r __EH_FRAME_BEGIN__
+002120c0 R __exidx_start
+00212338 R __exidx_end
 00213000 00000018 d levels::ensureOnSdmc()::kExtraDatFiles
 00213018 00000008 d framerateCounter
 00213020 00000004 d framerate
@@ -1097,218 +1113,218 @@
 00214be0 B __preinit_array_start
 00214be0 D __tdata_lma
 00214be0 D __tdata_lma_end
-00214bf8 d __do_global_dtors_aux_fini_array_entry
-00214bf8 D __fini_array_start
-00214bf8 D __init_array_end
-00214c0c D __bss_start__
-00214c0c D __fini_array_end
-00214c0c 0000008c b game::G
-00214c98 00000001 b game::g_exitRequested
-00214c9c 00000009 b game::optDuplicateName
-00214ca8 00000004 b game::seqPos
-00214cac 0000002c b game::g_editor
-00214cd8 00000004 b game::optSelectedIndex
-00214cdc 00000001 b game::optDropdownOpen
-00214ce0 00000004 b game::optScrollOffset
-00214ce4 00000018 b game::optPendingFile
-00214cfc 00000004 b game::seqTimer
-00214d00 00000009 b game::options_show_name_keyboard()::out
-00214d0c 00000021 b game::update(InputState const&)::out
-00214d30 000000a0 b highscores::g_entries
-00214dd0 00000001 b highscores::g_loaded
-00214dd4 00000018 b levels::g_activeLevelFile
-00214dec 00000001 b levels::g_loaded
-00214df0 0000000c b levels::g_levels
-00214dfc 00000004 b levels::g_currentLevel
-00214e00 0000000c b levels::g_fileList
-00214e0c 0000001c b levels::kCodeToIndex
-00214e28 00000018 b hw_log(char const*)::lastLine
-00214e40 00000004 b (anonymous namespace)::g_sheetDesigner
-00214e44 00000004 b (anonymous namespace)::g_sheetHigh
-00214e48 00000004 b (anonymous namespace)::g_sheetTouch
-00214e4c 00000004 b (anonymous namespace)::g_sheetOptions
-00214e50 00000004 b (anonymous namespace)::g_sheetInstruct
-00214e54 00000004 b (anonymous namespace)::g_sheetTitle
-00214e58 00000004 b (anonymous namespace)::g_sheetBreak
-00214e5c 00000004 b (anonymous namespace)::g_sheetImage
-00214e60 00000004 b (anonymous namespace)::g_top
-00214e64 00000004 b (anonymous namespace)::g_bottom
-00214e68 0000000c b (anonymous namespace)::g_logs
-00214e74 00000004 b guard variable for hw_log(char const*)::lastLine
-00214e78 00000004 b hw_log(char const*)::repeatCount
-00214e7c b completed.1
-00214e80 b object.0
-00214e98 000005a8 B __C2Di_Context
-00215440 00000040 b s_projBot
-00215480 00000040 b s_projTop
-002154c0 00000004 b uLoc_mdlvMtx
-002154c4 00000004 b uLoc_projMtx
-002154c8 0000000c b hookCookie
-002154d8 000002d0 B __C3D_Context
-002157a8 00000004 b frameEndCbData
-002157ac 00000004 b frameEndCb
-002157b0 00000008 b frameCounter
-002157b8 00000001 b isTopStereo
-002157b9 00000001 b needSwapBot
-002157ba 00000001 b needSwapTop
-002157bb 00000001 b measureGpuTime
-002157bc 00000001 b inSafeTransfer
-002157bd 00000001 b inFrame
-002157c0 00000010 b cpuTime
-002157d0 00000010 b gpuTime
-002157e0 0000000c b linkedTarget
-002157ec 00000004 b lastTarget
-002157f0 00000004 b firstTarget
-002157f4 00000008 b C3Di_IVUnifEverDirty
-002157fc 000000c0 b C3Di_FVUnifEverDirty
-002158bc 00000018 b C3Di_ShaderFVecData
-002158d4 00000002 B C3D_BoolUnifsDirty
-002158d8 00000008 B C3D_IVUnifDirty
-002158e0 000000c0 B C3D_FVUnifDirty
-002159a0 00000004 B C3D_BoolUnifs
-002159a4 00000020 B C3D_IVUnif
-002159c4 00000c00 B C3D_FVUnif
-002165c8 00000008 b sLinearPool
-002165d0 0000000c b sAddrMap
-002165e0 00000008 b sVramPoolB
-002165e8 00000008 b sVramPoolA
-002165f0 0000000c b sAddrMap
-002165fc 00000004 b screenAlloc
-00216600 00000004 b screenFree
-00216604 00000002 b gfxIsDoubleBuf
-00216608 00000002 b gfxCurBuf
-0021660a 00000001 b gfxIsVram
-0021660b 00000001 b gfxTopMode
-0021660c 00000002 b gfxFramebufferFormats
-00216610 00000004 b gfxBottomFramebufferMaxSize
-00216614 00000004 b gfxTopFramebufferMaxSize
-00216618 00000008 b gfxBottomFramebuffers
-00216620 00000008 b gfxTopFramebuffers
-00216628 00000001 V __ctru_speedup
-0021662c 00000004 b romfs_mount_list
-00216630 00000004 V __romfs_path
-00216634 00000004 B gpuCmdBufOffset
-00216638 00000004 B gpuCmdBufSize
-0021663c 00000004 B gpuCmdBuf
-00216640 00000004 b boundQueue
-00216644 00000001 b shouldStop
-00216645 00000001 b isRunning
-00216646 00000001 b isActive
-00216648 00000004 b curQueue
-0021664c 00000001 b flagValue.0
-0021664d 00000001 b flagInit.1
-00216650 00000004 b serviceName.6
-00216654 00000001 b aptChainloadFlags
-00216655 00000001 b aptChainloadMediatype
-00216658 00000020 b aptChainloadHmac
-00216678 00000300 b aptChainloadDeliverArg
-00216978 00000008 b aptChainloadTid
-00216980 00001000 b aptParameters
-00217980 00000004 b aptFlags
-00217984 00000001 b aptHomeButtonState
-00217988 00000004 b aptMessageFuncData
-0021798c 00000004 b aptMessageFunc
-00217990 0000000c b aptFirstHook
-0021799c 00000001 b aptEventHandlerThreadQuit
-002179a0 00000004 b aptEventHandlerThread
-002179a4 00000008 b aptSleepEvent
-002179ac 00000008 b aptReceiveEvent
-002179b4 00000008 b aptEvents
-002179bc 00000004 b aptLockHandle
-002179c0 00000004 b aptRefCount
-002179c8 00000080 b fsExemptArchives
-00217a48 00000004 b fsuRefCount
-00217a4c 00000004 b fsuHandle
-00217a50 00000007 b gspEventCbOneShot
-00217a58 0000001c b gspEventCbData
-00217a74 0000001c b gspEventCb
-00217a90 00000038 b gspEvents
-00217ac8 00000004 b gspLastEvent
-00217acc 00000001 b gspRunEvents
-00217ad0 00000004 b gspEventThread
-00217ad4 00000004 b gspEvent
-00217ad8 00000001 b gspGpuRight
-00217ad9 00000001 b gspThreadId
-00217adc 00000004 b gspSharedMem
-00217ae0 00000004 b gspSharedMemHandle
-00217ae4 00000004 b gspRefCount
-00217ae8 00000004 b gspGpuHandle
-00217aec 00000001 b usingIrrst
-00217af0 00000004 b hidRefCount
-00217af4 00000006 b gRate
-00217afc 00000006 b aVec
-00217b04 00000004 b cPos
-00217b08 00000004 b tPos
-00217b0c 00000004 b kRepeat
-00217b10 00000004 b kUp
-00217b14 00000004 b kDown
-00217b18 00000004 b kHeld
-00217b1c 00000004 b kOld
-00217b20 00000004 B hidSharedMem
-00217b24 00000014 B hidEvents
-00217b38 00000004 B hidMemHandle
-00217b3c 00000004 B hidHandle
-00217b40 00000004 b irrstRefCount
-00217b44 00000004 b csPos
-00217b48 00000004 b kHeld
-00217b4c 00000004 B irrstSharedMem
-00217b50 00000004 B irrstEvent
-00217b54 00000004 B irrstMemHandle
-00217b58 00000004 B irrstHandle
-00217b5c 00000004 b ptmSysmRefCount
-00217b60 00000004 b ptmSysmHandle
-00217b64 00000004 b swkbdSharedMemHandle
-00217b68 00000004 b swkbdSharedMem
-00217b6c 00000004 V __ctru_linear_heap_size
-00217b70 00000004 V __ctru_heap_size
-00217b74 00000004 B __ctru_linear_heap
-00217b78 00000004 B __ctru_heap
-00217b7c 00000004 B __system_retAddr
-00217b80 00000004 B __system_argv
-00217b84 00000004 B __system_argc
-00217b88 b saved_stack
-00217b90 00000004 B __3dslink_host
-00217b94 00000004 b srvRefCount
-00217b98 00000004 b srvHandle
-00217b9c 00000004 b arbiter
-00217ba0 00000004 b currentAddr
-00217ba4 00000004 b maxAddr
-00217ba8 00000004 b minAddr
-00217bac 00000004 b srvPmHandle
-00217bb0 000005c0 b archive_devices
-00218170 00000004 b archive_device_cwd
-00218174 00000001 b archive_initialized
-00218178 00000004 b (anonymous namespace)::get_static_cond()::once
-00218180 00000008 b (anonymous namespace)::fake_cond
-00218188 00000004 b (anonymous namespace)::static_cond
-0021818c 00000004 b (anonymous namespace)::get_static_mutex()::once
-00218190 00000010 b (anonymous namespace)::fake_mutex
-002181a0 00000004 b (anonymous namespace)::static_mutex
-002181a8 0000001c b (anonymous namespace)::emergency_pool
-002181c4 00000004 b init
-002181c8 00000001 B __eh_globals_init::_S_init
-002181cc 0000000c b (anonymous namespace)::eh_globals
-002181d8 00000004 b (anonymous namespace)::__new_handler
-002181dc 00000010 V std::string::_Rep::_S_empty_rep_storage
-002181ec 0000000c b __sfp_recursive_mutex
-002181f8 00000168 B __sf
-00218360 00000004 B __stdio_exit_handler
-00218364 00000028 B __malloc_current_mallinfo
-0021838c 00000004 B __malloc_max_total_mem
-00218390 00000004 B __malloc_max_sbrked_mem
-00218394 00000004 B __malloc_top_pad
-00218398 0000000c b __malloc_recursive_mutex
-002183a4 0000000c b __env_recursive_mutex
-002183b0 00000004 b initial_env
-002183b4 00000190 B __atexit0
-00218544 00000004 B __atexit
-00218548 0000000c B __atexit_recursive_mutex
-00218554 00000400 b temp_cwd
-00218954 00000004 b __hndl_lock
-00218958 00000004 B fake_heap_start
-0021895c 00000004 B fake_heap_end
-00218960 00000004 b heap_start.0
-00218964 B __tls_start
-0021956c B __bss_end__
-0021956c A __end__
-0021956c B __tls_end
+00214c00 d __do_global_dtors_aux_fini_array_entry
+00214c00 D __fini_array_start
+00214c00 D __init_array_end
+00214c1c D __bss_start__
+00214c1c D __fini_array_end
+00214c1c 0000002c b editor::E
+00214c48 00000021 b editor::edit_level_name()::out
+00214c6c 0000008c b game::G
+00214cf8 00000001 b game::g_exitRequested
+00214cfc 00000004 b game::seqPos
+00214d00 00000004 b game::seqTimer
+00214d04 000000a0 b highscores::g_entries
+00214da4 00000001 b highscores::g_loaded
+00214da8 00000018 b levels::g_activeLevelFile
+00214dc0 00000001 b levels::g_loaded
+00214dc4 0000000c b levels::g_levels
+00214dd0 00000004 b levels::g_currentLevel
+00214dd4 0000000c b levels::g_fileList
+00214de0 0000001c b levels::kCodeToIndex
+00214dfc 00000009 b options::duplicateName
+00214e08 00000009 b options::show_name_keyboard()::out
+00214e11 00000001 b options::dropdownOpen
+00214e14 00000004 b options::scrollOffset
+00214e18 00000004 b options::selectedIndex
+00214e1c 00000018 b options::pendingFile
+00214e34 00000018 b hw_log(char const*)::lastLine
+00214e4c 00000004 b (anonymous namespace)::g_sheetDesigner
+00214e50 00000004 b (anonymous namespace)::g_sheetHigh
+00214e54 00000004 b (anonymous namespace)::g_sheetTouch
+00214e58 00000004 b (anonymous namespace)::g_sheetOptions
+00214e5c 00000004 b (anonymous namespace)::g_sheetInstruct
+00214e60 00000004 b (anonymous namespace)::g_sheetTitle
+00214e64 00000004 b (anonymous namespace)::g_sheetBreak
+00214e68 00000004 b (anonymous namespace)::g_sheetImage
+00214e6c 00000004 b (anonymous namespace)::g_top
+00214e70 00000004 b (anonymous namespace)::g_bottom
+00214e74 0000000c b (anonymous namespace)::g_logs
+00214e80 00000004 b guard variable for hw_log(char const*)::lastLine
+00214e84 00000004 b hw_log(char const*)::repeatCount
+00214e88 b completed.1
+00214e8c b object.0
+00214ea8 000005a8 B __C2Di_Context
+00215450 00000040 b s_projBot
+00215490 00000040 b s_projTop
+002154d0 00000004 b uLoc_mdlvMtx
+002154d4 00000004 b uLoc_projMtx
+002154d8 0000000c b hookCookie
+002154e8 000002d0 B __C3D_Context
+002157b8 00000004 b frameEndCbData
+002157bc 00000004 b frameEndCb
+002157c0 00000008 b frameCounter
+002157c8 00000001 b isTopStereo
+002157c9 00000001 b needSwapBot
+002157ca 00000001 b needSwapTop
+002157cb 00000001 b measureGpuTime
+002157cc 00000001 b inSafeTransfer
+002157cd 00000001 b inFrame
+002157d0 00000010 b cpuTime
+002157e0 00000010 b gpuTime
+002157f0 0000000c b linkedTarget
+002157fc 00000004 b lastTarget
+00215800 00000004 b firstTarget
+00215804 00000008 b C3Di_IVUnifEverDirty
+0021580c 000000c0 b C3Di_FVUnifEverDirty
+002158cc 00000018 b C3Di_ShaderFVecData
+002158e4 00000002 B C3D_BoolUnifsDirty
+002158e8 00000008 B C3D_IVUnifDirty
+002158f0 000000c0 B C3D_FVUnifDirty
+002159b0 00000004 B C3D_BoolUnifs
+002159b4 00000020 B C3D_IVUnif
+002159d4 00000c00 B C3D_FVUnif
+002165d8 00000008 b sLinearPool
+002165e0 0000000c b sAddrMap
+002165f0 00000008 b sVramPoolB
+002165f8 00000008 b sVramPoolA
+00216600 0000000c b sAddrMap
+0021660c 00000004 b screenAlloc
+00216610 00000004 b screenFree
+00216614 00000002 b gfxIsDoubleBuf
+00216618 00000002 b gfxCurBuf
+0021661a 00000001 b gfxIsVram
+0021661b 00000001 b gfxTopMode
+0021661c 00000002 b gfxFramebufferFormats
+00216620 00000004 b gfxBottomFramebufferMaxSize
+00216624 00000004 b gfxTopFramebufferMaxSize
+00216628 00000008 b gfxBottomFramebuffers
+00216630 00000008 b gfxTopFramebuffers
+00216638 00000001 V __ctru_speedup
+0021663c 00000004 b romfs_mount_list
+00216640 00000004 V __romfs_path
+00216644 00000004 B gpuCmdBufOffset
+00216648 00000004 B gpuCmdBufSize
+0021664c 00000004 B gpuCmdBuf
+00216650 00000004 b boundQueue
+00216654 00000001 b shouldStop
+00216655 00000001 b isRunning
+00216656 00000001 b isActive
+00216658 00000004 b curQueue
+0021665c 00000001 b flagValue.0
+0021665d 00000001 b flagInit.1
+00216660 00000004 b serviceName.6
+00216664 00000001 b aptChainloadFlags
+00216665 00000001 b aptChainloadMediatype
+00216668 00000020 b aptChainloadHmac
+00216688 00000300 b aptChainloadDeliverArg
+00216988 00000008 b aptChainloadTid
+00216990 00001000 b aptParameters
+00217990 00000004 b aptFlags
+00217994 00000001 b aptHomeButtonState
+00217998 00000004 b aptMessageFuncData
+0021799c 00000004 b aptMessageFunc
+002179a0 0000000c b aptFirstHook
+002179ac 00000001 b aptEventHandlerThreadQuit
+002179b0 00000004 b aptEventHandlerThread
+002179b4 00000008 b aptSleepEvent
+002179bc 00000008 b aptReceiveEvent
+002179c4 00000008 b aptEvents
+002179cc 00000004 b aptLockHandle
+002179d0 00000004 b aptRefCount
+002179d8 00000080 b fsExemptArchives
+00217a58 00000004 b fsuRefCount
+00217a5c 00000004 b fsuHandle
+00217a60 00000007 b gspEventCbOneShot
+00217a68 0000001c b gspEventCbData
+00217a84 0000001c b gspEventCb
+00217aa0 00000038 b gspEvents
+00217ad8 00000004 b gspLastEvent
+00217adc 00000001 b gspRunEvents
+00217ae0 00000004 b gspEventThread
+00217ae4 00000004 b gspEvent
+00217ae8 00000001 b gspGpuRight
+00217ae9 00000001 b gspThreadId
+00217aec 00000004 b gspSharedMem
+00217af0 00000004 b gspSharedMemHandle
+00217af4 00000004 b gspRefCount
+00217af8 00000004 b gspGpuHandle
+00217afc 00000001 b usingIrrst
+00217b00 00000004 b hidRefCount
+00217b04 00000006 b gRate
+00217b0c 00000006 b aVec
+00217b14 00000004 b cPos
+00217b18 00000004 b tPos
+00217b1c 00000004 b kRepeat
+00217b20 00000004 b kUp
+00217b24 00000004 b kDown
+00217b28 00000004 b kHeld
+00217b2c 00000004 b kOld
+00217b30 00000004 B hidSharedMem
+00217b34 00000014 B hidEvents
+00217b48 00000004 B hidMemHandle
+00217b4c 00000004 B hidHandle
+00217b50 00000004 b irrstRefCount
+00217b54 00000004 b csPos
+00217b58 00000004 b kHeld
+00217b5c 00000004 B irrstSharedMem
+00217b60 00000004 B irrstEvent
+00217b64 00000004 B irrstMemHandle
+00217b68 00000004 B irrstHandle
+00217b6c 00000004 b ptmSysmRefCount
+00217b70 00000004 b ptmSysmHandle
+00217b74 00000004 b swkbdSharedMemHandle
+00217b78 00000004 b swkbdSharedMem
+00217b7c 00000004 V __ctru_linear_heap_size
+00217b80 00000004 V __ctru_heap_size
+00217b84 00000004 B __ctru_linear_heap
+00217b88 00000004 B __ctru_heap
+00217b8c 00000004 B __system_retAddr
+00217b90 00000004 B __system_argv
+00217b94 00000004 B __system_argc
+00217b98 b saved_stack
+00217ba0 00000004 B __3dslink_host
+00217ba4 00000004 b srvRefCount
+00217ba8 00000004 b srvHandle
+00217bac 00000004 b arbiter
+00217bb0 00000004 b currentAddr
+00217bb4 00000004 b maxAddr
+00217bb8 00000004 b minAddr
+00217bbc 00000004 b srvPmHandle
+00217bc0 000005c0 b archive_devices
+00218180 00000004 b archive_device_cwd
+00218184 00000001 b archive_initialized
+00218188 00000004 b (anonymous namespace)::get_static_cond()::once
+00218190 00000008 b (anonymous namespace)::fake_cond
+00218198 00000004 b (anonymous namespace)::static_cond
+0021819c 00000004 b (anonymous namespace)::get_static_mutex()::once
+002181a0 00000010 b (anonymous namespace)::fake_mutex
+002181b0 00000004 b (anonymous namespace)::static_mutex
+002181b8 0000001c b (anonymous namespace)::emergency_pool
+002181d4 00000004 b init
+002181d8 00000001 B __eh_globals_init::_S_init
+002181dc 0000000c b (anonymous namespace)::eh_globals
+002181e8 00000004 b (anonymous namespace)::__new_handler
+002181ec 00000010 V std::string::_Rep::_S_empty_rep_storage
+002181fc 0000000c b __sfp_recursive_mutex
+00218208 00000168 B __sf
+00218370 00000004 B __stdio_exit_handler
+00218374 00000028 B __malloc_current_mallinfo
+0021839c 00000004 B __malloc_max_total_mem
+002183a0 00000004 B __malloc_max_sbrked_mem
+002183a4 00000004 B __malloc_top_pad
+002183a8 0000000c b __malloc_recursive_mutex
+002183b4 0000000c b __env_recursive_mutex
+002183c0 00000004 b initial_env
+002183c4 00000190 B __atexit0
+00218554 00000004 B __atexit
+00218558 0000000c B __atexit_recursive_mutex
+00218564 00000400 b temp_cwd
+00218964 00000004 b __hndl_lock
+00218968 00000004 B fake_heap_start
+0021896c 00000004 B fake_heap_end
+00218970 00000004 b heap_start.0
+00218974 B __tls_start
+0021957c B __bss_end__
+0021957c A __end__
+0021957c B __tls_end

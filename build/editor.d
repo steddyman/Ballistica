@@ -1,7 +1,4 @@
-game.o: /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/game.cpp \
- /opt/devkitpro/libctru/include/citro2d.h \
- /opt/devkitpro/libctru/include/citro3d.h \
- /opt/devkitpro/libctru/include/c3d/types.h \
+editor.o: /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/editor.cpp \
  /opt/devkitpro/libctru/include/3ds.h \
  /opt/devkitpro/libctru/include/3ds/types.h \
  /opt/devkitpro/libctru/include/3ds/result.h \
@@ -88,6 +85,9 @@ game.o: /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/game.cpp \
  /opt/devkitpro/libctru/include/3ds/font.h \
  /opt/devkitpro/libctru/include/3ds/gdbhio_dev.h \
  /opt/devkitpro/libctru/include/3ds/3dslink.h \
+ /opt/devkitpro/libctru/include/citro2d.h \
+ /opt/devkitpro/libctru/include/citro3d.h \
+ /opt/devkitpro/libctru/include/c3d/types.h \
  /opt/devkitpro/libctru/include/c3d/maths.h \
  /opt/devkitpro/libctru/include/c3d/mtxstack.h \
  /opt/devkitpro/libctru/include/c3d/uniforms.h \
@@ -110,25 +110,11 @@ game.o: /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/game.cpp \
  /opt/devkitpro/libctru/include/c2d/text.h \
  /opt/devkitpro/libctru/include/c2d/font.h \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/hardware.hpp \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/IMAGE.h \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/IMAGE_t3x.h \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/sprite_indexes/image_indices.h \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/TITLE.h \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/BREAK.h \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/INSTRUCT.h \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/DESIGNER.h \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/HIGH.h \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/highscores.hpp \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/game.hpp \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/levels.hpp \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/brick.hpp \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/SUPPORT.HPP \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/editor.hpp \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/options.hpp \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/OPTIONS.h
-/opt/devkitpro/libctru/include/citro2d.h:
-/opt/devkitpro/libctru/include/citro3d.h:
-/opt/devkitpro/libctru/include/c3d/types.h:
+ /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/DESIGNER.h \
+ /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/INSTRUCT.h
 /opt/devkitpro/libctru/include/3ds.h:
 /opt/devkitpro/libctru/include/3ds/types.h:
 /opt/devkitpro/libctru/include/3ds/result.h:
@@ -215,6 +201,9 @@ game.o: /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/game.cpp \
 /opt/devkitpro/libctru/include/3ds/font.h:
 /opt/devkitpro/libctru/include/3ds/gdbhio_dev.h:
 /opt/devkitpro/libctru/include/3ds/3dslink.h:
+/opt/devkitpro/libctru/include/citro2d.h:
+/opt/devkitpro/libctru/include/citro3d.h:
+/opt/devkitpro/libctru/include/c3d/types.h:
 /opt/devkitpro/libctru/include/c3d/maths.h:
 /opt/devkitpro/libctru/include/c3d/mtxstack.h:
 /opt/devkitpro/libctru/include/c3d/uniforms.h:
@@ -237,19 +226,8 @@ game.o: /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/game.cpp \
 /opt/devkitpro/libctru/include/c2d/text.h:
 /opt/devkitpro/libctru/include/c2d/font.h:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/hardware.hpp:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/IMAGE.h:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/IMAGE_t3x.h:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/sprite_indexes/image_indices.h:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/TITLE.h:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/BREAK.h:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/INSTRUCT.h:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/DESIGNER.h:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/HIGH.h:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/highscores.hpp:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/game.hpp:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/levels.hpp:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/brick.hpp:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/SUPPORT.HPP:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/editor.hpp:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/options.hpp:
-/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/OPTIONS.h:
+/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/DESIGNER.h:
+/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/INSTRUCT.h:
