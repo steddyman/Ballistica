@@ -368,6 +368,9 @@ namespace game {
 
     // Options menu transient state
     static int optSelectedIndex = 0; // index into available files
+    // -------- Editor shared state --------
+    struct EditorState { int curLevel=-1; int curBrick=1; int speed=10; std::string name; bool init=false; bool testReturn=false; bool pendingFade=false; int fadeTimer=0; };
+    static EditorState g_editor;
     static bool optDropdownOpen = false;
     static std::string optPendingFile; // selection not yet saved
     static char optDuplicateName[9] = {0}; // user-entered duplicate base name (sanitized uppercase)
@@ -517,12 +520,57 @@ namespace game {
         return;
     }
     if(G.mode == Mode::Editor) {
-        // SELECT returns to title screen
-        if(in.selectPressed) {
-            G.mode = Mode::Title;
-            hw_log("editor->title (SELECT)\n");
-            return;
+        EditorState &E = g_editor;
+        if(!E.init) {
+            levels_load(); E.curLevel = levels_current(); E.speed = levels_get_speed(E.curLevel); if(E.speed<=0) E.speed=10; const char* nm = levels_get_name(E.curLevel); E.name = nm?nm:"Level"; E.init=true; }
+        // If we returned from a test run (Playing mode) and playing ended (detect by lives==0 or manual exit flag) handled outside; here nothing extra.
+        // Handle input taps (touchPressed edge)
+        if(in.touchPressed) {
+            int x=in.stylusX, y=in.stylusY;
+            // Grid region (reuse level geometry)
+            int left = levels_left(); int top = levels_top(); int cw=levels_brick_width(); int ch=levels_brick_height();
+            int gw = levels_grid_width(); int gh=levels_grid_height();
+            if(x>=left && x<left+gw*cw && y>=top && y<top+gh*ch) {
+                int col = (x-left)/cw; int row=(y-top)/ch; levels_edit_set_brick(E.curLevel,col,row,E.curBrick); return; }
+            // Palette area on right (simple vertical list of bricks)
+            int palX=260; int palY=52; int pad=3; int itemW=cw; int itemH=ch; int bx=palX; int by=palY; for(int b=0; b<(int)BrickType::COUNT; ++b) {
+                if(by+itemH > 240) { by=palY; bx += itemW+pad; }
+                if(x>=bx && x<bx+itemW && y>=by && y<by+itemH) { E.curBrick = b; return; }
+                by += itemH+pad;
+            }
+            // Speed +/- buttons (reuse constants: SpeedMinus/Plus etc.) simple bounding boxes
+            if(x>=139 && x<139+10 && y>=184 && y<184+9) { if(E.speed>1) { E.speed--; levels_set_speed(E.curLevel,E.speed);} return; }
+            if(x>=218 && x<218+10 && y>=184 && y<184+9) { if(E.speed<99) { E.speed++; levels_set_speed(E.curLevel,E.speed);} return; }
+            // Level +/- at y=169
+            if(x>=139 && x<139+10 && y>=169 && y<169+9) { // prev level
+                if(E.curLevel>0) { E.curLevel--; levels_set_current(E.curLevel); E.speed=levels_get_speed(E.curLevel); E.name=levels_get_name(E.curLevel); }
+                return; }
+            if(x>=218 && x<218+10 && y>=169 && y<169+9) { // next level
+                if(E.curLevel+1 < levels_count()) { E.curLevel++; levels_set_current(E.curLevel); E.speed=levels_get_speed(E.curLevel); E.name=levels_get_name(E.curLevel); }
+                return; }
+            // Clear button (108,169 size 21x9)
+            if(x>=108 && x<108+21 && y>=169 && y<169+9) {
+                for(int r=0;r<gh;r++) {
+                    for(int c=0;c<gw;c++) {
+                        levels_edit_set_brick(E.curLevel,c,r,0);
+                    }
+                }
+                return;
+            }
+            // Exit/save button (59,184 size 18x9)
+            if(x>=59 && x<59+18 && y>=184 && y<184+9) { levels_set_speed(E.curLevel,E.speed); levels_set_name(E.curLevel,E.name.c_str()); levels_save_active(); G.mode=Mode::Title; return; }
+            // Test level button (196,141 size 40x9)
+            if(x>=196 && x<196+40 && y>=141 && y<141+9) { // enter playing mode for this level only
+                levels_set_current(E.curLevel); levels_reset_level(E.curLevel); E.testReturn = true; E.pendingFade=true; E.fadeTimer=90; // ~1.5s at 60fps
+                G.mode=Mode::Playing; return; }
+            // Name button (28,7 size 22x9) opens keyboard
+            if(x>=28 && x<28+22 && y>=7 && y<7+9) {
+                SwkbdState sw; swkbdInit(&sw, SWKBD_TYPE_NORMAL, 2, 16); swkbdSetValidation(&sw, SWKBD_NOTEMPTY_NOTBLANK,0,0); swkbdSetInitialText(&sw, E.name.c_str()); static char out[33]; memset(out,0,sizeof out); if(swkbdInputText(&sw,out,sizeof out)==SWKBD_BUTTON_CONFIRM) { E.name = out; levels_set_name(E.curLevel,E.name.c_str()); }
+                return; }
         }
+        // If playing ended and we should bounce back
+        // (Handled externally after game over - not implemented yet fully: simplest is user uses SELECT now)
+        if(in.selectPressed) { levels_set_speed(E.curLevel,E.speed); levels_set_name(E.curLevel,E.name.c_str()); levels_save_active(); G.mode = Mode::Title; return; }
         return;
     }
         #if defined(DEBUG) && DEBUG
@@ -703,12 +751,78 @@ namespace game {
             }
             return;
         }
+        // Fade name overlay when entering Playing from Editor test
+        if(G.mode == Mode::Playing && g_editor.testReturn && g_editor.pendingFade) {
+            // Draw semi-transparent dark overlay and centered level name
+            C2D_DrawRectSolid(0,0,0,320,240,C2D_Color32(0,0,0,120));
+            const char* nm = levels_get_name(levels_current()); if(!nm) nm="Level";
+            hw_draw_text(100,110,nm,0xFFFFFFFF);
+            if(g_editor.fadeTimer>0) { g_editor.fadeTimer--; } else { g_editor.pendingFade=false; }
+        }
         if(G.mode == Mode::Editor) {
+            EditorState &E = g_editor;
+            // Background
             C2D_Image img = hw_image_from(HwSheet::Designer, DESIGNER_idx);
             if(img.tex) hw_draw_sprite(img, 0, 0); else {
                 img = hw_image_from(HwSheet::Instruct, INSTRUCT_idx);
                 if(img.tex) hw_draw_sprite(img, 0, 0);
+                else C2D_DrawRectSolid(0,0,0,320,240,C2D_Color32(10,10,20,255));
             }
+            // Draw bricks (already drawn later in main flow, but ensure shown under palette)
+            levels_render();
+            // Palette (simple colored boxes referencing atlas) - iterate brick types
+            int palX=260, palY=52; int cw=levels_brick_width(); int ch=levels_brick_height(); int pad=3; int bx=palX, by=palY;
+            for(int b=0;b<(int)BrickType::COUNT;b++) {
+                int atlas = levels_atlas_index(b);
+                if(atlas>=0) hw_draw_sprite(hw_image(atlas), bx, by);
+                if(b==E.curBrick) { C2D_DrawRectSolid(bx-1,by-1,0,cw+2,1,C2D_Color32(255,255,255,255)); C2D_DrawRectSolid(bx-1,by+ch,0,cw+2,1,C2D_Color32(255,255,255,255)); C2D_DrawRectSolid(bx-1,by,0,1,ch,C2D_Color32(255,255,255,255)); C2D_DrawRectSolid(bx+cw,by,0,1,ch,C2D_Color32(255,255,255,255)); }
+                if(by+ch > 240 - ch) { by=palY; bx += cw+pad; } else by += ch+pad;
+            }
+            // UI overlays: speed, level, buttons labels
+            char buf[64];
+            snprintf(buf,sizeof buf,"Level:"); hw_draw_text(199,170,buf,0xFFFFFFFF);
+            snprintf(buf,sizeof buf,"Speed:"); hw_draw_text(199,185,buf,0xFFFFFFFF);
+            // Display current values
+            snprintf(buf,sizeof buf,"%02d", E.curLevel+1); hw_draw_text(235,170,buf,0xFFFFFFFF);
+            snprintf(buf,sizeof buf,"%02d", E.speed); hw_draw_text(235,185,buf,0xFFFFFFFF);
+            // Button highlight helper lambda
+            auto hl = [](int x,int y,int w,int h,uint32_t col){ C2D_DrawRectSolid(x,y,0,w,h,col); };
+            uint32_t baseHL = C2D_Color32(80,80,120,180);
+            uint32_t smallHL = C2D_Color32(70,70,110,180);
+            // Highlight areas (matching legacy coordinates)
+            // Name button (28,7,22x9)
+            hl(28,7,22,9,baseHL);
+            // Test button (196,141,40x9)
+            hl(196,141,40,9,baseHL);
+            // Clear (108,169,21x9)
+            hl(108,169,21,9,baseHL);
+            // Exit (59,184,18x9)
+            hl(59,184,18,9,baseHL);
+            // Level - / + (139,169,10x9) & (218,169,10x9)
+            hl(139,169,10,9,smallHL); hl(218,169,10,9,smallHL);
+            // Speed - / + (139,184,10x9) & (218,184,10x9)
+            hl(139,184,10,9,smallHL); hl(218,184,10,9,smallHL);
+            // Labels atop highlights
+            hw_draw_text(75,170,"Clear",0xFFFFFFFF);
+            hw_draw_text(60,185,"Exit",0xFFFFFFFF);
+            hw_draw_text(196,141,"TEST",0xFFFFFFFF);
+            hw_draw_text(139,170,"-",0xFFFFFFFF); hw_draw_text(220,170,"+",0xFFFFFFFF);
+            hw_draw_text(139,185,"-",0xFFFFFFFF); hw_draw_text(220,185,"+",0xFFFFFFFF);
+            // Current brick preview & effect text
+            int atlas = levels_atlas_index(E.curBrick);
+            if(atlas>=0) hw_draw_sprite(hw_image(atlas), 124,142);
+            hw_draw_text(40,142,"Current Brick",0xFFFFFFFF);
+            hw_draw_text(40,153,"Effect:",0xFFFFFFFF);
+            // Effect description (simple mapping via codes reused from legacy arrays subset)
+            static const char* effectNames[] = {"Empty","10 Points","20 Points","30 Points","40 Points","50 Points","100 Points","Extra Life","Slow Ball","Fast Ball","Skull Slow","Skull Fast","Bonus B","Bonus O","Bonus N","Bonus U","Bonus S","Bat Small","Bat Big","Indestruct","Rewind","Reverse","Slow Now","Fast Now","Another Ball","Forward","Laser","MurderBall","Bonus","Five Hit","Bomb","Lights Off","Lights On","Side Slow","Side Hard"};
+            if(E.curBrick>=0 && E.curBrick < (int)(sizeof(effectNames)/sizeof(effectNames[0]))) hw_draw_text(90,153,effectNames[E.curBrick],0xFFFFFFFF);
+            // Name button and name
+            hw_draw_text(30,9,"Name",0xFFFFFFFF);
+            hw_draw_text(56,9,E.name.c_str(),0xFFFFFFFF);
+            // Save hint
+            hw_draw_text(10,230,"Tap Exit to Save",0xFFFFFFFF);
+            // Fade overlay for test start (show level name before play)
+            if(g_editor.pendingFade && G.mode==Mode::Editor) { /* should not happen (fade occurs in Playing) */ }
             return;
         }
         if(G.mode == Mode::Options) {
@@ -874,6 +988,13 @@ namespace game {
     for(auto &b : G.balls) if(b.active) hw_draw_sprite(b.img, b.x, b.y);
         // Draw lasers
         for(auto &L : G.lasers) if(L.active) C2D_DrawRectSolid(L.x, L.y, 0, 2, 6, C2D_Color32(255,255,100,255));
+        // If in test mode (editor launched) and level ended (no breakables) or lives depleted, return to editor
+        if(g_editor.testReturn && G.mode==Mode::Playing) {
+            bool levelDone = (levels_remaining_breakable()==0);
+            bool livesGone = (G.lives<=0);
+            if(levelDone || livesGone) {
+                G.mode = Mode::Editor; levels_set_current(g_editor.curLevel); g_editor.pendingFade=false; g_editor.fadeTimer=0; }
+        }
     }
 }
 

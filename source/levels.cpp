@@ -363,6 +363,59 @@ void levels_reset_level(int idx) {
     }
 }
 
+    // Editor helpers
+    int edit_get_brick(int levelIndex, int col, int row) {
+        if(levelIndex<0 || levelIndex >= (int)g_levels.size()) return -1;
+        if(col<0||col>=BricksX||row<0||row>=BricksY) return -1;
+        Level &L = g_levels[levelIndex];
+        int idx = row*BricksX+col; if(idx >= (int)L.bricks.size()) return -1; return (int)L.bricks[idx];
+    }
+    void edit_set_brick(int levelIndex, int col, int row, int brickType) {
+        if(levelIndex<0 || levelIndex >= (int)g_levels.size()) return;
+        if(col<0||col>=BricksX||row<0||row>=BricksY) return;
+        if(brickType < 0 || brickType >= (int)BrickType::COUNT) brickType = 0;
+        Level &L = g_levels[levelIndex]; int idx=row*BricksX+col; if(idx >= (int)L.bricks.size()) return;
+        L.bricks[idx] = (uint8_t)brickType;
+        if(L.hp.size()==L.bricks.size()) {
+            if(brickType==(int)BrickType::T5) L.hp[idx]=5; else if(brickType==0 || brickType==(int)BrickType::ID) L.hp[idx]=0; else L.hp[idx]=1;
+        }
+    }
+    int get_speed(int levelIndex) { if(levelIndex<0||levelIndex>=(int)g_levels.size()) return 0; return g_levels[levelIndex].speed; }
+    void set_speed(int levelIndex, int speed) { if(levelIndex<0||levelIndex>=(int)g_levels.size()) return; if(speed<1) speed=1; if(speed>99) speed=99; g_levels[levelIndex].speed = speed; }
+    const char* get_name(int levelIndex) { if(levelIndex<0||levelIndex>=(int)g_levels.size()) return ""; return g_levels[levelIndex].name.c_str(); }
+    void set_name(int levelIndex, const char* name) {
+    if(levelIndex<0||levelIndex>=(int)g_levels.size()) return;
+    if(!name) return;
+    std::string s(name);
+        if(s.size()>32) s.resize(32); // simple cap
+        // trim leading spaces
+        size_t p=0; while(p<s.size() && (unsigned char)s[p]<=' ') ++p; if(p>0) s = s.substr(p);
+        g_levels[levelIndex].name = s;
+    }
+    bool save_active() {
+        if(g_levels.empty()) return false;
+        char path[256]; snprintf(path,sizeof path, "%s/%s", kLevelsSubDir, g_activeLevelFile.c_str());
+        FILE* f = fopen(path, "wb"); if(!f) return false;
+        for(size_t li=0; li<g_levels.size(); ++li) {
+            const Level &L = g_levels[li];
+            fprintf(f, "LEVEL %zu\n", li+1);
+            fprintf(f, "SPEED %d\n", L.speed);
+            fprintf(f, "NAME %s\n", L.name.c_str());
+            // bricks: output 13 codes per line for readability
+            for(int r=0;r<BricksY;r++) {
+                for(int c=0;c<BricksX;c++) {
+                    int idx = r*BricksX+c; int b = (idx<(int)L.bricks.size())? L.bricks[idx]:0;
+                    const char* code = (b>=0 && b < (int)(sizeof(kBrickCodes)/sizeof(kBrickCodes[0]))) ? kBrickCodes[b] : "NB";
+                    fprintf(f, "%s", code);
+                    if(c<BricksX-1) fputc(' ', f);
+                }
+                fputc('\n', f);
+            }
+        }
+        fclose(f);
+        return true;
+    }
+
 } // namespace levels
 
 // Public simple C interface used by game.cpp
@@ -414,3 +467,11 @@ bool levels_duplicate_active(const char* newBase) {
     levels_refresh_files();
     return true;
 }
+// Editor facade
+int  levels_edit_get_brick(int levelIndex, int col, int row) { return levels::edit_get_brick(levelIndex,col,row); }
+void levels_edit_set_brick(int levelIndex, int col, int row, int brickType) { levels::edit_set_brick(levelIndex,col,row,brickType); }
+int  levels_get_speed(int levelIndex) { return levels::get_speed(levelIndex); }
+void levels_set_speed(int levelIndex, int speed) { levels::set_speed(levelIndex,speed); }
+const char* levels_get_name(int levelIndex) { return levels::get_name(levelIndex); }
+void levels_set_name(int levelIndex, const char* name) { levels::set_name(levelIndex,name); }
+bool levels_save_active() { return levels::save_active(); }
