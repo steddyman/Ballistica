@@ -20,13 +20,13 @@ namespace ui {
     constexpr int NameBtnX=28,   NameBtnY=7,   NameBtnW=22, NameBtnH=11;
     constexpr int TestBtnX=196,  TestBtnY=141, TestBtnW=40, TestBtnH=11;
     constexpr int ClearBtnX=108, ClearBtnY=169, ClearBtnW=21, ClearBtnH=11;
-    constexpr int ExitBtnX=59,   ExitBtnY=184, ExitBtnW=18, ExitBtnH=11;
+    constexpr int ExitBtnX=108,   ExitBtnY=184, ExitBtnW=18, ExitBtnH=11;
     constexpr int LevelMinusX=139, LevelMinusY=169; constexpr int LevelPlusX=218, LevelPlusY=169; constexpr int LevelBtnW=10, LevelBtnH=9;
     constexpr int SpeedMinusX=139, SpeedMinusY=184; constexpr int SpeedPlusX=218, SpeedPlusY=184; constexpr int SpeedBtnW=10, SpeedBtnH=9;
     // Palette origin
     constexpr int PaletteX=260, PaletteY=52;
     // Labels
-    constexpr int LabelNameX=54, LabelNameY=10;
+    constexpr int LabelNameX=70, LabelNameY=10;
     constexpr int LabelTestX=TestBtnX, LabelTestY=TestBtnY;
     constexpr int LabelClearX=75, LabelClearY=170;
     constexpr int LabelExitX=60, LabelExitY=185;
@@ -40,10 +40,10 @@ namespace ui {
     constexpr int ValueLevelX=235, ValueLevelY=170;
     constexpr int ValueSpeedX=235, ValueSpeedY=185;
     // Current brick/effect info
-    constexpr int CurrentBrickSpriteX=124, CurrentBrickSpriteY=142;
-    constexpr int LabelCurrentBrickX=40, LabelCurrentBrickY=142;
-    constexpr int LabelEffectX=40, LabelEffectY=153;
-    constexpr int ValueEffectX=90, ValueEffectY=153;
+    constexpr int CurrentBrickSpriteX=124, CurrentBrickSpriteY=148;
+    constexpr int LabelCurrentBrickX=40, LabelCurrentBrickY=148;
+    constexpr int LabelEffectX=40, LabelEffectY=159;
+    constexpr int ValueEffectX=90, ValueEffectY=159;
     // Exit hint footer
     constexpr int ExitHintX=10, ExitHintY=230;
     // Fade overlay level name
@@ -63,6 +63,7 @@ struct EditorState {
 };
 static EditorState E;
 static std::vector<UIButton> g_buttons; // cached buttons built after init
+static EditorAction g_lastAction = EditorAction::None; // set by button lambdas needing a return
 
 // Button auto-size helper: expand width to fit label + padding if needed
 static void ui_autosize_button(UIButton &btn, int padding = 12) {
@@ -91,9 +92,22 @@ static void init_if_needed() {
     g_buttons.clear();
     UIButton b;
     b = {}; b.x=NameBtnX; b.y=NameBtnY; b.w=NameBtnW; b.h=NameBtnH; b.label="Name"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){ edit_level_name(); }; g_buttons.push_back(b);
-    b = {}; b.x=TestBtnX; b.y=TestBtnY; b.w=TestBtnW; b.h=TestBtnH; b.label="TEST"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); g_buttons.push_back(b);
-    b = {}; b.x=ClearBtnX; b.y=ClearBtnY; b.w=ClearBtnW; b.h=ClearBtnH; b.label="Clear"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); g_buttons.push_back(b);
-    b = {}; b.x=ExitBtnX; b.y=ExitBtnY; b.w=ExitBtnW; b.h=ExitBtnH; b.label="Exit"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); g_buttons.push_back(b);
+    b = {}; b.x=TestBtnX; b.y=TestBtnY; b.w=TestBtnW; b.h=TestBtnH; b.label="TEST"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){
+        levels_set_current(E.curLevel);
+        levels_reset_level(E.curLevel);
+        E.testReturn = true;
+        E.pendingFade = true;
+        E.fadeTimer = 90; // ~1.5s
+        g_lastAction = EditorAction::StartTest;
+    }; g_buttons.push_back(b);
+    b = {}; b.x=ClearBtnX; b.y=ClearBtnY; b.w=ClearBtnW; b.h=ClearBtnH; b.label="Clear"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){
+        int gw = levels_grid_width(); int gh = levels_grid_height();
+        for (int r = 0; r < gh; ++r) for (int c = 0; c < gw; ++c) levels_edit_set_brick(E.curLevel, c, r, 0);
+    }; g_buttons.push_back(b);
+    b = {}; b.x=ExitBtnX; b.y=ExitBtnY; b.w=ExitBtnW; b.h=ExitBtnH; b.label="Exit"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){
+        persist_current_level();
+        g_lastAction = EditorAction::SaveAndExit;
+    }; g_buttons.push_back(b);
 }
 
 void persist_current_level() {
@@ -168,29 +182,14 @@ EditorAction update(const InputState &in) {
         if (E.curLevel + 1 < levels_count()) { E.curLevel++; levels_set_current(E.curLevel); E.speed = levels_get_speed(E.curLevel); E.name = levels_get_name(E.curLevel); }
         return EditorAction::None;
     }
-    // Clear
-    if (x >= ui::ClearBtnX && x < ui::ClearBtnX + ui::ClearBtnW && y >= ui::ClearBtnY && y < ui::ClearBtnY + ui::ClearBtnH) {
-        for (int r = 0; r < gh; ++r) for (int c = 0; c < gw; ++c) levels_edit_set_brick(E.curLevel, c, r, 0);
-        return EditorAction::None;
-    }
-    // Exit (save & title)
-    if (x >= ui::ExitBtnX && x < ui::ExitBtnX + ui::ExitBtnW && y >= ui::ExitBtnY && y < ui::ExitBtnY + ui::ExitBtnH) {
-        persist_current_level();
-        return EditorAction::SaveAndExit;
-    }
-    // Test level
-    if (x >= ui::TestBtnX && x < ui::TestBtnX + ui::TestBtnW && y >= ui::TestBtnY && y < ui::TestBtnY + ui::TestBtnH) {
-        levels_set_current(E.curLevel);
-        levels_reset_level(E.curLevel);
-        E.testReturn = true;
-        E.pendingFade = true;
-        E.fadeTimer = 90; // ~1.5s
-        return EditorAction::StartTest;
-    }
-    // Name edit
-    if (x >= ui::NameBtnX && x < ui::NameBtnX + ui::NameBtnW && y >= ui::NameBtnY && y < ui::NameBtnY + ui::NameBtnH) {
-        edit_level_name();
-        return EditorAction::None;
+    // Dispatch UIButton interactions (Name, Test, Clear, Exit) via onTap
+    for (auto &btn : g_buttons) {
+        if (btn.contains(x,y)) {
+            btn.trigger();
+            EditorAction act = g_lastAction;
+            g_lastAction = EditorAction::None; // reset
+            return act; // may be None
+        }
     }
     return EditorAction::None;
 }
@@ -258,6 +257,8 @@ void render() {
     if (atlas >= 0) hw_draw_sprite(hw_image(atlas), ui::CurrentBrickSpriteX, ui::CurrentBrickSpriteY);
     hw_draw_text(ui::LabelCurrentBrickX, ui::LabelCurrentBrickY, "Current Brick", 0xFFFFFFFF);
     hw_draw_text(ui::LabelEffectX, ui::LabelEffectY, "Effect:", 0xFFFFFFFF);
+    hw_draw_text(ui::LabelClearX, ui::LabelClearY, "Clear", 0xFFFFFFFF);
+    hw_draw_text(ui::LabelExitX, ui::LabelExitY, "Save & Exit", 0xFFFFFFFF);
     static const char *effectNames[] = {"Empty","10 Points","20 Points","30 Points","40 Points","50 Points","100 Points","Extra Life","Slow Ball","Fast Ball","Skull Slow","Skull Fast","Bonus B","Bonus O","Bonus N","Bonus U","Bonus S","Bat Small","Bat Big","Indestruct","Rewind","Reverse","Slow Now","Fast Now","Another Ball","Forward","Laser","MurderBall","Bonus","Five Hit","Bomb","Lights Off","Lights On","Side Slow","Side Hard"};
     if (E.curBrick >=0 && E.curBrick < (int)(sizeof(effectNames)/sizeof(effectNames[0]))) hw_draw_text(ui::ValueEffectX, ui::ValueEffectY, effectNames[E.curBrick], 0xFFFFFFFF);
     // hw_draw_text(LabelNameX, LabelNameY, "Name", 0xFFFFFFFF);
