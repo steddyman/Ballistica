@@ -293,6 +293,11 @@ void hw_draw_logs(int x,int y,int maxPixelsY) {
     }
 }
 
+int hw_text_width(const char* text) {
+    if(!text) return 0;
+    int len=0; for(const char* p=text; *p && *p!='\n'; ++p) ++len; return len*6; // fixed advance of 6 per glyph
+}
+
 void hw_set_top() {
     if(g_top) { C2D_SceneBegin(g_top); g_targetWidth = 400; }
 }
