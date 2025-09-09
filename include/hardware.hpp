@@ -220,6 +220,8 @@ void hw_draw_text_scaled(int x,int y,const char* text, uint32_t rgba, float scal
 // Optimised scaled text with optional 1px shadow (merges horizontal pixel runs to reduce C2D objects).
 // Draws shadow first (offset +1,+1) if shadowRGBA alpha >0 then main text.
 void hw_draw_text_shadow_scaled(int x,int y,const char* text, uint32_t mainRGBA, uint32_t shadowRGBA, float scale);
+// Measure width (pixels) of a single-line label in the tiny 5x6 font (stop at newline / null)
+int hw_text_width(const char* text);
 
 // Draw recent log lines into current target starting at (x,y); maxPixelsY caps height (optional).
 void hw_draw_logs(int x,int y,int maxPixelsY=240);

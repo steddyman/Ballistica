@@ -11,7 +11,7 @@ void ui_draw_button(const UIButton &btn, bool pressed) {
     }
     C2D_DrawRectSolid(btn.x, btn.y, 0, btn.w, btn.h, C2D_Color32(r,g,b,a));
     if (btn.label)
-        hw_draw_text(btn.x + 6, btn.y + (btn.h/2 - 3), btn.label, 0xFFFFFFFF);
+        hw_draw_text(btn.x + 6, btn.y + (btn.h/2 - 2), btn.label, 0xFFFFFFFF); // shifted down 1px for balanced padding
     // simple border
     C2D_DrawRectSolid(btn.x, btn.y, 0, btn.w, 1, C2D_Color32(255,255,255,40));
     C2D_DrawRectSolid(btn.x, btn.y+btn.h-1, 0, btn.w, 1, C2D_Color32(0,0,0,120));
