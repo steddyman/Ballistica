@@ -6,7 +6,7 @@
 extern const uint8_t DESIGNER_t3x[];
 extern const uint8_t DESIGNER_t3x_end[];
 #if __cplusplus >= 201103L
-static constexpr size_t DESIGNER_t3x_size=6401;
+static constexpr size_t DESIGNER_t3x_size=21229;
 #else
-static const size_t DESIGNER_t3x_size=6401;
+static const size_t DESIGNER_t3x_size=21229;
 #endif
