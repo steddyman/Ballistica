@@ -108,6 +108,8 @@ namespace game
     float dragAnchorStylusX = 0.f; // stylus X at start of current drag
     float dragAnchorBatX = 0.f;    // bat X at drag start
     bool dragging = false;         // currently dragging to move bat
+    // Level intro overlay
+    int levelIntroTimer = 0;       // frames remaining to show level name (generic, not only editor test)
         // Timers/effects
         int reverseTimer = 0;   // frames remaining reverse controls
         int lightsOffTimer = 0; // frames until lights restore
@@ -745,6 +747,7 @@ namespace game
                 G.mode = Mode::Playing;
                 hw_log("start (START)\n");
                 G.prevTouching = in.touching; // keep touch edge tracking consistent
+                G.levelIntroTimer = 90; // show intro ~1.5s
                 return;
             }
             if (in.selectPressed)
@@ -807,6 +810,7 @@ namespace game
                     {
                         levels_set_current(0);
                         levels_reset_level(0);
+                        G.levelIntroTimer = 90;
                     }
                     if (tb.next == Mode::Options)
                         options::begin();
@@ -852,6 +856,7 @@ namespace game
                 int totalCells = levels_grid_width() * levels_grid_height();
                 G.moving.assign(totalCells, {-1.f, 1.f, 0.f, 0.f});
                 hw_log("TEST init session\n");
+                G.levelIntroTimer = 90; // reuse generic intro timer (editor fade overlay still draws if active)
                 G.mode = Mode::Playing; return; }
             if (act == editor::EditorAction::SaveAndExit) { G.mode = Mode::Title; return; }
             if (in.selectPressed) { editor::persist_current_level(); G.mode = Mode::Title; return; }
@@ -895,6 +900,7 @@ namespace game
                 int totalCells = levels_grid_width() * levels_grid_height();
                 G.moving.assign(totalCells, {-1.f, 1.f, 0.f, 0.f});
                 hw_log("DEBUG: level switched\n");
+                G.levelIntroTimer = 90;
             }
         }
 #endif
@@ -1191,9 +1197,22 @@ namespace game
             }
             return;
         }
-        // Fade name overlay when entering Playing from Editor test
+        // Editor-specific fade overlay still displays if active
         if (G.mode == Mode::Playing && editor::fade_overlay_active())
             editor::render_fade_overlay();
+        // Generic per-level intro (shows level name every level start)
+        if (G.mode == Mode::Playing && G.levelIntroTimer > 0)
+        {
+            C2D_DrawRectSolid(0,0,0,320,240,C2D_Color32(0,0,0,120));
+            const char *nm = levels_get_name(levels_current());
+            if (!nm) nm = "Level";
+            float scale = 2.0f; // double size
+            int tw = hw_text_width(nm);
+            int x = (int)((320 - tw * scale) * 0.5f);
+            int y = 110 + 24; // moved down 24px
+            hw_draw_text_shadow_scaled(x, y, nm, 0xFFFFFFFF, 0x000000FF, scale);
+            --G.levelIntroTimer;
+        }
         if (G.mode == Mode::Editor)
         {
             editor::render();
