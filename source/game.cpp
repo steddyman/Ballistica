@@ -104,6 +104,10 @@ namespace game
         float prevBatX = 0.f; // for imparting momentum
     bool ballLocked = false;      // true when awaiting manual launch
     bool prevTouching = false;    // previous frame stylus state to detect release
+    // Drag control (relative) for bat movement
+    float dragAnchorStylusX = 0.f; // stylus X at start of current drag
+    float dragAnchorBatX = 0.f;    // bat X at drag start
+    bool dragging = false;         // currently dragging to move bat
         // Timers/effects
         int reverseTimer = 0;   // frames remaining reverse controls
         int lightsOffTimer = 0; // frames until lights restore
@@ -896,22 +900,29 @@ namespace game
 #endif
         // Process bomb chain before physics so collisions see updated board
         process_bomb_events();
-        // Stylus controls bat X
-        if (in.touching)
+        // Stylus drag controls bat X (relative). A tap elsewhere without drag no longer teleports the bat.
+        if (in.touchPressed)
         {
-            G.prevBatX = G.bat.x; // record before move
-            float sx = static_cast<float>(in.stylusX);
+            G.dragging = true;
+            G.dragAnchorStylusX = (float)in.stylusX;
+            G.dragAnchorBatX = G.bat.x;
+        }
+        if (!in.touching)
+        {
+            G.dragging = false; // end drag on release
+        }
+        if (G.dragging && in.touching)
+        {
+            G.prevBatX = G.bat.x; // record before applying delta
+            float curStylusX = (float)in.stylusX;
+            float dx = curStylusX - G.dragAnchorStylusX;
             if (G.reverseTimer > 0)
-                sx = 320.0f - sx;
-            float targetX = sx - G.bat.width * 0.5f;
+                dx = -dx; // reverse control effect
+            float targetX = G.dragAnchorBatX + dx;
             if (targetX < 0)
-            {
                 targetX = 0;
-            }
             if (targetX > 320 - G.bat.width)
-            {
                 targetX = 320 - G.bat.width;
-            }
             G.bat.x = targetX;
         }
         if (in.fireHeld)
