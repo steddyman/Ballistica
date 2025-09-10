@@ -18,7 +18,7 @@ namespace ui {
     // Button rectangles
     // Button heights increased from 9->11 to add 1px extra padding top & bottom around text
     constexpr int NameBtnX=28,   NameBtnY=7,   NameBtnW=22, NameBtnH=11;
-    constexpr int TestBtnX=108,  TestBtnY=220, TestBtnW=40, TestBtnH=11;
+    constexpr int TestBtnX=106,  TestBtnY=220, TestBtnW=40, TestBtnH=11;
     constexpr int ClearBtnX=106, ClearBtnY=177, ClearBtnW=21, ClearBtnH=11;
     constexpr int ExitBtnX=106,   ExitBtnY=193, ExitBtnW=18, ExitBtnH=11;
     constexpr int LevelMinusX=204, LevelMinusY=180; constexpr int LevelPlusX=232, LevelPlusY=180; constexpr int LevelBtnW=10, LevelBtnH=9;
@@ -94,6 +94,7 @@ static void init_if_needed() {
     b = {}; b.x=NameBtnX; b.y=NameBtnY; b.w=NameBtnW; b.h=NameBtnH; b.label="Name"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){ edit_level_name(); }; g_buttons.push_back(b);
     b = {}; b.x=TestBtnX; b.y=TestBtnY; b.w=TestBtnW; b.h=TestBtnH; b.label="Test Level"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){
         levels_set_current(E.curLevel);
+        levels_snapshot_level(E.curLevel); // capture current edits as pristine for test run
         levels_reset_level(E.curLevel);
         E.testReturn = true;
         E.pendingFade = true;

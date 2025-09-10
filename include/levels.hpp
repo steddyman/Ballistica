@@ -43,6 +43,8 @@ int levels_brick_hp(int col,int row);
 
 // Reset (restore) a level's bricks/hp to original snapshot
 void levels_reset_level(int index);
+// Snapshot current bricks/hp as new pristine copy for a level (used before test playing from editor)
+void levels_snapshot_level(int index);
 
 // Dynamic level file selection support
 const std::vector<std::string>& levels_available_files();
@@ -50,6 +52,9 @@ void levels_refresh_files();
 void levels_set_active_file(const char* filename); // set desired .DAT (basename)
 const char* levels_get_active_file();
 void levels_reload_active();
+// Persist / restore last selected active file across runs (handled automatically on set/load)
+// Exposed for optional manual control (normally not needed):
+void levels_persist_active_file();
 
 // Duplicate currently selected level file to a new 8-char (max) uppercase name (without extension).
 // Returns true on success.
