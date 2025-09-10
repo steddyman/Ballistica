@@ -20,9 +20,10 @@ namespace ui {
     constexpr int NameBtnX=28,   NameBtnY=7,   NameBtnW=22, NameBtnH=11;
     constexpr int TestBtnX=106,  TestBtnY=220, TestBtnW=40, TestBtnH=11;
     constexpr int ClearBtnX=106, ClearBtnY=177, ClearBtnW=21, ClearBtnH=11;
+    constexpr int UndoBtnX=202,  UndoBtnY=146,  UndoBtnW=21, UndoBtnH=11; // new Undo button
     constexpr int ExitBtnX=106,   ExitBtnY=193, ExitBtnW=18, ExitBtnH=11;
-    constexpr int LevelMinusX=204, LevelMinusY=180; constexpr int LevelPlusX=232, LevelPlusY=180; constexpr int LevelBtnW=10, LevelBtnH=9;
-    constexpr int SpeedMinusX=204, SpeedMinusY=196; constexpr int SpeedPlusX=232, SpeedPlusY=196; constexpr int SpeedBtnW=10, SpeedBtnH=9;
+    constexpr int LevelMinusX=201, LevelMinusY=180; constexpr int LevelPlusX=229, LevelPlusY=180; constexpr int LevelBtnW=10, LevelBtnH=9;
+    constexpr int SpeedMinusX=201, SpeedMinusY=196; constexpr int SpeedPlusX=229, SpeedPlusY=196; constexpr int SpeedBtnW=10, SpeedBtnH=9;
     // Palette origin
     constexpr int PaletteX=260, PaletteY=52;
     // Labels
@@ -35,10 +36,10 @@ namespace ui {
     constexpr int LabelSpeedMinusX=146, LabelSpeedMinusY=SpeedMinusY+1;
     constexpr int LabelSpeedPlusX=SpeedPlusX+1, LabelSpeedPlusY=SpeedPlusY+1;
     // HUD text/value positions (previously hard-coded literals in render())
-    constexpr int LabelLevelTextX=164, LabelLevelTextY=180;
-    constexpr int LabelSpeedTextX=164, LabelSpeedTextY=196;
-    constexpr int ValueLevelX=216, ValueLevelY=180;
-    constexpr int ValueSpeedX=216, ValueSpeedY=196;
+    constexpr int LabelLevelTextX=161, LabelLevelTextY=180;
+    constexpr int LabelSpeedTextX=161, LabelSpeedTextY=196;
+    constexpr int ValueLevelX=213, ValueLevelY=180;
+    constexpr int ValueSpeedX=213, ValueSpeedY=196;
     // Current brick/effect info
     constexpr int CurrentBrickSpriteX=116, CurrentBrickSpriteY=146;
     constexpr int LabelCurrentBrickX=28, LabelCurrentBrickY=148;
@@ -65,6 +66,52 @@ struct EditorState {
 static EditorState E;
 static std::vector<UIButton> g_buttons; // cached buttons built after init
 static EditorAction g_lastAction = EditorAction::None; // set by button lambdas needing a return
+
+// ---------------- Undo stack -------------------------------------------------
+struct UndoEntry {
+    enum class Type { Set, Clear } type;
+    int levelIndex = -1;
+    // For Set
+    int col = -1;
+    int row = -1;
+    uint8_t prevBrick = 0; // previous brick id
+    // For Clear
+    std::vector<uint8_t> bricks; // previous full layout (NumBricks entries)
+};
+static std::vector<UndoEntry> g_undo;
+static const size_t kMaxUndo = 128;
+
+static void push_undo_set(int levelIndex, int col, int row, uint8_t prevBrick) {
+    UndoEntry ue; ue.type = UndoEntry::Type::Set; ue.levelIndex = levelIndex; ue.col = col; ue.row = row; ue.prevBrick = prevBrick; g_undo.push_back(std::move(ue));
+    if (g_undo.size() > kMaxUndo) g_undo.erase(g_undo.begin());
+}
+static void push_undo_clear(int levelIndex) {
+    // Capture full layout
+    int gw = levels_grid_width(); int gh = levels_grid_height();
+    UndoEntry ue; ue.type = UndoEntry::Type::Clear; ue.levelIndex = levelIndex; ue.bricks.reserve(gw*gh);
+    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) ue.bricks.push_back((uint8_t)levels_edit_get_brick(levelIndex,c,r));
+    g_undo.push_back(std::move(ue));
+    if (g_undo.size() > kMaxUndo) g_undo.erase(g_undo.begin());
+}
+static void perform_undo() {
+    if (g_undo.empty()) { hw_log("undo: empty\n"); return; }
+    UndoEntry ue = g_undo.back();
+    g_undo.pop_back();
+    if (ue.levelIndex != E.curLevel) { hw_log("undo: level mismatch skipped\n"); return; }
+    if (ue.type == UndoEntry::Type::Set) {
+        if (ue.col>=0 && ue.row>=0) {
+            levels_edit_set_brick(ue.levelIndex, ue.col, ue.row, ue.prevBrick);
+        }
+    } else if (ue.type == UndoEntry::Type::Clear) {
+        int gw = levels_grid_width(); int gh = levels_grid_height();
+        int expected = gw*gh;
+        if ((int)ue.bricks.size()==expected) {
+            int idx=0; for(int r=0;r<gh;++r) for(int c=0;c<gw;++c,++idx) {
+                levels_edit_set_brick(ue.levelIndex,c,r, ue.bricks[idx]);
+            }
+        }
+    }
+}
 
 // Button auto-size helper: expand width to fit label + padding if needed
 static void ui_autosize_button(UIButton &btn, int padding = 12) {
@@ -105,9 +152,11 @@ static void init_if_needed() {
         g_lastAction = EditorAction::StartTest;
     }; g_buttons.push_back(b);
     b = {}; b.x=ClearBtnX; b.y=ClearBtnY; b.w=ClearBtnW; b.h=ClearBtnH; b.label="Clear"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){
+        push_undo_clear(E.curLevel);
         int gw = levels_grid_width(); int gh = levels_grid_height();
         for (int r = 0; r < gh; ++r) for (int c = 0; c < gw; ++c) levels_edit_set_brick(E.curLevel, c, r, 0);
     }; g_buttons.push_back(b);
+    b = {}; b.x=UndoBtnX; b.y=UndoBtnY; b.w=UndoBtnW; b.h=UndoBtnH; b.label="Undo"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){ perform_undo(); }; g_buttons.push_back(b);
     b = {}; b.x=ExitBtnX; b.y=ExitBtnY; b.w=ExitBtnW; b.h=ExitBtnH; b.label="Exit"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){
         persist_current_level();
         g_lastAction = EditorAction::SaveAndExit;
@@ -151,7 +200,11 @@ EditorAction update(const InputState &in) {
     if (x >= left && x < left + gw * cw && y >= top && y < top + gh * ch) {
         int col = (x - left) / cw;
         int row = (y - top) / ch;
-        levels_edit_set_brick(E.curLevel, col, row, E.curBrick);
+        int prev = levels_edit_get_brick(E.curLevel,col,row);
+        if (prev != E.curBrick) {
+            push_undo_set(E.curLevel, col, row, (uint8_t)prev);
+            levels_edit_set_brick(E.curLevel, col, row, E.curBrick);
+        }
         return EditorAction::None;
     }
     // Palette (vertical columns wrapping)
@@ -178,12 +231,12 @@ EditorAction update(const InputState &in) {
     }
     // Level -
     if (x >= ui::LevelMinusX && x < ui::LevelMinusX + ui::LevelBtnW && y >= ui::LevelMinusY && y < ui::LevelMinusY + ui::LevelBtnH) {
-        if (E.curLevel > 0) { E.curLevel--; levels_set_current(E.curLevel); E.speed = levels_get_speed(E.curLevel); E.name = levels_get_name(E.curLevel); }
+        if (E.curLevel > 0) { E.curLevel--; levels_set_current(E.curLevel); E.speed = levels_get_speed(E.curLevel); E.name = levels_get_name(E.curLevel); g_undo.clear(); }
         return EditorAction::None;
     }
     // Level +
     if (x >= ui::LevelPlusX && x < ui::LevelPlusX + ui::LevelBtnW && y >= ui::LevelPlusY && y < ui::LevelPlusY + ui::LevelBtnH) {
-        if (E.curLevel + 1 < levels_count()) { E.curLevel++; levels_set_current(E.curLevel); E.speed = levels_get_speed(E.curLevel); E.name = levels_get_name(E.curLevel); }
+        if (E.curLevel + 1 < levels_count()) { E.curLevel++; levels_set_current(E.curLevel); E.speed = levels_get_speed(E.curLevel); E.name = levels_get_name(E.curLevel); g_undo.clear(); }
         return EditorAction::None;
     }
     // Dispatch UIButton interactions (Name, Test, Clear, Exit) via onTap
