@@ -469,11 +469,12 @@ namespace game
                                 ball.vy = -ball.vy;
                             }
                         }
-                        if (destroyed && levels_remaining_breakable() == 0 && levels_count() > 0)
-                        {
-                            int next = (levels_current() + 1) % levels_count();
-                            levels_set_current(next);
-                            hw_log("LEVEL COMPLETE\n");
+                        if (destroyed && levels_remaining_breakable() == 0 && levels_count() > 0) {
+                            if(!editor::test_return_active()) {
+                                int next = (levels_current() + 1) % levels_count();
+                                levels_set_current(next);
+                                hw_log("LEVEL COMPLETE\n");
+                            }
                         }
                         return true;
                     }
@@ -559,11 +560,12 @@ namespace game
                                 ball.vy = -ball.vy;
                             }
                         }
-                        if (destroyed && levels_remaining_breakable() == 0 && levels_count() > 0)
-                        {
-                            int next = (levels_current() + 1) % levels_count();
-                            levels_set_current(next);
-                            hw_log("LEVEL COMPLETE\n");
+                        if (destroyed && levels_remaining_breakable() == 0 && levels_count() > 0) {
+                            if(!editor::test_return_active()) {
+                                int next = (levels_current() + 1) % levels_count();
+                                levels_set_current(next);
+                                hw_log("LEVEL COMPLETE\n");
+                            }
                         }
                         return true;
                     }
@@ -802,6 +804,15 @@ namespace game
             if (in.selectPressed) { editor::persist_current_level(); G.mode = Mode::Title; return; }
             return;
         }
+#ifdef __3DS__
+        // In play mode, if we are in a test session launched from editor and level already cleared, return immediately.
+        if (G.mode == Mode::Playing && editor::test_return_active() && levels_remaining_breakable()==0) {
+            levels_reset_level(editor::current_level_index());
+            editor::on_return_from_test();
+            G.mode = Mode::Editor;
+            return;
+        }
+#endif
 #if defined(DEBUG) && DEBUG
         // Debug level switching (L previous, R next)
         if (in.levelPrevPressed || in.levelNextPressed)
@@ -918,13 +929,18 @@ namespace game
                         continue;
                     }
                     G.lives--;
-                    if (G.lives <= 0)
-                    {
+                    if (G.lives <= 0) {
+                        if (editor::test_return_active()) {
+                            // Return to editor instead of title/highscore flow
+                            levels_reset_level(editor::current_level_index()); // restore snapshot
+                            editor::on_return_from_test();
+                            G.mode = Mode::Editor;
+                            return;
+                        }
                         hw_log("GAME OVER\n");
                         int levelReached = levels_current() + 1;
                         int pos = highscores::submit(G.score, levelReached);
-                        if (pos >= 0)
-                        {
+                        if (pos >= 0) {
 #ifdef PLATFORM_3DS
                             {
                                 SwkbdState swkbd;

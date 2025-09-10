@@ -25,7 +25,8 @@ namespace levels {
 
     static const char* kSdDir = "sdmc:/ballistica";
     static const char* kLevelsSubDir = "sdmc:/ballistica/levels";
-    static std::string g_activeLevelFile = "LEVELS.DAT"; // default
+    static std::string g_activeLevelFile = "LEVELS.DAT"; // default (may be overridden by persisted config)
+    static const char* kConfigPath = "sdmc:/ballistica/active.cfg"; // simple text file storing chosen DAT name
     static std::vector<std::string> g_fileList; // cached .DAT names
 
     struct Level {
@@ -161,7 +162,22 @@ namespace levels {
         return g_fileList;
     }
     void refresh_level_files() { g_fileList = listDatFiles(); }
-    void set_active_level_file(const std::string& f) { g_activeLevelFile = f; }
+    static void persist_active_level_file() {
+        FILE* f = fopen(kConfigPath, "wb"); if(!f) return; fprintf(f, "%s\n", g_activeLevelFile.c_str()); fclose(f);
+    }
+    static void load_persisted_active_file() {
+        FILE* f = fopen(kConfigPath, "rb"); if(!f) return; char buf[128]; if(fscanf(f, "%127s", buf)==1) {
+            // Validate it exists among available files (after ensureOnSdmc/population) before accepting
+            std::string cand(buf);
+            if(!cand.empty()) {
+                // Defer list population until after ensureOnSdmc; list may be empty yet.
+                // We'll optimistic set then later load() will fallback if missing.
+                g_activeLevelFile = cand;
+            }
+        }
+        fclose(f);
+    }
+    void set_active_level_file(const std::string& f) { g_activeLevelFile = f; persist_active_level_file(); }
     const std::string& get_active_level_file() { return g_activeLevelFile; }
 
     // ---------- Legacy shorthand mapping (2-char codes) ----------------------
@@ -250,6 +266,8 @@ namespace levels {
     void load() {
         if(g_loaded) return;
         ensureOnSdmc();
+        // Attempt to override default active file from persisted config (only first time before parsing)
+        load_persisted_active_file();
     char sdPath[256]; snprintf(sdPath, sizeof(sdPath), "%s/%s", kLevelsSubDir, g_activeLevelFile.c_str());
         FILE* f = fopen(sdPath, "rb");
         if(!f) { hw_log("open sd LEVELS fail\n"); buildFallback(); return; }
@@ -371,6 +389,13 @@ void levels_reset_level(int idx) {
         }
     }
 }
+void levels_snapshot_level(int idx) {
+    if(levels::g_levels.empty()) return;
+    if(idx<0 || idx >= (int)levels::g_levels.size()) return;
+    auto &L = levels::g_levels[idx];
+    if(L.bricks.size()==(size_t)levels::NumBricks) L.origBricks = L.bricks;
+    if(L.hp.size()==L.bricks.size()) L.origHp = L.hp;
+}
 
     // Editor helpers
     int edit_get_brick(int levelIndex, int col, int row) {
@@ -447,6 +472,7 @@ int levels_brick_hp(int c,int r) { return levels::levels_brick_hp(c,r); }
 int levels_explode_bomb(int c,int r, std::vector<DestroyedBrick>* outDestroyed) { return levels::levels_explode_bomb(c,r,outDestroyed); }
 int levels_atlas_index(int rawType) { return levels::levels_atlas_index(rawType); }
 void levels_reset_level(int idx) { levels::levels_reset_level(idx); }
+void levels_snapshot_level(int idx) { levels::levels_snapshot_level(idx); }
 // New selection APIs
 const std::vector<std::string>& levels_available_files() { return levels::available_level_files(); }
 void levels_refresh_files() { levels::refresh_level_files(); }
@@ -484,3 +510,4 @@ void levels_set_speed(int levelIndex, int speed) { levels::set_speed(levelIndex,
 const char* levels_get_name(int levelIndex) { return levels::get_name(levelIndex); }
 void levels_set_name(int levelIndex, const char* name) { levels::set_name(levelIndex,name); }
 bool levels_save_active() { return levels::save_active(); }
+void levels_persist_active_file() { levels::persist_active_level_file(); }

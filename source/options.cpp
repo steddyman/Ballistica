@@ -129,6 +129,11 @@ void render() {
     if (img.tex) hw_draw_sprite(img,0,0); else { C2D_DrawRectSolid(0,0,0,320,240,C2D_Color32(20,20,40,255)); hw_draw_text(100,20,"OPTIONS",0xFFFFFFFF); }
     // Name field label & current text (drawn before buttons for consistent layering)
     hw_draw_text(ui::NAME_X, ui::NAME_Y-8, "NAME:", 0xFFFFFFFF);
+    // Active file indicator
+    const char* active = levels_get_active_file(); if(active && *active) {
+        hw_draw_text(ui::DD_X, ui::DD_Y - 12, "Active:", 0xFFFFFFFF);
+        hw_draw_text(ui::DD_X + 50, ui::DD_Y - 12, active, 0xFFFFFFFF);
+    }
     // Buttons first so dropdown LIST (rendered later) can appear above them when open
     for (const auto &b : buttons) {
         ui_draw_button(b, false);
