@@ -60,6 +60,7 @@ struct EditorState {
     bool testReturn = false;   // true after hitting TEST until we return
     bool pendingFade = false;  // active during initial Playing fade overlay
     int fadeTimer = 0;         // countdown for fade overlay
+    int testGrace = 0;         // frames remaining in grace period after starting a test
 };
 static EditorState E;
 static std::vector<UIButton> g_buttons; // cached buttons built after init
@@ -99,6 +100,8 @@ static void init_if_needed() {
         E.testReturn = true;
         E.pendingFade = true;
         E.fadeTimer = 90; // ~1.5s
+    E.testGrace = 15; // ~0.25s grace (assuming 60fps) preventing immediate auto-return
+    hw_log("TEST start\n");
         g_lastAction = EditorAction::StartTest;
     }; g_buttons.push_back(b);
     b = {}; b.x=ClearBtnX; b.y=ClearBtnY; b.w=ClearBtnW; b.h=ClearBtnH; b.label="Clear"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){
@@ -280,5 +283,20 @@ void render_fade_overlay() {
 bool test_return_active() { return E.testReturn; }
 int current_level_index() { return E.curLevel; }
 void on_return_from_test() { E.pendingFade=false; E.fadeTimer=0; }
+// Updated to fully exit test mode
+void on_return_from_test_full() {
+    // Restore original brick/hp snapshot so editor shows pre-test state again
+    if (E.curLevel >= 0) {
+        levels_reset_level(E.curLevel);
+    }
+    E.pendingFade=false;
+    E.fadeTimer=0;
+    E.testReturn=false;
+    E.testGrace=0;
+    hw_log("TEST end\n");
+}
+
+bool test_grace_active() { return E.testGrace>0; }
+void tick_test_grace() { if(E.testGrace>0) --E.testGrace; }
 
 } // namespace editor

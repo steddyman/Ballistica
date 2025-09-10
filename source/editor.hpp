@@ -33,9 +33,13 @@ bool test_return_active();
 int current_level_index();
 // Called when game transitions back from test Playing run into Editor.
 void on_return_from_test();
+// Full reset variant (clears test-return flag so another test can be started cleanly)
+void on_return_from_test_full();
 
 // Update persistent metadata (speed/name) prior to exit (already done internally
 // for SaveAndExit action, but exposed for any future external triggers).
 void persist_current_level();
 
+bool test_grace_active();
+void tick_test_grace();
 } // namespace editor
