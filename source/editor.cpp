@@ -18,34 +18,34 @@ namespace ui {
     // Button rectangles
     // Button heights increased from 9->11 to add 1px extra padding top & bottom around text
     constexpr int NameBtnX=28,   NameBtnY=7,   NameBtnW=22, NameBtnH=11;
-    constexpr int TestBtnX=196,  TestBtnY=141, TestBtnW=40, TestBtnH=11;
-    constexpr int ClearBtnX=108, ClearBtnY=169, ClearBtnW=21, ClearBtnH=11;
-    constexpr int ExitBtnX=108,   ExitBtnY=184, ExitBtnW=18, ExitBtnH=11;
-    constexpr int LevelMinusX=139, LevelMinusY=169; constexpr int LevelPlusX=218, LevelPlusY=169; constexpr int LevelBtnW=10, LevelBtnH=9;
-    constexpr int SpeedMinusX=139, SpeedMinusY=184; constexpr int SpeedPlusX=218, SpeedPlusY=184; constexpr int SpeedBtnW=10, SpeedBtnH=9;
+    constexpr int TestBtnX=108,  TestBtnY=220, TestBtnW=40, TestBtnH=11;
+    constexpr int ClearBtnX=106, ClearBtnY=177, ClearBtnW=21, ClearBtnH=11;
+    constexpr int ExitBtnX=106,   ExitBtnY=193, ExitBtnW=18, ExitBtnH=11;
+    constexpr int LevelMinusX=204, LevelMinusY=180; constexpr int LevelPlusX=232, LevelPlusY=180; constexpr int LevelBtnW=10, LevelBtnH=9;
+    constexpr int SpeedMinusX=204, SpeedMinusY=196; constexpr int SpeedPlusX=232, SpeedPlusY=196; constexpr int SpeedBtnW=10, SpeedBtnH=9;
     // Palette origin
     constexpr int PaletteX=260, PaletteY=52;
     // Labels
     constexpr int LabelNameX=70, LabelNameY=10;
     constexpr int LabelTestX=TestBtnX, LabelTestY=TestBtnY;
-    constexpr int LabelClearX=75, LabelClearY=170;
-    constexpr int LabelExitX=60, LabelExitY=185;
-    constexpr int LabelLevelMinusX=LevelMinusX, LabelLevelMinusY=LevelMinusY+1;
+    constexpr int LabelClearX=28, LabelClearY=180;
+    constexpr int LabelExitX=28, LabelExitY=196;
+    constexpr int LabelLevelMinusX=146, LabelLevelMinusY=LevelMinusY+1;
     constexpr int LabelLevelPlusX=LevelPlusX+1, LabelLevelPlusY=LevelPlusY+1;
-    constexpr int LabelSpeedMinusX=SpeedMinusX, LabelSpeedMinusY=SpeedMinusY+1;
+    constexpr int LabelSpeedMinusX=146, LabelSpeedMinusY=SpeedMinusY+1;
     constexpr int LabelSpeedPlusX=SpeedPlusX+1, LabelSpeedPlusY=SpeedPlusY+1;
     // HUD text/value positions (previously hard-coded literals in render())
-    constexpr int LabelLevelTextX=199, LabelLevelTextY=170;
-    constexpr int LabelSpeedTextX=199, LabelSpeedTextY=185;
-    constexpr int ValueLevelX=235, ValueLevelY=170;
-    constexpr int ValueSpeedX=235, ValueSpeedY=185;
+    constexpr int LabelLevelTextX=164, LabelLevelTextY=180;
+    constexpr int LabelSpeedTextX=164, LabelSpeedTextY=196;
+    constexpr int ValueLevelX=216, ValueLevelY=180;
+    constexpr int ValueSpeedX=216, ValueSpeedY=196;
     // Current brick/effect info
-    constexpr int CurrentBrickSpriteX=124, CurrentBrickSpriteY=148;
-    constexpr int LabelCurrentBrickX=40, LabelCurrentBrickY=148;
-    constexpr int LabelEffectX=40, LabelEffectY=159;
-    constexpr int ValueEffectX=90, ValueEffectY=159;
+    constexpr int CurrentBrickSpriteX=116, CurrentBrickSpriteY=146;
+    constexpr int LabelCurrentBrickX=28, LabelCurrentBrickY=148;
+    constexpr int LabelEffectX=28, LabelEffectY=164;
+    constexpr int ValueEffectX=82, ValueEffectY=164;
     // Exit hint footer
-    constexpr int ExitHintX=10, ExitHintY=230;
+    // constexpr int ExitHintX=10, ExitHintY=230;
     // Fade overlay level name
     constexpr int FadeNameX=100, FadeNameY=110;
 }
@@ -92,7 +92,7 @@ static void init_if_needed() {
     g_buttons.clear();
     UIButton b;
     b = {}; b.x=NameBtnX; b.y=NameBtnY; b.w=NameBtnW; b.h=NameBtnH; b.label="Name"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){ edit_level_name(); }; g_buttons.push_back(b);
-    b = {}; b.x=TestBtnX; b.y=TestBtnY; b.w=TestBtnW; b.h=TestBtnH; b.label="TEST"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){
+    b = {}; b.x=TestBtnX; b.y=TestBtnY; b.w=TestBtnW; b.h=TestBtnH; b.label="Test Level"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){
         levels_set_current(E.curLevel);
         levels_reset_level(E.curLevel);
         E.testReturn = true;
@@ -158,7 +158,7 @@ EditorAction update(const InputState &in) {
     int itemH = ch;
     int bx = palX, by = palY;
     for (int b = 0; b < (int)BrickType::COUNT; ++b) {
-        if (by + itemH > 240) { by = palY; bx += itemW + pad; }
+        if (by + itemH > 230) { by = palY; bx += itemW + pad; }
         if (x >= bx && x < bx + itemW && y >= by && y < by + itemH) { E.curBrick = b; return EditorAction::None; }
         by += itemH + pad;
     }
@@ -220,7 +220,7 @@ void render() {
             C2D_DrawRectSolid(bx - 1, by, 0, 1, ch, C2D_Color32(255,255,255,255));
             C2D_DrawRectSolid(bx + cw, by, 0, 1, ch, C2D_Color32(255,255,255,255));
         }
-        if (by + ch > 240 - ch) { by = ui::PaletteY; bx += cw + pad; }
+        if (by + ch > 230 - ch) { by = ui::PaletteY; bx += cw + pad; }
         else by += ch + pad;
     }
     // UI overlay text
@@ -249,21 +249,21 @@ void render() {
     // Draw standard buttons
     for (const auto &b : g_buttons) ui_draw_button(b, false);
     // Minus/plus small buttons (rendered as mini labels)
-    label_bg(LabelLevelMinusX, LabelLevelMinusY, "-", true); hw_draw_text(LabelLevelMinusX, LabelLevelMinusY, "-", 0xFFFFFFFF);
-    label_bg(LabelLevelPlusX, LabelLevelPlusY, "+", true);  hw_draw_text(LabelLevelPlusX, LabelLevelPlusY, "+", 0xFFFFFFFF);
-    label_bg(LabelSpeedMinusX, LabelSpeedMinusY, "-", true); hw_draw_text(LabelSpeedMinusX, LabelSpeedMinusY, "-", 0xFFFFFFFF);
-    label_bg(LabelSpeedPlusX, LabelSpeedPlusY, "+", true);  hw_draw_text(LabelSpeedPlusX, LabelSpeedPlusY, "+", 0xFFFFFFFF);
+    label_bg(LevelMinusX, LevelMinusY, "-", true); hw_draw_text(LevelMinusX, LevelMinusY, "-", 0xFFFFFFFF);
+    label_bg(LevelPlusX, LevelPlusY, "+", true);  hw_draw_text(LevelPlusX, LevelPlusY, "+", 0xFFFFFFFF);
+    label_bg(SpeedMinusX, SpeedMinusY, "-", true); hw_draw_text(SpeedMinusX, SpeedMinusY, "-", 0xFFFFFFFF);
+    label_bg(SpeedPlusX, SpeedPlusY, "+", true);  hw_draw_text(SpeedPlusX, SpeedPlusY, "+", 0xFFFFFFFF);
     int atlas = levels_atlas_index(E.curBrick);
     if (atlas >= 0) hw_draw_sprite(hw_image(atlas), ui::CurrentBrickSpriteX, ui::CurrentBrickSpriteY);
-    hw_draw_text(ui::LabelCurrentBrickX, ui::LabelCurrentBrickY, "Current Brick", 0xFFFFFFFF);
+    hw_draw_text(ui::LabelCurrentBrickX, ui::LabelCurrentBrickY, "Current Brick:", 0xFFFFFFFF);
     hw_draw_text(ui::LabelEffectX, ui::LabelEffectY, "Effect:", 0xFFFFFFFF);
-    hw_draw_text(ui::LabelClearX, ui::LabelClearY, "Clear", 0xFFFFFFFF);
-    hw_draw_text(ui::LabelExitX, ui::LabelExitY, "Save & Exit", 0xFFFFFFFF);
-    static const char *effectNames[] = {"Empty","10 Points","20 Points","30 Points","40 Points","50 Points","100 Points","Extra Life","Slow Ball","Fast Ball","Skull Slow","Skull Fast","Bonus B","Bonus O","Bonus N","Bonus U","Bonus S","Bat Small","Bat Big","Indestruct","Rewind","Reverse","Slow Now","Fast Now","Another Ball","Forward","Laser","MurderBall","Bonus","Five Hit","Bomb","Lights Off","Lights On","Side Slow","Side Hard"};
+    hw_draw_text(ui::LabelClearX, ui::LabelClearY, "Clear Level:", 0xFFFFFFFF);
+    hw_draw_text(ui::LabelExitX, ui::LabelExitY, "Save / Exit:", 0xFFFFFFFF);
+    static const char *effectNames[] = {"Empty","10 Points","20 Points","30 Points","40 Points","50 Points","100 Points","Extra Life","Slow Ball","Fast Ball","Skull Slow","Skull Fast","Bonus B","Bonus O","Bonus N","Bonus U","Bonus S","Bat Small","Bat Big","Indestructible Brick","Level Rewind","Reverse Controls","Slow Now","Fast Now","Add Ball","Level Forward","Laser","MurderBall","Bonus","Five Hits","Bomb","Lights Off","Lights On","Moving Brick","Hard Moving Brick"};
     if (E.curBrick >=0 && E.curBrick < (int)(sizeof(effectNames)/sizeof(effectNames[0]))) hw_draw_text(ui::ValueEffectX, ui::ValueEffectY, effectNames[E.curBrick], 0xFFFFFFFF);
     // hw_draw_text(LabelNameX, LabelNameY, "Name", 0xFFFFFFFF);
     hw_draw_text(LabelNameX, LabelNameY, E.name.c_str(), 0xFFFFFFFF);
-    hw_draw_text(ui::ExitHintX, ui::ExitHintY, "Tap Exit to Save", 0xFFFFFFFF);
+    // hw_draw_text(ui::ExitHintX, ui::ExitHintY, "Tap Exit to Save", 0xFFFFFFFF);
 }
 
 // Fade overlay (rendered by game.cpp while in Playing) ------------------------
