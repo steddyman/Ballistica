@@ -328,7 +328,12 @@ bool fade_overlay_active() { return E.testReturn && E.pendingFade; }
 void render_fade_overlay() {
     if (!fade_overlay_active()) return;
     C2D_DrawRectSolid(0,0,0,320,240,C2D_Color32(0,0,0,120));
-    const char *nm = levels_get_name(levels_current()); if(!nm) nm="Level"; hw_draw_text(ui::FadeNameX, ui::FadeNameY, nm, 0xFFFFFFFF);
+    const char *nm = levels_get_name(levels_current()); if(!nm) nm="Level";
+    float scale = 2.0f;
+    int tw = hw_text_width(nm);
+    int x = (int)((320 - tw * scale) * 0.5f);
+    int y = ui::FadeNameY + 24; // shift down 24px
+    hw_draw_text_shadow_scaled(x, y, nm, 0xFFFFFFFF, 0x000000FF, scale);
     if (E.fadeTimer>0) E.fadeTimer--; else E.pendingFade=false;
 }
 
