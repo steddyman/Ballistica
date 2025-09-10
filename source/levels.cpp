@@ -105,10 +105,7 @@ namespace levels {
             fclose(in); fclose(out);
             char dbg[128]; snprintf(dbg,sizeof dbg,"copied level file %s\n", baseName); hw_log(dbg);
         };
-    // Always attempt default (root and new subdir variant)
-    copyIfMissing("romfs:/LEVELS.DAT","LEVELS.DAT");
-    copyIfMissing("romfs:/levels/LEVELS.DAT","LEVELS.DAT");
-        // Enumerate romfs root & /levels for additional .DAT
+    // Enumerate romfs root & /levels for all .DAT files (no hard-coded fallbacks)
     auto scanRomfsDir = [&](const char* dirPath){
             DIR* d = opendir(dirPath);
         if(!d) { char dbg[160]; snprintf(dbg,sizeof dbg,"romfs scan: cannot open dir '%s' (fallback list used)\n", dirPath); hw_log(dbg); return; }
@@ -131,12 +128,6 @@ namespace levels {
         };
         scanRomfsDir("romfs:/");
         scanRomfsDir("romfs:/levels"); // optional subdir
-        // Fallback static list for when directory enumeration is unsupported by romfs
-        static const char* kExtraDatFiles[] = {"SPIKE1.DAT","SPIKE2.DAT","SPIKE3.DAT","SPIKE4.DAT","LEVBAK.DAT","NASTY.DAT"};
-        for(const char* fname : kExtraDatFiles) {
-            char romPath[128]; snprintf(romPath,sizeof romPath,"romfs:/%s", fname);
-            copyIfMissing(romPath, fname);
-        }
         // Clear cached list so new files appear on first open of Options
         g_fileList.clear();
     }

@@ -799,17 +799,32 @@ namespace game
         if (G.mode == Mode::Editor)
         {
             editor::EditorAction act = editor::update(in);
-            if (act == editor::EditorAction::StartTest) { G.mode = Mode::Playing; return; }
+            if (act == editor::EditorAction::StartTest) {
+                // Initialize a fresh play session specifically for editor test runs
+                G.balls.clear();
+                G.balls.push_back({160.f - 4.f, 180.f, 0.0f, -1.5f, 160.f - 4.f, 180.f, true, G.imgBall});
+                G.lives = 5; // ensure lives reset (was observed as 0 causing instant return)
+                G.score = 0;
+                G.bonusBits = 0;
+                G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
+                G.laserCharges = 0;
+                G.fireCooldown = 0;
+                // Reinitialize moving bricks data for current layout
+                int totalCells = levels_grid_width() * levels_grid_height();
+                G.moving.assign(totalCells, {-1.f, 1.f, 0.f, 0.f});
+                hw_log("TEST init session\n");
+                G.mode = Mode::Playing; return; }
             if (act == editor::EditorAction::SaveAndExit) { G.mode = Mode::Title; return; }
             if (in.selectPressed) { editor::persist_current_level(); G.mode = Mode::Title; return; }
             return;
         }
 #ifdef __3DS__
         // In play mode, if we are in a test session launched from editor and level already cleared, return immediately.
-        if (G.mode == Mode::Playing && editor::test_return_active() && levels_remaining_breakable()==0) {
+        if (G.mode == Mode::Playing && editor::test_return_active() && !editor::test_grace_active() && levels_remaining_breakable()==0) {
             levels_reset_level(editor::current_level_index());
-            editor::on_return_from_test();
+            editor::on_return_from_test_full();
             G.mode = Mode::Editor;
+            hw_log("TEST auto-return (pre-play breakables=0)\n");
             return;
         }
 #endif
@@ -933,7 +948,7 @@ namespace game
                         if (editor::test_return_active()) {
                             // Return to editor instead of title/highscore flow
                             levels_reset_level(editor::current_level_index()); // restore snapshot
-                            editor::on_return_from_test();
+                            editor::on_return_from_test_full();
                             G.mode = Mode::Editor;
                             return;
                         }
@@ -1256,15 +1271,18 @@ namespace game
         // If in test mode (editor launched) and level ended (no breakables) or lives depleted, return to editor
         if (editor::test_return_active() && G.mode == Mode::Playing)
         {
-            bool levelDone = (levels_remaining_breakable() == 0);
+            bool levelDone = (!editor::test_grace_active() && levels_remaining_breakable() == 0);
             bool livesGone = (G.lives <= 0);
             if (levelDone || livesGone)
             {
                 G.mode = Mode::Editor;
                 levels_set_current(editor::current_level_index());
-                editor::on_return_from_test();
+                editor::on_return_from_test_full();
+                hw_log("TEST return (levelDone or livesGone)\n");
             }
         }
+        // Tick grace after all logic
+        if (editor::test_grace_active()) editor::tick_test_grace();
     }
 }
 
