@@ -97,11 +97,13 @@ namespace game
         C2D_Image imgBall{};
         C2D_Image imgBatNormal{};
         Mode mode = Mode::Title;
-        int lives = 5;
+    int lives = 3; // changed default lives from 5 to 3
         unsigned long score = 0;
         uint8_t bonusBits = 0; // collected B1..B5 letters
         bool editorLaunched = false;
         float prevBatX = 0.f; // for imparting momentum
+    bool ballLocked = false;      // true when awaiting manual launch
+    bool prevTouching = false;    // previous frame stylus state to detect release
         // Timers/effects
         int reverseTimer = 0;   // frames remaining reverse controls
         int lightsOffTimer = 0; // frames until lights restore
@@ -126,7 +128,8 @@ namespace game
         float bw = (G.imgBatNormal.subtex) ? G.imgBatNormal.subtex->width : 64.f;
         float bh = (G.imgBatNormal.subtex) ? G.imgBatNormal.subtex->height : 8.f;
         G.bat = {160.f - bw / 2.f, 200.f, bw, bh, G.imgBatNormal};
-        G.balls.push_back({160.f - 4.f, 180.f, 0.0f, -1.5f, 160.f - 4.f, 180.f, true, G.imgBall});
+    G.balls.push_back({160.f - 4.f, 180.f, 0.0f, 0.f, 160.f - 4.f, 180.f, true, G.imgBall});
+    G.ballLocked = true;
         char buf[96];
         snprintf(buf, sizeof buf, "bat sprite w=%.1f h=%.1f\n", bw, bh);
         hw_log(buf);
@@ -728,6 +731,8 @@ namespace game
     {
         if (G.mode == Mode::Title)
         {
+            // Touch-driven title buttons now trigger on release (press-release inside same button)
+            static int sPressedBtn = -1; // index into kTitleButtons while stylus held
             // Physical button mappings: START=Play, SELECT=Editor, X=Exit
             if (in.startPressed)
             {
@@ -735,49 +740,77 @@ namespace game
                 levels_reset_level(0);
                 G.mode = Mode::Playing;
                 hw_log("start (START)\n");
+                G.prevTouching = in.touching; // keep touch edge tracking consistent
                 return;
             }
             if (in.selectPressed)
             {
                 G.mode = Mode::Editor;
                 hw_log("editor (SELECT)\n");
+                G.prevTouching = in.touching;
                 return;
             }
             if (in.xPressed)
             {
                 g_exitRequested = true;
                 hw_log("exit (X)\n");
+                G.prevTouching = in.touching;
                 return;
             }
             if (in.selectPressed)
             {
                 G.mode = Mode::Editor;
                 hw_log("editor (SELECT)\n");
+                G.prevTouching = in.touching;
                 return;
             }
             if (in.xPressed)
             {
                 g_exitRequested = true;
                 hw_log("exit (X)\n");
+                G.prevTouching = in.touching;
                 return;
             }
+            // Handle stylus interactions (press / drag / release)
             if (in.touchPressed)
             {
+                sPressedBtn = -1;
                 int tx = in.stylusX, ty = in.stylusY;
-                for (auto &tb : kTitleButtons)
+                for (int i = 0; i < 3; ++i)
                 {
-                    if (tb.btn.contains(tx, ty))
+                    if (kTitleButtons[i].btn.contains(tx, ty))
                     {
-                        if (tb.next == Mode::Playing)
-                        {
-                            levels_set_current(0);
-                            levels_reset_level(0);
-                        }
-                        if (tb.next == Mode::Options)
-                            options::begin();
-                        G.mode = tb.next;
-                        return;
+                        sPressedBtn = i;
+                        break;
                     }
+                }
+            }
+            // If moving while holding and leave button bounds, cancel
+            if (in.touching && sPressedBtn >= 0)
+            {
+                int tx = in.stylusX, ty = in.stylusY;
+                if (!kTitleButtons[sPressedBtn].btn.contains(tx, ty))
+                    sPressedBtn = -1; // canceled
+            }
+            // On release: trigger if still over original button
+            if (G.prevTouching && !in.touching)
+            {
+                if (sPressedBtn >= 0)
+                {
+                    // We treat release as valid regardless of final coords (optional: require inside)
+                    TitleBtn &tb = kTitleButtons[sPressedBtn];
+                    if (tb.next == Mode::Playing)
+                    {
+                        levels_set_current(0);
+                        levels_reset_level(0);
+                    }
+                    if (tb.next == Mode::Options)
+                        options::begin();
+                    G.mode = tb.next;
+                    // Ensure touch edge bookkeeping so first playing frame doesn't consider earlier press
+                    G.prevTouching = false;
+                    sPressedBtn = -1;
+                    return;
                 }
             }
             // Cycle sequence if user idle
@@ -786,6 +819,7 @@ namespace game
                 seqTimer = 0;
                 seqPos = (seqPos + 1) % (int)(sizeof(kSequence) / sizeof(kSequence[0]));
             }
+            G.prevTouching = in.touching; // update before early return
             return;
         }
         if (G.mode == Mode::Options)
@@ -802,8 +836,9 @@ namespace game
             if (act == editor::EditorAction::StartTest) {
                 // Initialize a fresh play session specifically for editor test runs
                 G.balls.clear();
-                G.balls.push_back({160.f - 4.f, 180.f, 0.0f, -1.5f, 160.f - 4.f, 180.f, true, G.imgBall});
-                G.lives = 5; // ensure lives reset (was observed as 0 causing instant return)
+                G.balls.push_back({160.f - 4.f, 180.f, 0.0f, 0.f, 160.f - 4.f, 180.f, true, G.imgBall});
+                G.ballLocked = true;
+                G.lives = 3; // ensure lives reset (updated default)
                 G.score = 0;
                 G.bonusBits = 0;
                 G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
@@ -844,8 +879,9 @@ namespace game
                 levels_reset_level(cur);
                 // Reset game state (fresh start)
                 G.balls.clear();
-                G.balls.push_back(Ball{160.f - 4.f, 180.f, 0.0f, -1.5f, 160.f - 4.f, 180.f, true, G.imgBall});
-                G.lives = 5;
+                G.balls.push_back(Ball{160.f - 4.f, 180.f, 0.0f, 0.f, 160.f - 4.f, 180.f, true, G.imgBall});
+                G.ballLocked = true;
+                G.lives = 3; // reset lives when starting from Title
                 G.score = 0;
                 G.bonusBits = 0;
                 G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
@@ -909,6 +945,17 @@ namespace game
         for (auto &b : G.balls)
             if (b.active)
             {
+                // If primary ball is locked, keep it attached to bat and skip physics
+                if (&b == &G.balls[0] && G.ballLocked)
+                {
+                    b.x = G.bat.x + G.bat.width / 2 - 4;
+                    b.y = G.bat.y - 8;
+                    b.px = b.x;
+                    b.py = b.y;
+                    b.vx = 0.f;
+                    b.vy = 0.f;
+                    continue; // don't process collisions while parked
+                }
                 b.px = b.x;
                 b.py = b.y;
                 b.x += b.vx;
@@ -976,8 +1023,9 @@ namespace game
                         levels_set_current(0);
                         levels_reset_level(0);
                         G.balls.clear();
-                        G.balls.push_back({160.f - 4.f, 180.f, 0.0f, -1.5f, 160.f - 4.f, 180.f, true, G.imgBall});
-                        G.lives = 5;
+                        G.balls.push_back({160.f - 4.f, 180.f, 0.0f, 0.f, 160.f - 4.f, 180.f, true, G.imgBall});
+                        G.ballLocked = true;
+                        G.lives = 3; // reset lives after returning to title
                         G.score = 0;
                         G.bonusBits = 0;
                         G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
@@ -990,7 +1038,9 @@ namespace game
                     b.px = b.x;
                     b.py = b.y;
                     b.vx = 0;
-                    b.vy = -1.5f;
+                    b.vy = 0.f;
+                    if (&b == &G.balls[0])
+                        G.ballLocked = true; // relock primary ball after life loss
                     continue;
                 }
                 // Bat collision using legacy logical sizes (BATWIDTH/BATHEIGHT, BALLWIDTH/BALLHEIGHT)
@@ -1061,6 +1111,32 @@ namespace game
         {
             // simple rate limit not implemented yet
         }
+
+        // Manual launch: require a touch THEN release after lock (even if not touching when ball appears)
+        if (G.ballLocked)
+        {
+            // Only allow launching if we have seen a touch while locked and now see its release.
+            // prevTouching tracks global previous frame, but we only care about transitions that happen after lock.
+            static bool sawTouchWhileLocked = false; // function-static: persists across frames; reset when unlocked
+            if (!sawTouchWhileLocked && in.touching)
+                sawTouchWhileLocked = true; // first touch since lock
+            bool released = sawTouchWhileLocked && G.prevTouching && !in.touching; // release of that touch
+            if (released)
+            {
+                if (!G.balls.empty())
+                {
+                    Ball &b0 = G.balls[0];
+                    b0.vy = -1.5f;
+                    float batDX = G.bat.x - G.prevBatX;
+                    b0.vx = batDX * 0.15f;
+                }
+                G.ballLocked = false;
+                sawTouchWhileLocked = false; // reset for next time we lock
+            }
+            if (!G.ballLocked)
+                sawTouchWhileLocked = false; // safety
+        }
+        G.prevTouching = in.touching;
     }
 
     void render()
