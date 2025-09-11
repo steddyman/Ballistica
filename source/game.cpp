@@ -120,7 +120,11 @@ namespace game
         std::vector<Laser> lasers;
     std::vector<FallingLetter> letters; // falling BONUS pickups
         C2D_Image imgBall{};
-        C2D_Image imgBatNormal{};
+    C2D_Image imgBatNormal{};
+    C2D_Image imgBatSmall{};
+    C2D_Image imgBatBig{};
+    int batSizeMode = 1;       // 0=small,1=normal,2=big
+    float batCollWidth = (float)BATWIDTH; // logical collision width (changes with bat size)
         Mode mode = Mode::Title;
     int lives = 3; // changed default lives from 5 to 3
         unsigned long score = 0;
@@ -156,10 +160,14 @@ namespace game
     {
         G.imgBall = hw_image(IMAGE_ball_sprite_idx);
         G.imgBatNormal = hw_image(IMAGE_bat_normal_idx);
+    G.imgBatSmall = hw_image(IMAGE_bat_small_idx);
+    G.imgBatBig   = hw_image(IMAGE_bat_big_idx);
         float bw = (G.imgBatNormal.subtex) ? G.imgBatNormal.subtex->width : 64.f;
         float bh = (G.imgBatNormal.subtex) ? G.imgBatNormal.subtex->height : 8.f;
         float batCenterX = kScreenWidth * 0.5f + kPlayfieldOffsetX;
         G.bat = {batCenterX - bw / 2.f, kInitialBatY, bw, bh, G.imgBatNormal};
+    G.batSizeMode = 1;
+    G.batCollWidth = (float)BATWIDTH;
         float ballStartX = kScreenWidth * 0.5f + kPlayfieldOffsetX - kInitialBallHalf;
     G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, G.imgBall});
     G.ballLocked = true;
@@ -227,6 +235,56 @@ namespace game
         float h = (img.subtex ? img.subtex->height : 11.0f);
         FallingLetter fl{cx - w * 0.5f, cy - h * 0.5f, 0.6f, letter, true, img};
         G.letters.push_back(fl);
+    }
+
+    static void spawn_bat_pickup(bool makeBig, float cx, float cy)
+    {
+        // Spawn a falling pickup using the batsmall/batbig brick visuals
+        int atlasIdx = makeBig ? IMAGE_batbig_brick_idx : IMAGE_batsmall_brick_idx;
+        C2D_Image img = hw_image(atlasIdx);
+        float w = (img.subtex ? img.subtex->width : 16.0f);
+        float h = (img.subtex ? img.subtex->height : 9.0f);
+        // Reuse FallingLetter with sentinel letter values: 100=small, 101=big
+        int code = makeBig ? 101 : 100;
+        FallingLetter fl{cx - w * 0.5f, cy - h * 0.5f, 0.6f, code, true, img};
+        G.letters.push_back(fl);
+    }
+
+    static void set_bat_size(int mode)
+    {
+    if (mode < 0) mode = 0;
+    if (mode > 2) mode = 2;
+        if (G.batSizeMode == mode) return;
+        G.batSizeMode = mode;
+        // Preserve center X while changing sprite and width
+        float centerX = G.bat.x + G.bat.width * 0.5f;
+        if (mode == 0)
+        {
+            G.bat.img = G.imgBatSmall;
+            G.batCollWidth = (float)BATWIDTH - 10.0f;
+            float newW = (G.bat.img.subtex ? G.bat.img.subtex->width : G.bat.width);
+            G.bat.width = newW;
+        }
+        else if (mode == 2)
+        {
+            G.bat.img = G.imgBatBig;
+            G.batCollWidth = (float)BATWIDTH + 10.0f;
+            float newW = (G.bat.img.subtex ? G.bat.img.subtex->width : G.bat.width);
+            G.bat.width = newW;
+        }
+        else
+        {
+            G.bat.img = G.imgBatNormal;
+            G.batCollWidth = (float)BATWIDTH;
+            float newW = (G.bat.img.subtex ? G.bat.img.subtex->width : G.bat.width);
+            G.bat.width = newW;
+        }
+        // Height from sprite
+        G.bat.height = (G.bat.img.subtex ? G.bat.img.subtex->height : G.bat.height);
+        G.bat.x = centerX - G.bat.width * 0.5f;
+        // Clamp inside playfield
+        if (G.bat.x < kPlayfieldLeftWallX) G.bat.x = kPlayfieldLeftWallX;
+        if (G.bat.x > kPlayfieldRightWallX - G.bat.width) G.bat.x = kPlayfieldRightWallX - G.bat.width;
     }
 
     static void apply_brick_effect(BrickType bt, float cx, float cy, Ball &ball)
@@ -318,6 +376,12 @@ namespace game
         case BrickType::BA:
             G.score += 1000;
             break;
+        case BrickType::BS:
+            spawn_bat_pickup(false, cx, cy);
+            break;
+        case BrickType::BB:
+            spawn_bat_pickup(true, cx, cy);
+            break;
         case BrickType::B1: spawn_bonus_letter(0, cx, cy); break;
         case BrickType::B2: spawn_bonus_letter(1, cx, cy); break;
         case BrickType::B3: spawn_bonus_letter(2, cx, cy); break;
@@ -364,6 +428,12 @@ namespace game
                 case 2: G.bonusBits |= 0x04; break; // N
                 case 3: G.bonusBits |= 0x08; break; // U
                 case 4: G.bonusBits |= 0x10; break; // S
+                case 100: // Bat smaller
+                    set_bat_size(G.batSizeMode - 1);
+                    break;
+                case 101: // Bat bigger
+                    set_bat_size(G.batSizeMode + 1);
+                    break;
                 }
                 L.active = false;
                 // If all five collected, award 250 * level number and reset
@@ -566,10 +636,11 @@ namespace game
                                 ball.vy = -ball.vy;
                             }
                         }
-                        if (destroyed && levels_remaining_breakable() == 0 && levels_count() > 0) {
+            if (destroyed && levels_remaining_breakable() == 0 && levels_count() > 0) {
                             if(!editor::test_return_active()) {
                                 int next = (levels_current() + 1) % levels_count();
                                 levels_set_current(next);
+                set_bat_size(1); // reset to normal at level end
                                 hw_log("LEVEL COMPLETE\n");
                             }
                         }
@@ -657,10 +728,11 @@ namespace game
                                 ball.vy = -ball.vy;
                             }
                         }
-                        if (destroyed && levels_remaining_breakable() == 0 && levels_count() > 0) {
+            if (destroyed && levels_remaining_breakable() == 0 && levels_count() > 0) {
                             if(!editor::test_return_active()) {
                                 int next = (levels_current() + 1) % levels_count();
                                 levels_set_current(next);
+                set_bat_size(1); // reset to normal at level end
                                 hw_log("LEVEL COMPLETE\n");
                             }
                         }
@@ -899,6 +971,7 @@ namespace game
                         levels_set_current(0);
                         levels_reset_level(0);
                         G.levelIntroTimer = 90;
+                        set_bat_size(1);
                         G.letters.clear();
                     }
                     if (tb.next == Mode::Options)
@@ -939,6 +1012,7 @@ namespace game
                 }
                 G.ballLocked = true;
                 G.lives = 3; // ensure lives reset (updated default)
+                set_bat_size(1);
                 G.score = 0;
                 G.bonusBits = 0;
                 G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
@@ -1144,6 +1218,7 @@ namespace game
                         }
                         G.ballLocked = true;
                         G.lives = 3; // reset lives after returning to title
+                        set_bat_size(1); // reset bat to normal
                         G.score = 0;
                         G.bonusBits = 0;
                         G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
@@ -1178,7 +1253,7 @@ namespace game
                     float ballBottomPrev = ballCenterYPrev + ballHalfH;
                     float ballBottom = ballCenterY + ballHalfH;
                     // Bat effective rectangle: shrink sprite to legacy BATWIDTH/BATHEIGHT centered
-                    float effBatW = (float)BATWIDTH;
+                    float effBatW = G.batCollWidth;
                     float effBatH = (float)BATHEIGHT;
                     float batPadX = (G.bat.width - effBatW) * 0.5f;
                     if (batPadX < 0)
@@ -1466,7 +1541,7 @@ namespace game
         hw_draw_sprite(G.bat.img, batDrawX, G.bat.y);
 #if defined(DEBUG) && DEBUG
         // Draw logical bat collision rectangle (centered reduced width & height)
-        float effBatW = (float)BATWIDTH;
+    float effBatW = G.batCollWidth;
         float effBatH = (float)BATHEIGHT;
         float batPadX = (G.bat.width - effBatW) * 0.5f;
         if (batPadX < 0)
