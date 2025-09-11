@@ -174,7 +174,10 @@ struct InputState {
 	int  stylusY = -1;
 	bool touching = false;
 	bool touchPressed = false; // edge: became touching this frame
-	bool fireHeld = false; // D-Pad Up
+	bool fireHeld = false; // D-Pad Up (held) legacy
+	bool dpadUpPressed = false;   // D-Pad Up edge
+	bool dpadDownPressed = false; // D-Pad Down edge
+	bool dpadDownHeld = false;    // D-Pad Down held
 	bool startPressed = false; // START key (edge)
 	bool selectPressed = false; // SELECT key (edge)
 	bool aPressed = false; // A key (edge)
@@ -182,6 +185,8 @@ struct InputState {
 	bool xPressed = false; // X key (edge)
 	bool levelPrevPressed = false; // L edge (debug)
 	bool levelNextPressed = false; // R edge (debug)
+	bool lHeld = false; // L held
+	bool rHeld = false; // R held
 };
 
 // Initialise graphics (citro2d) and load embedded sprite sheets (.t3x via headers)
@@ -212,6 +217,11 @@ C2D_Image hw_image_from(HwSheet sheet, int index); // returns empty image if mis
 // Minimal 5x6 debug font rendering on bottom screen for HUD
 void hw_draw_text(int x,int y,const char* text, uint32_t rgba = 0xC8C8C8FF);
 void hw_draw_text_scaled(int x,int y,const char* text, uint32_t rgba, float scale);
+// Optimised scaled text with optional 1px shadow (merges horizontal pixel runs to reduce C2D objects).
+// Draws shadow first (offset +1,+1) if shadowRGBA alpha >0 then main text.
+void hw_draw_text_shadow_scaled(int x,int y,const char* text, uint32_t mainRGBA, uint32_t shadowRGBA, float scale);
+// Measure width (pixels) of a single-line label in the tiny 5x6 font (stop at newline / null)
+int hw_text_width(const char* text);
 
 // Draw recent log lines into current target starting at (x,y); maxPixelsY caps height (optional).
 void hw_draw_logs(int x,int y,int maxPixelsY=240);

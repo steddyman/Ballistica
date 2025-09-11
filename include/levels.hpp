@@ -43,6 +43,8 @@ int levels_brick_hp(int col,int row);
 
 // Reset (restore) a level's bricks/hp to original snapshot
 void levels_reset_level(int index);
+// Snapshot current bricks/hp as new pristine copy for a level (used before test playing from editor)
+void levels_snapshot_level(int index);
 
 // Dynamic level file selection support
 const std::vector<std::string>& levels_available_files();
@@ -50,7 +52,21 @@ void levels_refresh_files();
 void levels_set_active_file(const char* filename); // set desired .DAT (basename)
 const char* levels_get_active_file();
 void levels_reload_active();
+// Persist / restore last selected active file across runs (handled automatically on set/load)
+// Exposed for optional manual control (normally not needed):
+void levels_persist_active_file();
 
 // Duplicate currently selected level file to a new 8-char (max) uppercase name (without extension).
 // Returns true on success.
 bool levels_duplicate_active(const char* newBaseName);
+
+// -------- Editor support (in-place modification) --------
+// Get/set brick in current level (0..levels_count-1) at grid coordinate.
+int  levels_edit_get_brick(int levelIndex, int col, int row); // returns -1 on invalid
+void levels_edit_set_brick(int levelIndex, int col, int row, int brickType); // silently ignores invalid
+int  levels_get_speed(int levelIndex); // 0 if invalid
+void levels_set_speed(int levelIndex, int speed); // clamps reasonable range (1..99)
+const char* levels_get_name(int levelIndex); // empty string if invalid
+void levels_set_name(int levelIndex, const char* name); // truncates to 32 chars
+// Save all current in-memory levels back to active .DAT file (overwrite)
+bool levels_save_active();
