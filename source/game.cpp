@@ -143,8 +143,10 @@ namespace game
         int reverseTimer = 0;   // frames remaining reverse controls
         int lightsOffTimer = 0; // frames until lights restore
         int murderTimer = 0;    // murderball active
-        int laserCharges = 0;   // available shots
-        int fireCooldown = 0;   // frames until next laser
+    // Laser system (re-implemented as pickup + indicator)
+    bool laserEnabled = false; // collected laser ability
+    bool laserReady = false;   // indicator visible and ready to fire
+    int fireCooldown = 0;      // small debounce (optional); not used for charges
         // Moving brick dynamic traversal across contiguous empty span
         std::vector<MovingBrickData> moving; // per-cell data (pos<0 => unused)
         // Particles (bomb / generic)
@@ -234,6 +236,17 @@ namespace game
         float w = (img.subtex ? img.subtex->width : 10.0f);
         float h = (img.subtex ? img.subtex->height : 11.0f);
         FallingLetter fl{cx - w * 0.5f, cy - h * 0.5f, 0.6f, letter, true, img};
+        G.letters.push_back(fl);
+    }
+
+    static void spawn_laser_pickup(float cx, float cy)
+    {
+        // Use the laser brick visual for the falling pickup
+        C2D_Image img = hw_image(IMAGE_laser_brick_idx);
+        float w = (img.subtex ? img.subtex->width : 16.0f);
+        float h = (img.subtex ? img.subtex->height : 9.0f);
+        // Reuse FallingLetter with code 200 for laser pickup
+        FallingLetter fl{cx - w * 0.5f, cy - h * 0.5f, 0.6f, 200, true, img};
         G.letters.push_back(fl);
     }
 
@@ -362,7 +375,7 @@ namespace game
             ball.vy *= 1.25f;
             break;
         case BrickType::LA:
-            G.laserCharges += 3;
+            spawn_laser_pickup(cx, cy);
             break;
         case BrickType::MB:
             G.murderTimer = 600;
@@ -433,6 +446,10 @@ namespace game
                     break;
                 case 101: // Bat bigger
                     set_bat_size(G.batSizeMode + 1);
+                    break;
+                case 200: // Laser pickup
+                    G.laserEnabled = true;
+                    G.laserReady = true;
                     break;
                 }
                 L.active = false;
@@ -641,6 +658,8 @@ namespace game
                                 int next = (levels_current() + 1) % levels_count();
                                 levels_set_current(next);
                 set_bat_size(1); // reset to normal at level end
+                                G.laserEnabled = false;
+                                G.laserReady = false;
                                 hw_log("LEVEL COMPLETE\n");
                             }
                         }
@@ -837,11 +856,15 @@ namespace game
 
     static void fire_laser()
     {
-        if (G.laserCharges <= 0 || G.fireCooldown > 0)
+        if (!G.laserEnabled || !G.laserReady || G.fireCooldown > 0)
             return;
-        G.laserCharges--;
-        G.fireCooldown = 10; // simple cooldown
-        G.lasers.push_back({G.bat.x + G.bat.width / 2 - 1, G.bat.y - 4, true});
+        // Only one laser at a time
+        for (const auto &L : G.lasers)
+            if (L.active)
+                return;
+        G.fireCooldown = 6; // small debounce so a single press fires once
+        G.lasers.push_back({G.bat.x + G.bat.width / 2 - 1, G.bat.y - 6, true});
+        G.laserReady = false; // indicator hides while the beam is active
     }
 
     static void update_lasers()
@@ -868,6 +891,7 @@ namespace game
                     if (raw > 0)
                     {
                         BrickType bt = (BrickType)raw;
+                        bool appliedInBranch = false;
                         if (bt == BrickType::T5)
                         {
                             (void)levels_damage_brick(col, row);
@@ -877,18 +901,36 @@ namespace game
                             std::vector<DestroyedBrick> list;
                             levels_explode_bomb(col, row, &list);
                             for (auto &db : list)
-                                apply_brick_effect((BrickType)db.type, 0, 0, G.balls[0]);
+                            {
+                                float cx = ls + db.col * cw + cw * 0.5f;
+                                float cy = ts + db.row * ch + ch * 0.5f;
+                                apply_brick_effect((BrickType)db.type, cx, cy, G.balls[0]);
+                            }
+                            appliedInBranch = true; // effects already applied for all destroyed bricks
                         }
                         else if (bt == BrickType::ID)
                         { /* indestructible: no action */
                         }
                         else
+                        {
                             levels_remove_brick(col, row);
-                        apply_brick_effect(bt, 0, 0, G.balls[0]);
+                        }
+                        // Apply effect at the center of the hit brick so falling pickups spawn in place
+                        if (!appliedInBranch)
+                        {
+                            float cx = ls + col * cw + cw * 0.5f;
+                            float cy = ts + row * ch + ch * 0.5f;
+                            apply_brick_effect(bt, cx, cy, G.balls[0]);
+                        }
                         L.active = false;
                     }
                 }
             }
+        // If no active lasers and ability is enabled, show indicator again
+        bool anyActive = false;
+        for (const auto &L : G.lasers) if (L.active) { anyActive = true; break; }
+        if (!anyActive && G.laserEnabled)
+            G.laserReady = true;
     }
 
     // (Options menu state & logic extracted to options.cpp)
@@ -1016,7 +1058,6 @@ namespace game
                 G.score = 0;
                 G.bonusBits = 0;
                 G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
-                G.laserCharges = 0;
                 G.fireCooldown = 0;
                 G.letters.clear();
                 // Reinitialize moving bricks data for current layout
@@ -1064,7 +1105,6 @@ namespace game
                 G.score = 0;
                 G.bonusBits = 0;
                 G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
-                G.laserCharges = 0;
                 G.fireCooldown = 0;
                 G.letters.clear();
                 // Re-init moving brick arrays for new layout
@@ -1102,14 +1142,15 @@ namespace game
                 targetX = kPlayfieldRightWallX - G.bat.width;
             G.bat.x = targetX;
         }
-        if (in.fireHeld)
+        // Fire laser on input edge: D-Pad Up, or stylus release
+        if (in.dpadUpPressed || (G.prevTouching && !in.touching))
             fire_laser();
         update_lasers();
-        if (G.reverseTimer > 0)
+    if (G.reverseTimer > 0)
             --G.reverseTimer;
         if (G.lightsOffTimer > 0)
             --G.lightsOffTimer;
-        if (G.murderTimer > 0)
+    if (G.murderTimer > 0)
             --G.murderTimer;
         update_moving_bricks();
     update_bonus_letters();
@@ -1222,7 +1263,6 @@ namespace game
                         G.score = 0;
                         G.bonusBits = 0;
                         G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
-                        G.laserCharges = 0;
                         G.fireCooldown = 0;
                         G.letters.clear();
                         return;
@@ -1235,6 +1275,9 @@ namespace game
                     b.vy = 0.f;
                     if (&b == &G.balls[0])
                         G.ballLocked = true; // relock primary ball after life loss
+                    // Lose laser on life loss
+                    G.laserEnabled = false;
+                    G.laserReady = false;
                     continue;
                 }
                 // Bat collision using legacy logical sizes (BATWIDTH/BATHEIGHT, BALLWIDTH/BALLHEIGHT)
@@ -1353,7 +1396,7 @@ namespace game
                         break;
                 }
             }
-            if (img.tex)
+                    if (img.tex)
                 hw_draw_sprite(img, 0, 0);
             if (kSequence[seqPos].sheet == HwSheet::High)
             {
@@ -1492,7 +1535,7 @@ namespace game
                 continue;
             C2D_DrawRectSolid(p.x, p.y, 0, 2, 2, p.color);
         }
-        // Draw falling BONUS letters
+    // Draw falling BONUS letters and other pickups
         for (auto &L : G.letters)
             if (L.active)
                 hw_draw_sprite(L.img, L.x, L.y);
@@ -1511,13 +1554,24 @@ namespace game
         if (G.bonusBits & 0x10)
             bonus[bi++] = 'S';
         bonus[bi] = '\0';
-        snprintf(hud, sizeof hud, "L%02d SCO:%lu LIVES:%d LAS:%d %s%s%s", levels_current() + 1, G.score, G.lives, G.laserCharges,
-                 (G.reverseTimer > 0 ? "REV " : ""), (G.murderTimer > 0 ? "MB " : ""), bonus);
+    const char* laserStr = (!G.laserEnabled ? "OFF" : (G.laserReady ? "RDY" : "BEAM"));
+    snprintf(hud, sizeof hud, "L%02d SCO:%lu LIVES:%d LA:%s %s%s%s", levels_current() + 1, G.score, G.lives, laserStr,
+         (G.reverseTimer > 0 ? "REV " : ""), (G.murderTimer > 0 ? "MB " : ""), bonus);
         hw_draw_text(4, 4, hud, 0xFFFFFFFF);
         if (G.lightsOffTimer > 0)
         {
             // dark overlay (draw first so HUD stays bright) - simple approach: semi-transparent rect
             C2D_DrawRectSolid(0, 0, 0, 320, 240, C2D_Color32(0, 0, 0, 140));
+        }
+        // Laser indicator: when enabled and ready, draw flush with the bat top
+        if (G.laserEnabled && G.laserReady)
+        {
+            C2D_Image ind = hw_image(IMAGE_laser_indicator_idx);
+            float iw = (ind.subtex ? ind.subtex->width : 6.0f);
+            float ih = (ind.subtex ? ind.subtex->height : 6.0f);
+            float cx = G.bat.x + G.bat.width * 0.5f - iw * 0.5f;
+            float cy = G.bat.y - ih; // sit exactly on the bat's top edge
+            hw_draw_sprite(ind, cx, cy);
         }
     // BONUS indicators: draw five letter icons at right side, dim when not collected
         {
