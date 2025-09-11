@@ -33,6 +33,7 @@
 namespace {
     C3D_RenderTarget* g_bottom = nullptr;
     C3D_RenderTarget* g_top = nullptr;
+    int g_targetWidth = 320; // updated when switching targets (top=400, bottom=320)
     C2D_SpriteSheet g_sheetImage = nullptr;
     C2D_SpriteSheet g_sheetBreak = nullptr;
     C2D_SpriteSheet g_sheetTitle = nullptr;
@@ -91,6 +92,16 @@ namespace {
         {'_',{0x00,0x00,0x00,0x00,0x1F,0x00}},
     {'/',{0x01,0x02,0x04,0x08,0x10,0x00}},
         {' ' ,{0x00,0x00,0x00,0x00,0x00,0x00}},
+    {'(' ,{0x06,0x08,0x08,0x08,0x06,0x00}},
+    {')' ,{0x0C,0x02,0x02,0x02,0x0C,0x00}},
+    {'+' ,{0x00,0x04,0x0E,0x04,0x00,0x00}},
+    {'=' ,{0x00,0x0E,0x00,0x0E,0x00,0x00}},
+    {'%' ,{0x19,0x19,0x02,0x04,0x13,0x13}},
+    {',' ,{0x00,0x00,0x00,0x06,0x02,0x04}},
+    {'>' ,{0x10,0x08,0x04,0x08,0x10,0x00}},
+    {'<' ,{0x01,0x02,0x04,0x02,0x01,0x00}},
+    {']' ,{0x1C,0x04,0x04,0x04,0x1C,0x00}},
+    {'[' ,{0x07,0x04,0x04,0x04,0x07,0x00}},
     };
 
     const Glyph* findGlyph(char c) {
@@ -109,7 +120,8 @@ namespace {
                 for(int rx=0; rx<5; ++rx) if(row & (1 << (4-rx)))
                     C2D_DrawRectSolid(x+rx, y+ry, 0, 1,1, C2D_Color32(r,g,b,a));
             }
-            x += 6; if(x > 320-6) break; // bottom width 320
+            x += 6;
+            if(x > g_targetWidth-6) break; // dynamic width
         }
     }
 }
@@ -119,7 +131,8 @@ bool hw_init() {
     hw_log("hw_init start\n");
     romfsInit();
     if (!C3D_Init(C3D_DEFAULT_CMDBUF_SIZE)) { hw_log("C3D_Init FAILED\n"); return false; }
-    if (!C2D_Init(C2D_DEFAULT_MAX_OBJECTS)) { hw_log("C2D_Init FAILED\n"); return false; }
+    // Increase max objects budget to reduce risk of overflow when drawing many scaled font quads
+    if (!C2D_Init(C2D_DEFAULT_MAX_OBJECTS * 2)) { hw_log("C2D_Init FAILED\n"); return false; }
     C2D_Prepare();
     g_bottom = C2D_CreateScreenTarget(GFX_BOTTOM, GFX_LEFT);
     g_top = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
@@ -169,6 +182,9 @@ void hw_poll_input(InputState& out) {
     if(out.touching) { hidTouchRead(&tp); out.stylusX = tp.px; out.stylusY = tp.py; }
     else { out.stylusX = out.stylusY = -1; }
     out.fireHeld = (kHeld & KEY_DUP) != 0;
+    out.dpadUpPressed = (kDown & KEY_DUP) != 0;
+    out.dpadDownPressed = (kDown & KEY_DDOWN) != 0;
+    out.dpadDownHeld = (kHeld & KEY_DDOWN) != 0;
     out.startPressed = (kDown & KEY_START) != 0;
     out.selectPressed = (kDown & KEY_SELECT) != 0;
     out.aPressed = (kDown & KEY_A) != 0;
@@ -176,6 +192,8 @@ void hw_poll_input(InputState& out) {
     out.xPressed = (kDown & KEY_X) != 0;
     out.levelPrevPressed = (kDown & KEY_L) != 0;
     out.levelNextPressed = (kDown & KEY_R) != 0;
+    out.lHeld = (kHeld & KEY_L) != 0;
+    out.rHeld = (kHeld & KEY_R) != 0;
 }
 
 void hw_begin_frame() {
@@ -208,14 +226,57 @@ void hw_draw_text_scaled(int x,int y,const char* text, uint32_t rgba, float scal
                 C2D_DrawRectSolid(px, py, 0, scale, scale, C2D_Color32(r,g,b,a));
             }
         }
-        cursorX += 6*scale; if(cursorX > 400 - 6*scale) break;
+    cursorX += 6*scale;
+    if(cursorX > 400 - 6*scale) break;
     }
+}
+
+void hw_draw_text_shadow_scaled(int x,int y,const char* text, uint32_t mainRGBA, uint32_t shadowRGBA, float scale) {
+    if(scale <= 1.01f) {
+        if((shadowRGBA & 0xFF) != 0) hw_draw_text(x+1,y+1,text,shadowRGBA);
+        hw_draw_text(x,y,text,mainRGBA);
+        return;
+    }
+    auto drawLayer = [&](int ox,int oy,uint32_t rgba){
+        if((rgba & 0xFF)==0) return; // skip if alpha zero
+        uint8_t r=(rgba>>24)&0xFF,g=(rgba>>16)&0xFF,b=(rgba>>8)&0xFF,a=rgba&0xFF;
+        float cursorX = (float)(x+ox);
+        int baseY = y+oy;
+        for(const char* p=text; *p; ++p) {
+            char c=*p; if(c=='\n'){ baseY += (int)std::ceil(6*scale + scale); cursorX=(float)(x+ox); continue; }
+            const Glyph* glyph = findGlyph(c);
+            // For each row merge consecutive set bits into one rect
+            for(int ry=0; ry<6; ++ry) {
+                uint8_t row = glyph->rows[ry];
+                int rx=0;
+                while(rx<5) {
+                    while(rx<5 && !(row & (1<<(4-rx)))) ++rx; // skip unset
+                    if(rx>=5) break;
+                    int start=rx;
+                    while(rx<5 && (row & (1<<(4-rx)))) ++rx; // advance run
+                    int run = rx-start;
+                    float px = cursorX + start*scale;
+                    float py = (float)baseY + ry*scale;
+                    C2D_DrawRectSolid(px, py, 0, run*scale, scale, C2D_Color32(r,g,b,a));
+                }
+            }
+            cursorX += 6*scale;
+            if(cursorX > 400 - 6*scale) break;
+        }
+    };
+    // Shadow first
+    drawLayer(1,1,shadowRGBA);
+    drawLayer(0,0,mainRGBA);
 }
 
 void hw_draw_logs(int x,int y,int maxPixelsY) {
     // Render logs onto whichever target is current (caller sets scene)
-    const int lineH=7; int maxLines = maxPixelsY / lineH; if(maxLines<=0) return;
-    int start = (int)g_logs.size() - maxLines; if(start<0) start=0; int yy=y;
+    const int lineH=7;
+    int maxLines = maxPixelsY / lineH;
+    if(maxLines<=0) return;
+    int start = (int)g_logs.size() - maxLines;
+    if(start<0) start=0;
+    int yy=y;
     for(size_t i=start;i<g_logs.size();++i) {
         int xx=x;
         for(char c : g_logs[i]) {
@@ -224,17 +285,24 @@ void hw_draw_logs(int x,int y,int maxPixelsY) {
                 uint8_t row = g->rows[ry];
                 for(int rx=0; rx<5; ++rx) if(row & (1<<(4-rx))) C2D_DrawRectSolid(xx+rx, yy+ry, 0,1,1,C2D_Color32(180,180,180,255));
             }
-            xx += 6; if(xx > 320-6) break;
+            xx += 6;
+        if(xx > g_targetWidth-6) break;
         }
-        yy += lineH; if(yy + lineH > y + maxPixelsY) break;
+    yy += lineH;
+    if(yy + lineH > y + maxPixelsY) break;
     }
 }
 
+int hw_text_width(const char* text) {
+    if(!text) return 0;
+    int len=0; for(const char* p=text; *p && *p!='\n'; ++p) ++len; return len*6; // fixed advance of 6 per glyph
+}
+
 void hw_set_top() {
-    if(g_top) C2D_SceneBegin(g_top);
+    if(g_top) { C2D_SceneBegin(g_top); g_targetWidth = 400; }
 }
 void hw_set_bottom() {
-    if(g_bottom) C2D_SceneBegin(g_bottom);
+    if(g_bottom) { C2D_SceneBegin(g_bottom); g_targetWidth = 320; }
 }
 
 C2D_Image hw_image(int index) {

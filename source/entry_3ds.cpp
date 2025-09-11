@@ -9,12 +9,19 @@ int main(int argc, char** argv) {
     if(!hw_init()) return -1;
     game_init();
     u32 frame=0;
+    bool showTopLogs=false;
+    bool showBottomLogs=false;
 
     while (aptMainLoop()) {
         InputState in; hw_poll_input(in);
         // Exit if game layer requested (X on title or touch EXIT) or START+SELECT chord anywhere as hard quit
         if(exit_requested() || (in.startPressed && in.selectPressed)) break;
         game_update(in);
+        // Toggle log overlays: exact combo L+R+Up or L+R+Down (edge on Up/Down).
+        if(in.lHeld && in.rHeld) {
+            if(in.dpadUpPressed) showTopLogs = !showTopLogs;
+            if(in.dpadDownPressed) showBottomLogs = !showBottomLogs;
+        }
         hw_begin_frame();
         GameMode gm = game_mode();
         // Dedicated handling: Editor and Options both own the bottom screen completely.
@@ -23,6 +30,7 @@ int main(int argc, char** argv) {
             hw_set_top();
             C2D_DrawRectSolid(0,0,0,400,240,C2D_Color32(0,0,0,255));
             hw_draw_text(8,8,"Options",0xFFFFFFFF);
+            if(showTopLogs) hw_draw_logs(4,40,200);
             // Bottom: full options UI (game_render draws it for this mode)
             hw_set_bottom();
             C2D_DrawRectSolid(0,0,0,320,240,C2D_Color32(0,0,0,255));
@@ -37,6 +45,7 @@ int main(int argc, char** argv) {
             hw_set_top();
             C2D_DrawRectSolid(0,0,0,400,240,C2D_Color32(0,0,0,255));
             hw_draw_text(8,8,"Level Editor (touch to draw)",0xFFFFFFFF);
+            if(showTopLogs) hw_draw_logs(4,40,200);
             // Render editor on bottom
             hw_set_bottom();
             C2D_DrawRectSolid(0,0,0,320,240,C2D_Color32(0,0,0,255));
@@ -45,29 +54,20 @@ int main(int argc, char** argv) {
             // Normal: gameplay/title etc on top
             hw_set_top();
             game_render();
+            if(showTopLogs) hw_draw_logs(4,4,232);
             // Bottom screen overlays (title menu or touch-to-move)
             hw_set_bottom();
             C2D_DrawRectSolid(0,0,0,320,240,C2D_Color32(0,0,0,255));
             if(gm == GameMode::Title) {
-            // Animated pulse for buttons
-            float pulse = 0.5f + 0.5f * std::sin(frame * 0.15f);
-            uint8_t accent = (uint8_t)(100 + 80 * pulse);
-            struct Btn { int x,y,w,h; const char* label; };
-            Btn btns[] = {{60,60,200,20,"PLAY   (START)"},{60,100,200,20,"EDITOR (SELECT)"},{60,140,200,20,"OPTIONS"},{60,180,200,20,"EXIT   (X)"}};
-            // Touch handled inside game_update via y-band mapping; here only visual hover highlight
-            int tx = in.stylusX, ty = in.stylusY;
-            for(auto &bdef : btns) {
-                bool over = in.touching && tx>=bdef.x && tx<bdef.x+bdef.w && ty>=bdef.y && ty<bdef.y+bdef.h;
-                uint32_t col = over ? C2D_Color32(accent,accent,40,255) : C2D_Color32(40,40,40,255);
-                C2D_DrawRectSolid(bdef.x, bdef.y, 0, bdef.w, bdef.h, col);
-                // border
-                C2D_DrawRectSolid(bdef.x, bdef.y, 0, bdef.w, 1, C2D_Color32(200,200,200,255));
-                C2D_DrawRectSolid(bdef.x, bdef.y+bdef.h-1, 0, bdef.w, 1, C2D_Color32(10,10,10,255));
-                C2D_DrawRectSolid(bdef.x, bdef.y, 0, 1, bdef.h, C2D_Color32(200,200,200,255));
-                C2D_DrawRectSolid(bdef.x+bdef.w-1, bdef.y, 0, 1, bdef.h, C2D_Color32(10,10,10,255));
-                hw_draw_text(bdef.x + 20, bdef.y + 6, bdef.label, 0xFFFFFFFF);
+            hw_draw_text(10, 6, "START=Play  SELECT=Editor  X=Exit", 0xFFFFFFFF);
+            game_render_title_buttons(in);
+            if(in.touching) {
+                // small crosshair to visualize touch
+                int tx=in.stylusX, ty=in.stylusY;
+                C2D_DrawRectSolid(tx-2, ty, 0, 5,1,C2D_Color32(255,255,0,255));
+                C2D_DrawRectSolid(tx, ty-2, 0, 1,5,C2D_Color32(255,255,0,255));
             }
-            hw_draw_text(20, 20, "START=Play  SELECT=Editor  X=Exit  (Touch OPTIONS)", 0xFFFFFFFF);
+            if(showBottomLogs) hw_draw_logs(4, 200, 36);
             } else {
             // Gameplay bottom screen: static TOUCH image prompt replaces text region.
             // If sheet not loaded fallback to minimal text.
@@ -82,6 +82,7 @@ int main(int argc, char** argv) {
             } else {
                 hw_draw_text(70, 120 - 4, "Touch To Move", 0xFFFFFFFF);
             }
+            if(showBottomLogs) hw_draw_logs(2, 220, 18);
             }
         }
         hw_end_frame();

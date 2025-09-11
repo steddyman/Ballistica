@@ -25,7 +25,8 @@ namespace levels {
 
     static const char* kSdDir = "sdmc:/ballistica";
     static const char* kLevelsSubDir = "sdmc:/ballistica/levels";
-    static std::string g_activeLevelFile = "LEVELS.DAT"; // default
+    static std::string g_activeLevelFile = "LEVELS.DAT"; // default (may be overridden by persisted config)
+    static const char* kConfigPath = "sdmc:/ballistica/active.cfg"; // simple text file storing chosen DAT name
     static std::vector<std::string> g_fileList; // cached .DAT names
 
     struct Level {
@@ -92,22 +93,26 @@ namespace levels {
             char dst[256]; snprintf(dst,sizeof dst, "%s/%s", kLevelsSubDir, baseName);
             if(fileExists(dst)) return;
             FILE* in = fopen(romfsPath, "rb");
-            if(!in) { hw_log("romfs open fail (copy)\n"); return; }
+            if(!in) {
+                // Short path logging with explicit max lengths to avoid -Wformat-truncation
+                char dbg[128];
+                snprintf(dbg,sizeof dbg,"romfs miss '%.64s' => %.32s\n", romfsPath, baseName);
+                hw_log(dbg);
+                return; }
             FILE* out = fopen(dst, "wb");
             if(!out) { fclose(in); hw_log("copy fail open dst\n"); return; }
             char buf[1024]; size_t r; while((r=fread(buf,1,sizeof buf,in))>0) fwrite(buf,1,r,out);
             fclose(in); fclose(out);
-            hw_log("copied level file\n");
+            char dbg[128]; snprintf(dbg,sizeof dbg,"copied level file %s\n", baseName); hw_log(dbg);
         };
-        // Always attempt default
-        copyIfMissing("romfs:/LEVELS.DAT","LEVELS.DAT");
-        // Enumerate romfs root & /levels for additional .DAT
-        auto scanRomfsDir = [&](const char* dirPath){
+    // Enumerate romfs root & /levels for all .DAT files (no hard-coded fallbacks)
+    auto scanRomfsDir = [&](const char* dirPath){
             DIR* d = opendir(dirPath);
-            if(!d) { hw_log("romfs scan: cannot open dir (fallback list used)\n"); return; }
+        if(!d) { char dbg[160]; snprintf(dbg,sizeof dbg,"romfs scan: cannot open dir '%s' (fallback list used)\n", dirPath); hw_log(dbg); return; }
             struct dirent* ent;
             size_t dirLen = strlen(dirPath);
             bool endsWithSlash = dirLen>0 && dirPath[dirLen-1]=='/';
+        int datFound=0;
             while((ent=readdir(d))!=nullptr) {
                 const char* name = ent->d_name; if(!name) continue; size_t len=strlen(name); if(len<4) continue; const char* ext = name+len-4;
                 char up[5]; for(int i=0;i<4;i++) up[i]=(char)toupper((unsigned char)ext[i]); up[4]='\0';
@@ -115,18 +120,14 @@ namespace levels {
                     char full[320];
                     if(endsWithSlash) snprintf(full,sizeof full, "%s%s", dirPath, name); else snprintf(full,sizeof full, "%s/%s", dirPath, name);
                     copyIfMissing(full, name);
+            ++datFound;
                 }
             }
             closedir(d);
+        char dbg[128]; snprintf(dbg,sizeof dbg,"romfs scan '%s' DAT=%d\n", dirPath, datFound); hw_log(dbg);
         };
         scanRomfsDir("romfs:/");
         scanRomfsDir("romfs:/levels"); // optional subdir
-        // Fallback static list for when directory enumeration is unsupported by romfs
-        static const char* kExtraDatFiles[] = {"SPIKE1.DAT","SPIKE2.DAT","SPIKE3.DAT","SPIKE4.DAT","LEVBAK.DAT","NASTY.DAT"};
-        for(const char* fname : kExtraDatFiles) {
-            char romPath[128]; snprintf(romPath,sizeof romPath,"romfs:/%s", fname);
-            copyIfMissing(romPath, fname);
-        }
         // Clear cached list so new files appear on first open of Options
         g_fileList.clear();
     }
@@ -152,7 +153,22 @@ namespace levels {
         return g_fileList;
     }
     void refresh_level_files() { g_fileList = listDatFiles(); }
-    void set_active_level_file(const std::string& f) { g_activeLevelFile = f; }
+    static void persist_active_level_file() {
+        FILE* f = fopen(kConfigPath, "wb"); if(!f) return; fprintf(f, "%s\n", g_activeLevelFile.c_str()); fclose(f);
+    }
+    static void load_persisted_active_file() {
+        FILE* f = fopen(kConfigPath, "rb"); if(!f) return; char buf[128]; if(fscanf(f, "%127s", buf)==1) {
+            // Validate it exists among available files (after ensureOnSdmc/population) before accepting
+            std::string cand(buf);
+            if(!cand.empty()) {
+                // Defer list population until after ensureOnSdmc; list may be empty yet.
+                // We'll optimistic set then later load() will fallback if missing.
+                g_activeLevelFile = cand;
+            }
+        }
+        fclose(f);
+    }
+    void set_active_level_file(const std::string& f) { g_activeLevelFile = f; persist_active_level_file(); }
     const std::string& get_active_level_file() { return g_activeLevelFile; }
 
     // ---------- Legacy shorthand mapping (2-char codes) ----------------------
@@ -241,6 +257,8 @@ namespace levels {
     void load() {
         if(g_loaded) return;
         ensureOnSdmc();
+        // Attempt to override default active file from persisted config (only first time before parsing)
+        load_persisted_active_file();
     char sdPath[256]; snprintf(sdPath, sizeof(sdPath), "%s/%s", kLevelsSubDir, g_activeLevelFile.c_str());
         FILE* f = fopen(sdPath, "rb");
         if(!f) { hw_log("open sd LEVELS fail\n"); buildFallback(); return; }
@@ -362,6 +380,66 @@ void levels_reset_level(int idx) {
         }
     }
 }
+void levels_snapshot_level(int idx) {
+    if(levels::g_levels.empty()) return;
+    if(idx<0 || idx >= (int)levels::g_levels.size()) return;
+    auto &L = levels::g_levels[idx];
+    if(L.bricks.size()==(size_t)levels::NumBricks) L.origBricks = L.bricks;
+    if(L.hp.size()==L.bricks.size()) L.origHp = L.hp;
+}
+
+    // Editor helpers
+    int edit_get_brick(int levelIndex, int col, int row) {
+        if(levelIndex<0 || levelIndex >= (int)g_levels.size()) return -1;
+        if(col<0||col>=BricksX||row<0||row>=BricksY) return -1;
+        Level &L = g_levels[levelIndex];
+        int idx = row*BricksX+col; if(idx >= (int)L.bricks.size()) return -1; return (int)L.bricks[idx];
+    }
+    void edit_set_brick(int levelIndex, int col, int row, int brickType) {
+        if(levelIndex<0 || levelIndex >= (int)g_levels.size()) return;
+        if(col<0||col>=BricksX||row<0||row>=BricksY) return;
+        if(brickType < 0 || brickType >= (int)BrickType::COUNT) brickType = 0;
+        Level &L = g_levels[levelIndex]; int idx=row*BricksX+col; if(idx >= (int)L.bricks.size()) return;
+        L.bricks[idx] = (uint8_t)brickType;
+        if(L.hp.size()==L.bricks.size()) {
+            if(brickType==(int)BrickType::T5) L.hp[idx]=5; else if(brickType==0 || brickType==(int)BrickType::ID) L.hp[idx]=0; else L.hp[idx]=1;
+        }
+    }
+    int get_speed(int levelIndex) { if(levelIndex<0||levelIndex>=(int)g_levels.size()) return 0; return g_levels[levelIndex].speed; }
+    void set_speed(int levelIndex, int speed) { if(levelIndex<0||levelIndex>=(int)g_levels.size()) return; if(speed<1) speed=1; if(speed>99) speed=99; g_levels[levelIndex].speed = speed; }
+    const char* get_name(int levelIndex) { if(levelIndex<0||levelIndex>=(int)g_levels.size()) return ""; return g_levels[levelIndex].name.c_str(); }
+    void set_name(int levelIndex, const char* name) {
+    if(levelIndex<0||levelIndex>=(int)g_levels.size()) return;
+    if(!name) return;
+    std::string s(name);
+        if(s.size()>32) s.resize(32); // simple cap
+        // trim leading spaces
+        size_t p=0; while(p<s.size() && (unsigned char)s[p]<=' ') ++p; if(p>0) s = s.substr(p);
+        g_levels[levelIndex].name = s;
+    }
+    bool save_active() {
+        if(g_levels.empty()) return false;
+        char path[256]; snprintf(path,sizeof path, "%s/%s", kLevelsSubDir, g_activeLevelFile.c_str());
+        FILE* f = fopen(path, "wb"); if(!f) return false;
+        for(size_t li=0; li<g_levels.size(); ++li) {
+            const Level &L = g_levels[li];
+            fprintf(f, "LEVEL %zu\n", li+1);
+            fprintf(f, "SPEED %d\n", L.speed);
+            fprintf(f, "NAME %s\n", L.name.c_str());
+            // bricks: output 13 codes per line for readability
+            for(int r=0;r<BricksY;r++) {
+                for(int c=0;c<BricksX;c++) {
+                    int idx = r*BricksX+c; int b = (idx<(int)L.bricks.size())? L.bricks[idx]:0;
+                    const char* code = (b>=0 && b < (int)(sizeof(kBrickCodes)/sizeof(kBrickCodes[0]))) ? kBrickCodes[b] : "NB";
+                    fprintf(f, "%s", code);
+                    if(c<BricksX-1) fputc(' ', f);
+                }
+                fputc('\n', f);
+            }
+        }
+        fclose(f);
+        return true;
+    }
 
 } // namespace levels
 
@@ -385,6 +463,7 @@ int levels_brick_hp(int c,int r) { return levels::levels_brick_hp(c,r); }
 int levels_explode_bomb(int c,int r, std::vector<DestroyedBrick>* outDestroyed) { return levels::levels_explode_bomb(c,r,outDestroyed); }
 int levels_atlas_index(int rawType) { return levels::levels_atlas_index(rawType); }
 void levels_reset_level(int idx) { levels::levels_reset_level(idx); }
+void levels_snapshot_level(int idx) { levels::levels_snapshot_level(idx); }
 // New selection APIs
 const std::vector<std::string>& levels_available_files() { return levels::available_level_files(); }
 void levels_refresh_files() { levels::refresh_level_files(); }
@@ -414,3 +493,12 @@ bool levels_duplicate_active(const char* newBase) {
     levels_refresh_files();
     return true;
 }
+// Editor facade
+int  levels_edit_get_brick(int levelIndex, int col, int row) { return levels::edit_get_brick(levelIndex,col,row); }
+void levels_edit_set_brick(int levelIndex, int col, int row, int brickType) { levels::edit_set_brick(levelIndex,col,row,brickType); }
+int  levels_get_speed(int levelIndex) { return levels::get_speed(levelIndex); }
+void levels_set_speed(int levelIndex, int speed) { levels::set_speed(levelIndex,speed); }
+const char* levels_get_name(int levelIndex) { return levels::get_name(levelIndex); }
+void levels_set_name(int levelIndex, const char* name) { levels::set_name(levelIndex,name); }
+bool levels_save_active() { return levels::save_active(); }
+void levels_persist_active_file() { levels::persist_active_level_file(); }
