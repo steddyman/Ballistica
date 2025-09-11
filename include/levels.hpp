@@ -70,3 +70,7 @@ const char* levels_get_name(int levelIndex); // empty string if invalid
 void levels_set_name(int levelIndex, const char* name); // truncates to 32 chars
 // Save all current in-memory levels back to active .DAT file (overwrite)
 bool levels_save_active();
+
+// Runtime horizontal render offset (gameplay only) – editor keeps base positions.
+void levels_set_draw_offset(int offsetPixels);
+int  levels_get_draw_offset();
