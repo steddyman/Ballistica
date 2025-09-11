@@ -20,7 +20,7 @@ namespace levels {
     static const int BricksX=13;
     static const int BricksY=11;
     static const int NumBricks = BricksX*BricksY;    // 143 bricks
-    static const int LEFTSTART=28;
+    static constexpr int LEFTSTART=28; // base left (unshifted); gameplay shift applied via render offset
     static const int TOPSTART=18;
 
     static const char* kSdDir = "sdmc:/ballistica";
@@ -41,6 +41,7 @@ namespace levels {
     static bool g_loaded = false;         // successfully parsed any levels
     static std::vector<Level> g_levels;    // parsed levels
     static int g_currentLevel = 0;         // index into g_levels
+    static int g_renderOffsetX = 0;        // runtime horizontal render offset (gameplay mode)
 
     struct BrickDef { int atlasIndex; };
     // Map legacy shorthand index (enum order) to atlas image indices
@@ -201,12 +202,15 @@ namespace levels {
         g_levels.clear();
         char token[64];
         Level cur; bool inLevel=false; int bricks=0; int lineBricks=0;
-        while(fscanf(f, "%63s", token)==1) {
+    while(fscanf(f, "%63s", token)==1) {
             if(strcmp(token,"LEVEL")==0) {
                 // starting a new level: commit previous if valid
                 int lvNum=0; if(fscanf(f, "%d", &lvNum)!=1) { hw_log("LEVEL missing number\n"); break; }
                 if(inLevel) {
                     if((int)cur.bricks.size()==NumBricks) g_levels.push_back(cur);
+                    else {
+                        char dbg[64]; snprintf(dbg,sizeof dbg,"level %d incomplete (%d bricks)\n", (int)g_levels.size()+1, (int)cur.bricks.size()); hw_log(dbg);
+                    }
                 }
                 cur = Level(); bricks=0; lineBricks=0; inLevel=true; // reset
             } else if(strcmp(token,"SPEED")==0) {
@@ -218,27 +222,26 @@ namespace levels {
                 size_t pos=0; while(pos<name.size() && std::isspace((unsigned char)name[pos])) ++pos; cur.name = name.substr(pos);
             } else {
                 // brick code or unknown
-                if(strlen(token)==2 && std::isupper((unsigned char)token[0]) && std::isupper((unsigned char)token[1])) {
+                // Accept 2-character codes consisting of A-Z or 0-9 (e.g., YB, IF, B1, F2, T5)
+                auto isCodeChar = [](unsigned char c){ return (c>='A' && c<='Z') || (c>='0' && c<='9'); };
+                bool looksLikeBrickCode = (strlen(token)==2) && isCodeChar((unsigned char)token[0]) && isCodeChar((unsigned char)token[1]);
+                if(inLevel && looksLikeBrickCode) {
                     auto it = kCodeToIndex.find(token);
                     int idx = (it!=kCodeToIndex.end()) ? it->second : 0;
-            if(bricks < NumBricks) {
+                    if(bricks < NumBricks) {
                         if(cur.bricks.empty()) cur.bricks.reserve(NumBricks);
                         cur.bricks.push_back((uint8_t)idx); ++bricks; ++lineBricks;
                         if(cur.hp.empty()) cur.hp.reserve(NumBricks);
-                        // assign hp: default 1, T5 gets 5 hits
+                        // assign hp: default 1, T5 gets 5 hits; NB/ID are non-hittable (hp=0)
                         uint8_t hpv = 1;
                         if(idx == (int)BrickType::T5) hpv = 5; else if(idx == (int)BrickType::NB) hpv = 0; else if(idx == (int)BrickType::ID) hpv = 0;
                         cur.hp.push_back(hpv);
                         if(bricks==NumBricks) {
-                            if(cur.name.empty()) {
-                                cur.name = "Level";
-                            }
-                            if(cur.speed==0) {
-                                cur.speed = 10;
-                            }
-                // snapshot originals
-                cur.origBricks = cur.bricks;
-                cur.origHp = cur.hp;
+                            if(cur.name.empty()) cur.name = "Level";
+                            if(cur.speed==0) cur.speed = 10;
+                            // snapshot originals
+                            cur.origBricks = cur.bricks;
+                            cur.origHp = cur.hp;
                         }
                     }
                 } else {
@@ -273,12 +276,16 @@ namespace levels {
         for(int i=0;i<NumBricks;i++) {
             uint8_t v = L.bricks[i]; if(v==0) continue; if(v >= (int)(sizeof(brickMap)/sizeof(brickMap[0]))) continue;
             int col = i % BricksX; int row = i / BricksX;
-            float x = LEFTSTART + col * 16; float y = TOPSTART + row * 9;
+        float x = (float)(LEFTSTART + g_renderOffsetX) + col * 16; float y = TOPSTART + row * 9;
             int atlasIndex = brickMap[v].atlasIndex; if(atlasIndex<0) continue;
             // For multi-hit bricks we could choose alternate visual based on HP later.
             hw_draw_sprite(hw_image(atlasIndex), x, y);
         }
     }
+    // Adjust runtime render offset
+    void set_draw_offset(int off) { g_renderOffsetX = off; }
+    int draw_offset() { return g_renderOffsetX; }
+    int left_with_offset() { return LEFTSTART + g_renderOffsetX; }
     int levels_remaining_breakable() {
     if(g_levels.empty()) return 0;
     const auto &L = g_levels[g_currentLevel];
@@ -451,7 +458,7 @@ int levels_current() { return levels::g_currentLevel; }
 bool levels_set_current(int idx) { if(idx>=0 && idx < (int)levels::g_levels.size()) { levels::g_currentLevel = idx; return true; } return false; }
 int levels_grid_width() { return 13; }
 int levels_grid_height() { return 11; }
-int levels_left() { return 28; }
+int levels_left() { return levels::left_with_offset(); }
 int levels_top() { return 18; }
 int levels_brick_width() { return 16; }
 int levels_brick_height() { return 9; }
@@ -464,6 +471,8 @@ int levels_explode_bomb(int c,int r, std::vector<DestroyedBrick>* outDestroyed) 
 int levels_atlas_index(int rawType) { return levels::levels_atlas_index(rawType); }
 void levels_reset_level(int idx) { levels::levels_reset_level(idx); }
 void levels_snapshot_level(int idx) { levels::levels_snapshot_level(idx); }
+void levels_set_draw_offset(int off) { levels::set_draw_offset(off); }
+int levels_get_draw_offset() { return levels::draw_offset(); }
 // New selection APIs
 const std::vector<std::string>& levels_available_files() { return levels::available_level_files(); }
 void levels_refresh_files() { levels::refresh_level_files(); }

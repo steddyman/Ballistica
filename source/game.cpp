@@ -29,6 +29,17 @@
 // Basic game state migrated from legacy structures (incremental port)
 namespace game
 {
+    // Global horizontal offset to shift entire play area (bricks already shifted via levels.cpp)
+    static constexpr float kPlayfieldOffsetX = 70.0f; // shift right by 70px
+    static constexpr float kScreenWidth = 321.0f;
+    static constexpr float kInitialBatY = 200.0f;
+    static constexpr float kInitialBallY = 180.0f;
+    static constexpr float kInitialBallHalf = 4.0f; // legacy center adjust
+    // Playfield interior boundaries (logical movement space for bat & balls)
+    // Left wall currently aligned with background interior pillar (was 0, now 80).
+    static constexpr float kPlayfieldLeftWallX = 80.0f;   // where balls/bat bounce/stop on the left
+    static constexpr float kPlayfieldRightWallX = kScreenWidth; // rightmost interior boundary (change if artwork adds gutter)
+    static constexpr float kPlayfieldTopWallY = 4.0f;     // top bounce line (param for future lowering)
     // Title buttons declared later and initialized in init()
     // (Editor UI constants moved to editor.cpp)
     // Fixed geometry (design guarantees these never change now)
@@ -133,8 +144,10 @@ namespace game
         G.imgBatNormal = hw_image(IMAGE_bat_normal_idx);
         float bw = (G.imgBatNormal.subtex) ? G.imgBatNormal.subtex->width : 64.f;
         float bh = (G.imgBatNormal.subtex) ? G.imgBatNormal.subtex->height : 8.f;
-        G.bat = {160.f - bw / 2.f, 200.f, bw, bh, G.imgBatNormal};
-    G.balls.push_back({160.f - 4.f, 180.f, 0.0f, 0.f, 160.f - 4.f, 180.f, true, G.imgBall});
+        float batCenterX = kScreenWidth * 0.5f + kPlayfieldOffsetX;
+        G.bat = {batCenterX - bw / 2.f, kInitialBatY, bw, bh, G.imgBatNormal};
+        float ballStartX = kScreenWidth * 0.5f + kPlayfieldOffsetX - kInitialBallHalf;
+    G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, G.imgBall});
     G.ballLocked = true;
         char buf[96];
         snprintf(buf, sizeof buf, "bat sprite w=%.1f h=%.1f\n", bw, bh);
@@ -619,7 +632,7 @@ namespace game
     {
         int cols = levels_grid_width();
         int rows = levels_grid_height();
-        int ls = levels_left();
+    int ls = levels_left(); // now includes runtime offset
         int cw = levels_brick_width();
         for (int r = 0; r < rows; ++r)
         {
@@ -689,7 +702,7 @@ namespace game
         if (G.fireCooldown > 0)
             --G.fireCooldown;
         const int cw = levels_brick_width(), ch = levels_brick_height();
-        int ls = levels_left(), ts = levels_top();
+    int ls = levels_left(), ts = levels_top(); // offset-aware
         for (auto &L : G.lasers)
             if (L.active)
             {
@@ -844,7 +857,10 @@ namespace game
             if (act == editor::EditorAction::StartTest) {
                 // Initialize a fresh play session specifically for editor test runs
                 G.balls.clear();
-                G.balls.push_back({160.f - 4.f, 180.f, 0.0f, 0.f, 160.f - 4.f, 180.f, true, G.imgBall});
+                {
+                    float ballStartX = kScreenWidth * 0.5f + kPlayfieldOffsetX - kInitialBallHalf;
+                    G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, G.imgBall});
+                }
                 G.ballLocked = true;
                 G.lives = 3; // ensure lives reset (updated default)
                 G.score = 0;
@@ -888,7 +904,10 @@ namespace game
                 levels_reset_level(cur);
                 // Reset game state (fresh start)
                 G.balls.clear();
-                G.balls.push_back(Ball{160.f - 4.f, 180.f, 0.0f, 0.f, 160.f - 4.f, 180.f, true, G.imgBall});
+                {
+                    float ballStartX = kScreenWidth * 0.5f + kPlayfieldOffsetX - kInitialBallHalf;
+                    G.balls.push_back(Ball{ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, G.imgBall});
+                }
                 G.ballLocked = true;
                 G.lives = 3; // reset lives when starting from Title
                 G.score = 0;
@@ -925,10 +944,10 @@ namespace game
             if (G.reverseTimer > 0)
                 dx = -dx; // reverse control effect
             float targetX = G.dragAnchorBatX + dx;
-            if (targetX < 0)
-                targetX = 0;
-            if (targetX > 320 - G.bat.width)
-                targetX = 320 - G.bat.width;
+            if (targetX < kPlayfieldLeftWallX)
+                targetX = kPlayfieldLeftWallX;
+            if (targetX > kPlayfieldRightWallX - G.bat.width)
+                targetX = kPlayfieldRightWallX - G.bat.width;
             G.bat.x = targetX;
         }
         if (in.fireHeld)
@@ -963,34 +982,34 @@ namespace game
             if (b.active)
             {
                 // If primary ball is locked, keep it attached to bat and skip physics
-                if (&b == &G.balls[0] && G.ballLocked)
-                {
-                    b.x = G.bat.x + G.bat.width / 2 - 4;
-                    b.y = G.bat.y - 8;
-                    b.px = b.x;
-                    b.py = b.y;
-                    b.vx = 0.f;
-                    b.vy = 0.f;
-                    continue; // don't process collisions while parked
-                }
+                        if (&b == &G.balls[0] && G.ballLocked)
+                        {
+                            b.x = G.bat.x + G.bat.width * 0.5f - kBallW * 0.5f;
+                            b.y = G.bat.y - kBallH - 1; // small gap
+                            b.px = b.x;
+                            b.py = b.y;
+                            b.vx = 0.f;
+                            b.vy = 0.f;
+                            continue; // parked
+                        }
                 b.px = b.x;
                 b.py = b.y;
                 b.x += b.vx;
                 b.y += b.vy;
-                // simple wall bounce
-                if (b.x < 0)
+                // simple wall bounce using parametric playfield bounds.
+                if (b.x < kPlayfieldLeftWallX)
                 {
-                    b.x = 0;
+                    b.x = kPlayfieldLeftWallX;
                     b.vx = -b.vx;
                 }
-                if (b.x > 320 - 8)
+                if (b.x > kPlayfieldRightWallX - kBallW)
                 {
-                    b.x = 320 - 8;
+                    b.x = kPlayfieldRightWallX - kBallW;
                     b.vx = -b.vx;
                 }
-                if (b.y < 0)
+                if (b.y < kPlayfieldTopWallY)
                 {
-                    b.y = 0;
+                    b.y = kPlayfieldTopWallY;
                     b.vy = -b.vy;
                 }
                 // bottom: lose life
@@ -1040,7 +1059,10 @@ namespace game
                         levels_set_current(0);
                         levels_reset_level(0);
                         G.balls.clear();
-                        G.balls.push_back({160.f - 4.f, 180.f, 0.0f, 0.f, 160.f - 4.f, 180.f, true, G.imgBall});
+                        {
+                            float ballStartX = kScreenWidth * 0.5f + kPlayfieldOffsetX - kInitialBallHalf;
+                            G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, G.imgBall});
+                        }
                         G.ballLocked = true;
                         G.lives = 3; // reset lives after returning to title
                         G.score = 0;
@@ -1050,8 +1072,8 @@ namespace game
                         G.fireCooldown = 0;
                         return;
                     }
-                    b.x = G.bat.x + G.bat.width / 2 - 4;
-                    b.y = G.bat.y - 8;
+                    b.x = G.bat.x + G.bat.width * 0.5f - kBallW * 0.5f;
+                    b.y = G.bat.y - kBallH - 1;
                     b.px = b.x;
                     b.py = b.y;
                     b.vx = 0;
@@ -1158,6 +1180,10 @@ namespace game
 
     void render()
     {
+    // Ensure correct brick horizontal offset per mode (editor unshifted, gameplay shifted)
+    int desiredOffset = 0;
+    if (G.mode == Mode::Playing) desiredOffset = (int)kPlayfieldOffsetX; // gameplay shift
+    if (levels_get_draw_offset() != desiredOffset) levels_set_draw_offset(desiredOffset);
         if (G.mode == Mode::Title)
         {
             // Draw current sequence image (skip if not loaded, fallback attempts)
@@ -1197,6 +1223,11 @@ namespace game
             }
             return;
         }
+        // Gameplay background (BREAK.png) - draw first so overlays appear above
+        if (G.mode == Mode::Playing) {
+            C2D_Image bg = hw_image_from(HwSheet::Break, BREAK_idx);
+            if (bg.tex) hw_draw_sprite(bg, 0, 0);
+        }
         // Editor-specific fade overlay still displays if active
         if (G.mode == Mode::Playing && editor::fade_overlay_active())
             editor::render_fade_overlay();
@@ -1223,7 +1254,7 @@ namespace game
         levels_render();
         int cols = levels_grid_width();
         int rows = levels_grid_height();
-        int ls = levels_left();
+    int ls = levels_left(); // offset-aware
         int ts = levels_top();
         int cw = levels_brick_width();
         int ch = levels_brick_height();
