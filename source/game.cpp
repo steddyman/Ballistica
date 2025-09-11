@@ -40,6 +40,11 @@ namespace game
     static constexpr float kPlayfieldLeftWallX = 80.0f;   // where balls/bat bounce/stop on the left
     static constexpr float kPlayfieldRightWallX = kScreenWidth; // rightmost interior boundary (change if artwork adds gutter)
     static constexpr float kPlayfieldTopWallY = 4.0f;     // top bounce line (param for future lowering)
+    
+    // UI placement: BONUS indicator stack anchor (left-aligned X), top Y, and vertical gap
+    static constexpr int kBonusIndicatorLeftX = 358; // left edge anchor for icons (adjust as needed)
+    static constexpr int kBonusIndicatorTopY = 78;    // top Y for the first icon
+    static constexpr int kBonusIndicatorGapY = 3;    // gap between icons (in pixels)
     // Title buttons declared later and initialized in init()
     // (Editor UI constants moved to editor.cpp)
     // Fixed geometry (design guarantees these never change now)
@@ -61,6 +66,14 @@ namespace game
     {
         float x, y;
         bool active;
+    };
+    struct FallingLetter
+    {
+        float x, y;   // top-left position
+        float vy;     // vertical velocity
+        int letter;   // 0=B,1=O,2=N,3=U,4=S
+        bool active;
+        C2D_Image img;
     };
     struct Bat
     {
@@ -105,6 +118,7 @@ namespace game
         Bat bat{};
         std::vector<Ball> balls;
         std::vector<Laser> lasers;
+    std::vector<FallingLetter> letters; // falling BONUS pickups
         C2D_Image imgBall{};
         C2D_Image imgBatNormal{};
         Mode mode = Mode::Title;
@@ -192,6 +206,27 @@ namespace game
         if (G.balls.size() >= 8)
             return;
         G.balls.push_back(Ball{x, y, vx, vy, x, y, true, G.imgBall});
+    }
+
+    static void spawn_bonus_letter(int letter, float cx, float cy)
+    {
+        if (letter < 0 || letter > 4)
+            return;
+        // Spawn the actual BONUS brick sprite as the falling pickup
+        int atlasIdx = IMAGE_b_brick_idx;
+        switch (letter)
+        {
+        case 0: atlasIdx = IMAGE_b_brick_idx; break;
+        case 1: atlasIdx = IMAGE_o_brick_idx; break;
+        case 2: atlasIdx = IMAGE_n_brick_idx; break;
+        case 3: atlasIdx = IMAGE_u_brick_idx; break;
+        case 4: atlasIdx = IMAGE_s_brick_idx; break;
+        }
+        C2D_Image img = hw_image(atlasIdx);
+        float w = (img.subtex ? img.subtex->width : 10.0f);
+        float h = (img.subtex ? img.subtex->height : 11.0f);
+        FallingLetter fl{cx - w * 0.5f, cy - h * 0.5f, 0.6f, letter, true, img};
+        G.letters.push_back(fl);
     }
 
     static void apply_brick_effect(BrickType bt, float cx, float cy, Ball &ball)
@@ -283,29 +318,69 @@ namespace game
         case BrickType::BA:
             G.score += 1000;
             break;
-        case BrickType::B1:
-            G.bonusBits |= 0x01;
-            break;
-        case BrickType::B2:
-            G.bonusBits |= 0x02;
-            break;
-        case BrickType::B3:
-            G.bonusBits |= 0x04;
-            break;
-        case BrickType::B4:
-            G.bonusBits |= 0x08;
-            break;
-        case BrickType::B5:
-            G.bonusBits |= 0x10;
-            break;
+        case BrickType::B1: spawn_bonus_letter(0, cx, cy); break;
+        case BrickType::B2: spawn_bonus_letter(1, cx, cy); break;
+        case BrickType::B3: spawn_bonus_letter(2, cx, cy); break;
+        case BrickType::B4: spawn_bonus_letter(3, cx, cy); break;
+        case BrickType::B5: spawn_bonus_letter(4, cx, cy); break;
         default:
             break; // others TBD
         }
-        if (G.bonusBits == 0x1F)
+    // Bonus completion and scoring handled on collection, not at hit time
+    }
+
+    static void update_bonus_letters()
+    {
+        if (G.letters.empty()) return;
+        // Compute effective bat collision rectangle (centered logical size)
+        float effBatW = (float)BATWIDTH;
+        float effBatH = (float)BATHEIGHT;
+        float atlasLeft = (G.bat.img.subtex ? G.bat.img.subtex->left : 0.0f);
+        float batPadX = (G.bat.width - effBatW) * 0.5f;
+        if (batPadX < 0) batPadX = 0;
+        float batPadY = (G.bat.height - effBatH) * 0.5f;
+        if (batPadY < 0) batPadY = 0;
+        float batLeft = G.bat.x + batPadX - atlasLeft;
+        float batTop = G.bat.y + batPadY;
+        float batRight = batLeft + effBatW;
+        float batBottom = batTop + effBatH;
+        for (auto &L : G.letters)
         {
-            G.score += 5000;
-            G.bonusBits = 0;
-            hw_log("BONUS COMPLETE\n");
+            if (!L.active) continue;
+            L.y += L.vy;
+            L.vy += 0.05f; // gravity
+            if (L.y > 240.0f) { L.active = false; continue; }
+            float lw = (L.img.subtex ? L.img.subtex->width : 10.0f);
+            float lh = (L.img.subtex ? L.img.subtex->height : 11.0f);
+            float lLeft = L.x, lTop = L.y, lRight = L.x + lw, lBottom = L.y + lh;
+            bool overlap = !(lRight <= batLeft || lLeft >= batRight || lBottom <= batTop || lTop >= batBottom);
+            if (overlap)
+            {
+                // Collect this letter
+                switch (L.letter)
+                {
+                case 0: G.bonusBits |= 0x01; break; // B
+                case 1: G.bonusBits |= 0x02; break; // O
+                case 2: G.bonusBits |= 0x04; break; // N
+                case 3: G.bonusBits |= 0x08; break; // U
+                case 4: G.bonusBits |= 0x10; break; // S
+                }
+                L.active = false;
+                // If all five collected, award 250 * level number and reset
+                if (G.bonusBits == 0x1F)
+                {
+                    int lvl = levels_current();
+                    int levelNumber = lvl + 1; // levels are 1-based for scoring
+                    G.score += 250 * levelNumber;
+                    G.bonusBits = 0;
+                    hw_log("BONUS COMPLETE (award)\n");
+                }
+            }
+        }
+        // Compact inactive periodically
+        if (G.letters.size() > 32)
+        {
+            G.letters.erase(std::remove_if(G.letters.begin(), G.letters.end(), [](const FallingLetter &f){ return !f.active; }), G.letters.end());
         }
     }
 
@@ -373,6 +448,7 @@ namespace game
     }
 
     static void update_moving_bricks(); // fwd
+    static void update_bonus_letters(); // fwd
 
     static void handle_ball_bricks(Ball &ball)
     {
@@ -389,8 +465,7 @@ namespace game
             float ballT = ball.y;
             float ballR = ball.x + kBallW;
             float ballB = ball.y + kBallH;
-            float centerX = ball.x + kBallW * 0.5f;
-            float centerY = ball.y + kBallH * 0.5f;
+            // center values can be derived on demand; avoid unused locals
 
             if (!movingPhase)
             {
@@ -455,7 +530,7 @@ namespace game
                             destroyed = false;
                         else
                             levels_remove_brick(c, r);
-                        apply_brick_effect(bt, centerX, centerY, ball);
+                        apply_brick_effect(bt, bx + kBrickW * 0.5f, by + kBrickH * 0.5f, ball);
                         if (G.murderTimer <= 0)
                         {
                             // Seam handling: if we are in a solid band of indestructible bricks and
@@ -544,7 +619,7 @@ namespace game
                             destroyed = false;
                         else
                             levels_remove_brick(c, r);
-                        apply_brick_effect(bt, centerX, centerY, ball);
+                        apply_brick_effect(bt, bx + kBrickW * 0.5f, by + kBrickH * 0.5f, ball);
                         if (G.murderTimer <= 0)
                         {
                             float penLeft = ballR - bx;
@@ -824,6 +899,7 @@ namespace game
                         levels_set_current(0);
                         levels_reset_level(0);
                         G.levelIntroTimer = 90;
+                        G.letters.clear();
                     }
                     if (tb.next == Mode::Options)
                         options::begin();
@@ -868,6 +944,7 @@ namespace game
                 G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
                 G.laserCharges = 0;
                 G.fireCooldown = 0;
+                G.letters.clear();
                 // Reinitialize moving bricks data for current layout
                 int totalCells = levels_grid_width() * levels_grid_height();
                 G.moving.assign(totalCells, {-1.f, 1.f, 0.f, 0.f});
@@ -915,6 +992,7 @@ namespace game
                 G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
                 G.laserCharges = 0;
                 G.fireCooldown = 0;
+                G.letters.clear();
                 // Re-init moving brick arrays for new layout
                 int totalCells = levels_grid_width() * levels_grid_height();
                 G.moving.assign(totalCells, {-1.f, 1.f, 0.f, 0.f});
@@ -960,6 +1038,7 @@ namespace game
         if (G.murderTimer > 0)
             --G.murderTimer;
         update_moving_bricks();
+    update_bonus_letters();
         // Update particles
         for (auto &p : G.particles)
         {
@@ -1070,6 +1149,7 @@ namespace game
                         G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
                         G.laserCharges = 0;
                         G.fireCooldown = 0;
+                        G.letters.clear();
                         return;
                     }
                     b.x = G.bat.x + G.bat.width * 0.5f - kBallW * 0.5f;
@@ -1337,6 +1417,10 @@ namespace game
                 continue;
             C2D_DrawRectSolid(p.x, p.y, 0, 2, 2, p.color);
         }
+        // Draw falling BONUS letters
+        for (auto &L : G.letters)
+            if (L.active)
+                hw_draw_sprite(L.img, L.x, L.y);
         // HUD overlay
         char hud[128];
         char bonus[8];
@@ -1359,6 +1443,21 @@ namespace game
         {
             // dark overlay (draw first so HUD stays bright) - simple approach: semi-transparent rect
             C2D_DrawRectSolid(0, 0, 0, 320, 240, C2D_Color32(0, 0, 0, 140));
+        }
+    // BONUS indicators: draw five letter icons at right side, dim when not collected
+        {
+            const int iconIdx[5] = { IMAGE_letterb_idx, IMAGE_lettero_idx, IMAGE_lettern_idx, IMAGE_letteru_idx, IMAGE_letters_idx };
+            for (int i = 0; i < 5; ++i)
+            {
+                C2D_Image img = hw_image(iconIdx[i]);
+                float w = (img.subtex ? img.subtex->width : 10.0f);
+                float h = (img.subtex ? img.subtex->height : 11.0f);
+                int drawX = kBonusIndicatorLeftX; // left-align to anchor
+        int drawY = kBonusIndicatorTopY + i * ((int)h + kBonusIndicatorGapY);
+                hw_draw_sprite(img, (float)drawX, (float)drawY);
+                if ((G.bonusBits & (1 << i)) == 0)
+                    C2D_DrawRectSolid(drawX, drawY, 0, w, h, C2D_Color32(0, 0, 0, 140)); // dim overlay
+            }
         }
         // TODO: overlay HUD (score/lives/bonus) using tiny font logger or future UI layer
         // Draw bat (account for atlas left trim so column 0 visible)
