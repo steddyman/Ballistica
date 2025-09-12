@@ -75,6 +75,15 @@ namespace game
         bool active;
         C2D_Image img;
     };
+    // Falling hazard (Destroy Bat Bricks: F1/F2). If it hits the bat, lose a life immediately.
+    struct FallingHazard
+    {
+        float x, y;   // top-left
+        float vy;     // vertical velocity
+        int type;     // 1 = F1 (slow), 2 = F2 (fast)
+        bool active;
+        C2D_Image img;
+    };
     struct Bat
     {
         float x, y;
@@ -119,6 +128,7 @@ namespace game
         std::vector<Ball> balls;
         std::vector<Laser> lasers;
     std::vector<FallingLetter> letters; // falling BONUS pickups
+    std::vector<FallingHazard> hazards; // falling kill bricks (F1/F2)
         C2D_Image imgBall{};
     C2D_Image imgBatNormal{};
     C2D_Image imgBatSmall{};
@@ -143,6 +153,12 @@ namespace game
         int reverseTimer = 0;   // frames remaining reverse controls
         int lightsOffTimer = 0; // frames until lights restore
         int murderTimer = 0;    // murderball active
+    // Life-loss death sequence (bat sinks then fade out/in)
+    bool deathActive = false;
+    int  deathPhase = 0;       // 0=sink, 1=fadeOut, 2=fadeIn
+    int  deathTimer = 0;       // generic per-phase timer
+    float deathSinkVy = 0.0f;  // current vertical speed of bat sink
+    int  deathFadeAlpha = 0;   // overlay alpha while fading (0..200)
     // Laser system (re-implemented as pickup + indicator)
     bool laserEnabled = false; // collected laser ability
     bool laserReady = false;   // indicator visible and ready to fire
@@ -157,6 +173,9 @@ namespace game
     static State G;
     static bool g_exitRequested = false;
     bool exit_requested_internal() { return g_exitRequested; }
+
+    // Forward declare helpers defined later
+    static void set_bat_size(int mode);
 
     void init_assets()
     {
@@ -176,6 +195,132 @@ namespace game
         char buf[96];
         snprintf(buf, sizeof buf, "bat sprite w=%.1f h=%.1f\n", bw, bh);
         hw_log(buf);
+    }
+
+    // Begin the life-loss sequence (non-gameover): bat sinks, fade out/in, respawn with parked ball
+    static void begin_death_sequence()
+    {
+        // Decrement life and check for game over
+        G.lives--;
+        if (G.lives <= 0)
+        {
+            // If we are in an editor test run, return to editor instead of title
+            if (editor::test_return_active()) {
+                levels_reset_level(editor::current_level_index());
+                editor::on_return_from_test_full();
+                G.mode = Mode::Editor;
+                // Clear transient states
+                G.deathActive = false; G.deathFadeAlpha = 0; G.deathTimer = 0; G.deathPhase = 0; G.deathSinkVy = 0.f;
+                G.hazards.clear();
+                G.letters.clear();
+                return;
+            }
+            // Trigger existing game-over flow via the same path used on bottom loss
+            hw_log("GAME OVER (hazard)\n");
+            int levelReached = levels_current() + 1;
+            int pos = highscores::submit(G.score, levelReached);
+            if (pos >= 0) {
+#ifdef PLATFORM_3DS
+                {
+                    SwkbdState swkbd;
+                    char name[highscores::MAX_NAME + 1] = "";
+                    swkbdInit(&swkbd, SWKBD_TYPE_QWERTY, 1, highscores::MAX_NAME);
+                    swkbdSetHintText(&swkbd, "Name");
+                    if (swkbdInputText(&swkbd, name, sizeof(name)) == SWKBD_BUTTON_RIGHT)
+                        highscores::set_name(pos, name);
+                    else
+                        highscores::set_name(pos, "PLAYER");
+                    highscores::save();
+                }
+#endif
+            }
+            G.mode = Mode::Title;
+            levels_set_current(0);
+            levels_reset_level(0);
+            G.balls.clear();
+            {
+                float ballStartX = kScreenWidth * 0.5f + kPlayfieldOffsetX - kInitialBallHalf;
+                G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, G.imgBall});
+            }
+            G.ballLocked = true;
+            G.lives = 3;
+            set_bat_size(1);
+            G.score = 0;
+            G.bonusBits = 0;
+            G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
+            G.fireCooldown = 0;
+            G.letters.clear();
+            G.hazards.clear();
+            G.deathActive = false; G.deathFadeAlpha = 0; G.deathTimer = 0; G.deathPhase = 0; G.deathSinkVy = 0.f;
+            return;
+        }
+        // Start non-gameover death sequence
+        G.deathActive = true;
+        G.deathPhase = 0;
+        G.deathTimer = 0;
+        G.deathSinkVy = 1.2f;
+        // Freeze gameplay objects (deactivate balls so only bat is seen sinking)
+        for (auto &b : G.balls) b.active = false;
+        // Lose laser immediately on life loss
+        G.laserEnabled = false;
+        G.laserReady = false;
+    }
+
+    static void update_death_sequence()
+    {
+        if (!G.deathActive) return;
+        switch (G.deathPhase)
+        {
+        case 0: // sinking bat
+            G.bat.y += G.deathSinkVy;
+            G.deathSinkVy += 0.15f; // accelerate
+            if (G.bat.y > 260.0f)
+            {
+                G.deathPhase = 1;
+                G.deathTimer = 0;
+                G.deathFadeAlpha = 0;
+            }
+            break;
+        case 1: // fade out
+            if (G.deathFadeAlpha < 200) G.deathFadeAlpha += 12; // 0.2s-ish
+            if (++G.deathTimer > 20)
+            {
+                // Respawn during black
+                // Reset bat position (keep current X clamped) and ball parked
+                if (G.bat.x < kPlayfieldLeftWallX) G.bat.x = kPlayfieldLeftWallX;
+                if (G.bat.x > kPlayfieldRightWallX - G.bat.width) G.bat.x = kPlayfieldRightWallX - G.bat.width;
+                G.bat.y = kInitialBatY;
+                // Primary ball parked and relocked
+                if (G.balls.empty())
+                {
+                    float ballStartX = kScreenWidth * 0.5f + kPlayfieldOffsetX - kInitialBallHalf;
+                    G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, G.imgBall});
+                }
+                Ball &b0 = G.balls[0];
+                b0.x = G.bat.x + G.bat.width * 0.5f - kBallW * 0.5f;
+                b0.y = G.bat.y - kBallH - 1;
+                b0.px = b0.x; b0.py = b0.y; b0.vx = 0.f; b0.vy = 0.f; b0.active = true;
+                // Clear any leftover hazards/pickups
+                G.hazards.clear();
+                G.letters.erase(std::remove_if(G.letters.begin(), G.letters.end(), [](const FallingLetter &f){ return !f.active; }), G.letters.end());
+                G.ballLocked = true;
+                G.deathPhase = 2;
+                G.deathTimer = 0;
+            }
+            break;
+        case 2: // fade in
+            if (G.deathFadeAlpha > 0) G.deathFadeAlpha -= 10;
+            if (G.deathFadeAlpha < 0) G.deathFadeAlpha = 0;
+            if (++G.deathTimer > 18 && G.deathFadeAlpha == 0)
+            {
+                // Resume normal play
+                G.deathActive = false;
+                G.deathPhase = 0;
+                G.deathTimer = 0;
+                G.deathSinkVy = 0;
+            }
+            break;
+        }
     }
 
     void init()
@@ -248,6 +393,19 @@ namespace game
         // Reuse FallingLetter with code 200 for laser pickup
         FallingLetter fl{cx - w * 0.5f, cy - h * 0.5f, 0.6f, 200, true, img};
         G.letters.push_back(fl);
+    }
+
+    static void spawn_destroy_bat_brick(BrickType bt, float cx, float cy)
+    {
+        // Use skull brick visual for both F1/F2 for now
+        C2D_Image img = hw_image(IMAGE_skull_brick_idx);
+        float w = (img.subtex ? img.subtex->width : 16.0f);
+        float h = (img.subtex ? img.subtex->height : 9.0f);
+        int t = (bt == BrickType::F2) ? 2 : 1; // 1=F1(slow) 2=F2(fast)
+        // Ensure F2 starts at exactly 2x the initial speed of F1
+        const float baseInitVy = 0.6f; // F1
+        float initVy = baseInitVy * (t == 2 ? 2.0f : 1.0f);
+        G.hazards.push_back(FallingHazard{cx - w * 0.5f, cy - h * 0.5f, initVy, t, true, img});
     }
 
     static void spawn_bat_pickup(bool makeBig, float cx, float cy)
@@ -471,6 +629,45 @@ namespace game
         }
     }
 
+    static void update_falling_hazards()
+    {
+        if (G.hazards.empty()) return;
+        // Compute effective bat collision rectangle (same logic as pickups)
+        float effBatW = (float)BATWIDTH;
+        float effBatH = (float)BATHEIGHT;
+        float atlasLeft = (G.bat.img.subtex ? G.bat.img.subtex->left : 0.0f);
+        float batPadX = (G.bat.width - effBatW) * 0.5f; if (batPadX < 0) batPadX = 0;
+        float batPadY = (G.bat.height - effBatH) * 0.5f; if (batPadY < 0) batPadY = 0;
+        float batLeft = G.bat.x + batPadX - atlasLeft;
+        float batTop = G.bat.y + batPadY;
+        float batRight = batLeft + effBatW;
+        float batBottom = batTop + effBatH;
+        for (auto &H : G.hazards)
+        {
+            if (!H.active) continue;
+            H.y += H.vy;
+            // Apply gravity; F2 accelerates at 2x so it maintains ~2x speed profile
+            const float baseGrav = 0.025f; // F1 gravity per frame
+            H.vy += baseGrav * (H.type == 2 ? 2.0f : 1.0f);
+            if (H.y > 240.0f) { H.active = false; continue; }
+            float hw = (H.img.subtex ? H.img.subtex->width : 16.0f);
+            float hh = (H.img.subtex ? H.img.subtex->height : 9.0f);
+            float hLeft = H.x, hTop = H.y, hRight = H.x + hw, hBottom = H.y + hh;
+            bool overlap = !(hRight <= batLeft || hLeft >= batRight || hBottom <= batTop || hTop >= batBottom);
+            if (overlap)
+            {
+                H.active = false;
+                begin_death_sequence();
+                return; // bail; sequence takes control
+            }
+        }
+        // Compact occasionally
+        if ((int)G.hazards.size() > 32)
+        {
+            G.hazards.erase(std::remove_if(G.hazards.begin(), G.hazards.end(), [](const FallingHazard &h){ return !h.active; }), G.hazards.end());
+        }
+    }
+
     static bool is_moving_type(int raw) { return raw == (int)BrickType::SS || raw == (int)BrickType::SF; }
 
     static bool bomb_event_scheduled(int c, int r)
@@ -536,6 +733,7 @@ namespace game
 
     static void update_moving_bricks(); // fwd
     static void update_bonus_letters(); // fwd
+    static void update_falling_hazards(); // fwd
 
     static void handle_ball_bricks(Ball &ball)
     {
@@ -615,6 +813,12 @@ namespace game
                         }
                         else if (bt == BrickType::ID)
                             destroyed = false;
+                        else if (bt == BrickType::F1 || bt == BrickType::F2)
+                        {
+                            levels_remove_brick(c, r);
+                            apply_brick_effect(bt, bx + kBrickW * 0.5f, by + kBrickH * 0.5f, ball);
+                            spawn_destroy_bat_brick(bt, bx + kBrickW * 0.5f, by + kBrickH * 0.5f);
+                        }
                         else
                             levels_remove_brick(c, r);
                         apply_brick_effect(bt, bx + kBrickW * 0.5f, by + kBrickH * 0.5f, ball);
@@ -707,6 +911,12 @@ namespace game
                         }
                         else if (bt == BrickType::ID)
                             destroyed = false;
+                        else if (bt == BrickType::F1 || bt == BrickType::F2)
+                        {
+                            levels_remove_brick(c, r);
+                            apply_brick_effect(bt, bx + kBrickW * 0.5f, by + kBrickH * 0.5f, ball);
+                            spawn_destroy_bat_brick(bt, bx + kBrickW * 0.5f, by + kBrickH * 0.5f);
+                        }
                         else
                             levels_remove_brick(c, r);
                         apply_brick_effect(bt, bx + kBrickW * 0.5f, by + kBrickH * 0.5f, ball);
@@ -905,6 +1115,8 @@ namespace game
                                 float cx = ls + db.col * cw + cw * 0.5f;
                                 float cy = ts + db.row * ch + ch * 0.5f;
                                 apply_brick_effect((BrickType)db.type, cx, cy, G.balls[0]);
+                                if (db.type == (int)BrickType::F1 || db.type == (int)BrickType::F2)
+                                    spawn_destroy_bat_brick((BrickType)db.type, cx, cy);
                             }
                             appliedInBranch = true; // effects already applied for all destroyed bricks
                         }
@@ -921,6 +1133,8 @@ namespace game
                             float cx = ls + col * cw + cw * 0.5f;
                             float cy = ts + row * ch + ch * 0.5f;
                             apply_brick_effect(bt, cx, cy, G.balls[0]);
+                            if (bt == BrickType::F1 || bt == BrickType::F2)
+                                spawn_destroy_bat_brick(bt, cx, cy);
                         }
                         L.active = false;
                     }
@@ -1015,6 +1229,7 @@ namespace game
                         G.levelIntroTimer = 90;
                         set_bat_size(1);
                         G.letters.clear();
+                        G.hazards.clear();
                     }
                     if (tb.next == Mode::Options)
                         options::begin();
@@ -1060,6 +1275,7 @@ namespace game
                 G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
                 G.fireCooldown = 0;
                 G.letters.clear();
+                G.hazards.clear();
                 // Reinitialize moving bricks data for current layout
                 int totalCells = levels_grid_width() * levels_grid_height();
                 G.moving.assign(totalCells, {-1.f, 1.f, 0.f, 0.f});
@@ -1107,6 +1323,7 @@ namespace game
                 G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
                 G.fireCooldown = 0;
                 G.letters.clear();
+                G.hazards.clear();
                 // Re-init moving brick arrays for new layout
                 int totalCells = levels_grid_width() * levels_grid_height();
                 G.moving.assign(totalCells, {-1.f, 1.f, 0.f, 0.f});
@@ -1117,43 +1334,47 @@ namespace game
 #endif
         // Process bomb chain before physics so collisions see updated board
         process_bomb_events();
-        // Stylus drag controls bat X (relative). A tap elsewhere without drag no longer teleports the bat.
-        if (in.touchPressed)
-        {
-            G.dragging = true;
-            G.dragAnchorStylusX = (float)in.stylusX;
-            G.dragAnchorBatX = G.bat.x;
+        // Stylus drag controls bat X (relative). Disabled during death sequence.
+        if (!G.deathActive) {
+            if (in.touchPressed)
+            {
+                G.dragging = true;
+                G.dragAnchorStylusX = (float)in.stylusX;
+                G.dragAnchorBatX = G.bat.x;
+            }
+            if (!in.touching)
+            {
+                G.dragging = false; // end drag on release
+            }
+            if (G.dragging && in.touching)
+            {
+                G.prevBatX = G.bat.x; // record before applying delta
+                float curStylusX = (float)in.stylusX;
+                float dx = curStylusX - G.dragAnchorStylusX;
+                if (G.reverseTimer > 0)
+                    dx = -dx; // reverse control effect
+                float targetX = G.dragAnchorBatX + dx;
+                if (targetX < kPlayfieldLeftWallX)
+                    targetX = kPlayfieldLeftWallX;
+                if (targetX > kPlayfieldRightWallX - G.bat.width)
+                    targetX = kPlayfieldRightWallX - G.bat.width;
+                G.bat.x = targetX;
+            }
         }
-        if (!in.touching)
-        {
-            G.dragging = false; // end drag on release
-        }
-        if (G.dragging && in.touching)
-        {
-            G.prevBatX = G.bat.x; // record before applying delta
-            float curStylusX = (float)in.stylusX;
-            float dx = curStylusX - G.dragAnchorStylusX;
-            if (G.reverseTimer > 0)
-                dx = -dx; // reverse control effect
-            float targetX = G.dragAnchorBatX + dx;
-            if (targetX < kPlayfieldLeftWallX)
-                targetX = kPlayfieldLeftWallX;
-            if (targetX > kPlayfieldRightWallX - G.bat.width)
-                targetX = kPlayfieldRightWallX - G.bat.width;
-            G.bat.x = targetX;
-        }
-        // Fire laser on input edge: D-Pad Up, or stylus release
-        if (in.dpadUpPressed || (G.prevTouching && !in.touching))
+        // Fire laser on input edge: D-Pad Up, or stylus release (disabled during death sequence)
+        if (!G.deathActive && (in.dpadUpPressed || (G.prevTouching && !in.touching)))
             fire_laser();
-        update_lasers();
+        if (!G.deathActive) update_lasers();
     if (G.reverseTimer > 0)
             --G.reverseTimer;
         if (G.lightsOffTimer > 0)
             --G.lightsOffTimer;
     if (G.murderTimer > 0)
             --G.murderTimer;
-        update_moving_bricks();
-    update_bonus_letters();
+    if (!G.deathActive) update_moving_bricks();
+    if (!G.deathActive) update_bonus_letters();
+    if (!G.deathActive) update_falling_hazards();
+    update_death_sequence();
         // Update particles
         for (auto &p : G.particles)
         {
@@ -1265,6 +1486,7 @@ namespace game
                         G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
                         G.fireCooldown = 0;
                         G.letters.clear();
+                        G.hazards.clear();
                         return;
                     }
                     b.x = G.bat.x + G.bat.width * 0.5f - kBallW * 0.5f;
@@ -1349,8 +1571,8 @@ namespace game
             // simple rate limit not implemented yet
         }
 
-        // Manual launch: require a touch THEN release after lock (even if not touching when ball appears)
-        if (G.ballLocked)
+    // Manual launch: require a touch THEN release after lock (disabled during death sequence)
+    if (G.ballLocked && !G.deathActive)
         {
             // Only allow launching if we have seen a touch while locked and now see its release.
             // prevTouching tracks global previous frame, but we only care about transitions that happen after lock.
@@ -1429,6 +1651,12 @@ namespace game
         // Editor-specific fade overlay still displays if active
         if (G.mode == Mode::Playing && editor::fade_overlay_active())
             editor::render_fade_overlay();
+        // Death sequence fade overlay (on top of everything else except HUD text)
+        if (G.mode == Mode::Playing && G.deathActive && G.deathFadeAlpha > 0)
+        {
+            int a = G.deathFadeAlpha; if (a > 200) a = 200; if (a < 0) a = 0;
+            C2D_DrawRectSolid(0, 0, 0, 320, 240, C2D_Color32(0, 0, 0, (uint8_t)a));
+        }
         // Generic per-level intro (shows level name every level start)
         if (G.mode == Mode::Playing && G.levelIntroTimer > 0)
         {
@@ -1539,6 +1767,10 @@ namespace game
         for (auto &L : G.letters)
             if (L.active)
                 hw_draw_sprite(L.img, L.x, L.y);
+        // Draw falling hazards (F1/F2)
+        for (auto &H : G.hazards)
+            if (H.active)
+                hw_draw_sprite(H.img, H.x, H.y);
         // HUD overlay
         char hud[128];
         char bonus[8];
