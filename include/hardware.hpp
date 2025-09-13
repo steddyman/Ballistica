@@ -210,7 +210,7 @@ C2D_Image hw_image(int index);
 void hw_log(const char* msg);
 
 // Additional sprite sheets (background / UI). All are optional; check loaded before use.
-enum class HwSheet : uint8_t { Image, Break, Title, High, Instruct, Designer, Touch, Options };
+enum class HwSheet : uint8_t { Image, Break, Title, High, Instruct, Designer, Touch, Options, Background };
 bool hw_sheet_loaded(HwSheet sheet);
 C2D_Image hw_image_from(HwSheet sheet, int index); // returns empty image if missing
 

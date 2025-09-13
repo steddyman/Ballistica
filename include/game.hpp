@@ -1,3 +1,6 @@
+namespace game {
+	void spawn_dust_effect(float x, float y);
+}
 // game.hpp - forward declarations for game lifecycle
 #pragma once
 #include "hardware.hpp"
