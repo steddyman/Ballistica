@@ -29,17 +29,21 @@
 // Basic game state migrated from legacy structures (incremental port)
 namespace game
 {
+    // Dual-screen alignment: use a 320px logical width on both screens.
+    // On the top screen (400px wide), add a +40px X offset so content aligns horizontally.
+    static constexpr int kTopXOffset = 40; // 400 - 320 = 80; centered => 40 left offset
     // Global horizontal offset to shift entire play area (bricks already shifted via levels.cpp)
-    static constexpr float kPlayfieldOffsetX = 70.0f; // shift right by 70px
-    static constexpr float kScreenWidth = 321.0f;
-    static constexpr float kInitialBatY = 200.0f;
-    static constexpr float kInitialBallY = 180.0f;
+    static constexpr float kPlayfieldOffsetX = 0.0f; // no global shift in dual-screen mode
+    static constexpr float kScreenWidth = 320.0f;
+    // World coordinates: 320x480 (top screen: y 0..239, bottom: y 240..479)
+    static constexpr float kInitialBatY = 440.0f;  // previously 200 on bottom -> 200+240
+    static constexpr float kInitialBallY = 420.0f; // previously 180 on bottom -> 180+240
     static constexpr float kInitialBallHalf = 4.0f; // legacy center adjust
     // Playfield interior boundaries (logical movement space for bat & balls)
     // Left wall currently aligned with background interior pillar (was 0, now 80).
-    static constexpr float kPlayfieldLeftWallX = 80.0f;   // where balls/bat bounce/stop on the left
-    static constexpr float kPlayfieldRightWallX = kScreenWidth; // rightmost interior boundary (change if artwork adds gutter)
-    static constexpr float kPlayfieldTopWallY = 4.0f;     // top bounce line (param for future lowering)
+    static constexpr float kPlayfieldLeftWallX = 0.0f;   // 10px wall
+    static constexpr float kPlayfieldRightWallX = kScreenWidth - 1.0f; // 10px wall
+    static constexpr float kPlayfieldTopWallY = 10.0f;     // 10px wall
     
     // UI placement: BONUS indicator stack anchor (left-aligned X), top Y, and vertical gap
     static constexpr int kBonusIndicatorLeftX = 358; // left edge anchor for icons (adjust as needed)
@@ -50,10 +54,11 @@ namespace game
     // Fixed geometry (design guarantees these never change now)
     static constexpr int kBrickCols = 13;
     static constexpr int kBrickRows = 11;
+    // Brick cell size is sourced from levels.cpp getters; keep constants only as defaults.
     static constexpr int kBrickW = 16;
     static constexpr int kBrickH = 9;
-    static constexpr int kBallW = BALLWIDTH;  // 3
-    static constexpr int kBallH = BALLHEIGHT; // 3
+    static constexpr int kBallW = 6;  // logical collision size
+    static constexpr int kBallH = 6;
     struct Ball
     {
         float x, y;
@@ -97,6 +102,15 @@ namespace game
         Editor,
         Options
     };
+
+    // Map per-level speed (1..99, with 10 as default) to a velocity multiplier.
+    // This scales the initial launch speed of the ball before any brick-induced modifiers.
+    static float level_speed_multiplier()
+    {
+        int s = levels_get_speed(levels_current());
+        if (s <= 0) s = 10; // fallback default
+        return (float)s / 10.0f;
+    }
 
     // Title buttons
     struct TitleBtn { UIButton btn; Mode next; };
@@ -183,13 +197,17 @@ namespace game
         G.imgBatNormal = hw_image(IMAGE_bat_normal_idx);
     G.imgBatSmall = hw_image(IMAGE_bat_small_idx);
     G.imgBatBig   = hw_image(IMAGE_bat_big_idx);
-        float bw = (G.imgBatNormal.subtex) ? G.imgBatNormal.subtex->width : 64.f;
+    float bw = (G.imgBatNormal.subtex) ? G.imgBatNormal.subtex->width : 64.f;
         float bh = (G.imgBatNormal.subtex) ? G.imgBatNormal.subtex->height : 8.f;
-        float batCenterX = kScreenWidth * 0.5f + kPlayfieldOffsetX;
+    float batCenterX = kScreenWidth * 0.5f;
         G.bat = {batCenterX - bw / 2.f, kInitialBatY, bw, bh, G.imgBatNormal};
     G.batSizeMode = 1;
-    G.batCollWidth = (float)BATWIDTH;
-        float ballStartX = kScreenWidth * 0.5f + kPlayfieldOffsetX - kInitialBallHalf;
+            // Set initial bat collider width equal to sprite width (21/32/44 per INF)
+            {
+                float bw = (G.imgBatNormal.subtex ? G.imgBatNormal.subtex->width : 64.f);
+                G.batCollWidth = std::max(8.0f, bw);
+            }
+    float ballStartX = kScreenWidth * 0.5f - kInitialBallHalf;
     G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, G.imgBall});
     G.ballLocked = true;
         char buf[96];
@@ -274,7 +292,7 @@ namespace game
         case 0: // sinking bat
             G.bat.y += G.deathSinkVy;
             G.deathSinkVy += 0.15f; // accelerate
-            if (G.bat.y > 260.0f)
+            if (G.bat.y > 500.0f)
             {
                 G.deathPhase = 1;
                 G.deathTimer = 0;
@@ -432,23 +450,23 @@ namespace game
         if (mode == 0)
         {
             G.bat.img = G.imgBatSmall;
-            G.batCollWidth = (float)BATWIDTH - 10.0f;
             float newW = (G.bat.img.subtex ? G.bat.img.subtex->width : G.bat.width);
             G.bat.width = newW;
+                G.batCollWidth = std::max(8.0f, newW);
         }
         else if (mode == 2)
         {
             G.bat.img = G.imgBatBig;
-            G.batCollWidth = (float)BATWIDTH + 10.0f;
             float newW = (G.bat.img.subtex ? G.bat.img.subtex->width : G.bat.width);
             G.bat.width = newW;
+                G.batCollWidth = std::max(8.0f, newW);
         }
         else
         {
             G.bat.img = G.imgBatNormal;
-            G.batCollWidth = (float)BATWIDTH;
             float newW = (G.bat.img.subtex ? G.bat.img.subtex->width : G.bat.width);
             G.bat.width = newW;
+                G.batCollWidth = std::max(8.0f, newW);
         }
         // Height from sprite
         G.bat.height = (G.bat.img.subtex ? G.bat.img.subtex->height : G.bat.height);
@@ -567,9 +585,9 @@ namespace game
     static void update_bonus_letters()
     {
         if (G.letters.empty()) return;
-        // Compute effective bat collision rectangle (centered logical size)
-        float effBatW = (float)BATWIDTH;
-        float effBatH = (float)BATHEIGHT;
+    // Compute effective bat collision rectangle (centered logical size)
+    float effBatW = G.batCollWidth;
+        float effBatH = (G.bat.img.subtex ? G.bat.img.subtex->height : G.bat.height);
         float atlasLeft = (G.bat.img.subtex ? G.bat.img.subtex->left : 0.0f);
         float batPadX = (G.bat.width - effBatW) * 0.5f;
         if (batPadX < 0) batPadX = 0;
@@ -584,7 +602,7 @@ namespace game
             if (!L.active) continue;
             L.y += L.vy;
             L.vy += 0.05f; // gravity
-            if (L.y > 240.0f) { L.active = false; continue; }
+            if (L.y > 480.0f) { L.active = false; continue; }
             float lw = (L.img.subtex ? L.img.subtex->width : 10.0f);
             float lh = (L.img.subtex ? L.img.subtex->height : 11.0f);
             float lLeft = L.x, lTop = L.y, lRight = L.x + lw, lBottom = L.y + lh;
@@ -632,9 +650,9 @@ namespace game
     static void update_falling_hazards()
     {
         if (G.hazards.empty()) return;
-        // Compute effective bat collision rectangle (same logic as pickups)
-        float effBatW = (float)BATWIDTH;
-        float effBatH = (float)BATHEIGHT;
+    // Compute effective bat collision rectangle (same logic as pickups)
+    float effBatW = G.batCollWidth;
+        float effBatH = (G.bat.img.subtex ? G.bat.img.subtex->height : G.bat.height);
         float atlasLeft = (G.bat.img.subtex ? G.bat.img.subtex->left : 0.0f);
         float batPadX = (G.bat.width - effBatW) * 0.5f; if (batPadX < 0) batPadX = 0;
         float batPadY = (G.bat.height - effBatH) * 0.5f; if (batPadY < 0) batPadY = 0;
@@ -649,7 +667,7 @@ namespace game
             // Apply gravity; F2 accelerates at 2x so it maintains ~2x speed profile
             const float baseGrav = 0.025f; // F1 gravity per frame
             H.vy += baseGrav * (H.type == 2 ? 2.0f : 1.0f);
-            if (H.y > 240.0f) { H.active = false; continue; }
+            if (H.y > 480.0f) { H.active = false; continue; }
             float hw = (H.img.subtex ? H.img.subtex->width : 16.0f);
             float hh = (H.img.subtex ? H.img.subtex->height : 9.0f);
             float hLeft = H.x, hTop = H.y, hRight = H.x + hw, hBottom = H.y + hh;
@@ -698,7 +716,7 @@ namespace game
     {
         if (G.bombEvents.empty())
             return;
-        const int ls = levels_left(), ts = levels_top(), cw = levels_brick_width(), ch = levels_brick_height();
+    const int ls = levels_left(), ts = levels_top(), cw = levels_brick_width(), ch = levels_brick_height();
         for (auto &e : G.bombEvents)
             if (e.frames > 0)
                 --e.frames;
@@ -746,6 +764,8 @@ namespace game
         {
             int ls = levels_left();
             int ts = levels_top();
+            int cellW = levels_brick_width();
+            int cellH = levels_brick_height();
             float ballL = ball.x;
             float ballT = ball.y;
             float ballR = ball.x + kBallW;
@@ -754,22 +774,22 @@ namespace game
 
             if (!movingPhase)
             {
-                int minCol = (int)((ballL - ls) / kBrickW);
+                int minCol = (int)((ballL - ls) / cellW);
                 if (minCol < 0)
                     minCol = 0;
                 if (minCol >= kBrickCols)
                     return false;
-                int maxCol = (int)((ballR - 1 - ls) / kBrickW);
+                int maxCol = (int)((ballR - 1 - ls) / cellW);
                 if (maxCol < 0)
                     return false;
                 if (maxCol >= kBrickCols)
                     maxCol = kBrickCols - 1;
-                int minRow = (int)((ballT - ts) / kBrickH);
+                int minRow = (int)((ballT - ts) / cellH);
                 if (minRow < 0)
                     minRow = 0;
                 if (minRow >= kBrickRows)
                     return false;
-                int maxRow = (int)((ballB - 1 - ts) / kBrickH);
+                int maxRow = (int)((ballB - 1 - ts) / cellH);
                 if (maxRow < 0)
                     return false;
                 if (maxRow >= kBrickRows)
@@ -782,10 +802,10 @@ namespace game
                             continue;
                         if (is_moving_type(raw))
                             continue;
-                        float bx = ls + c * kBrickW;
-                        float by = ts + r * kBrickH;
-                        float br = bx + kBrickW;
-                        float bb = by + kBrickH;
+                        float bx = ls + c * cellW;
+                        float by = ts + r * cellH;
+                        float br = bx + cellW;
+                        float bb = by + cellH;
                         if (ballR <= bx || ballL >= br || ballB <= by || ballT >= bb)
                             continue;
                         float penLeft = ballR - bx;
@@ -801,12 +821,12 @@ namespace game
                         else if (bt == BrickType::BO)
                         {
                             levels_remove_brick(c, r);
-                            apply_brick_effect(BrickType::BO, bx + kBrickW * 0.5f, by + kBrickH * 0.5f, ball);
+                            apply_brick_effect(BrickType::BO, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
                             for (int k = 0; k < 8; k++)
                             {
                                 float angle = (float)k / 8.f * 6.28318f;
                                 float sp = 0.6f + 0.4f * (k % 4);
-                                Particle p{bx + kBrickW * 0.5f, by + kBrickH * 0.5f, std::cos(angle) * sp, std::sin(angle) * sp, 32, C2D_Color32(255, 200, 50, 255)};
+                                Particle p{bx + cellW * 0.5f, by + cellH * 0.5f, std::cos(angle) * sp, std::sin(angle) * sp, 32, C2D_Color32(255, 200, 50, 255)};
                                 G.particles.push_back(p);
                             }
                             schedule_neighbor_bombs(c, r, 15);
@@ -816,12 +836,12 @@ namespace game
                         else if (bt == BrickType::F1 || bt == BrickType::F2)
                         {
                             levels_remove_brick(c, r);
-                            apply_brick_effect(bt, bx + kBrickW * 0.5f, by + kBrickH * 0.5f, ball);
-                            spawn_destroy_bat_brick(bt, bx + kBrickW * 0.5f, by + kBrickH * 0.5f);
+                            apply_brick_effect(bt, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
+                            spawn_destroy_bat_brick(bt, bx + cellW * 0.5f, by + cellH * 0.5f);
                         }
                         else
                             levels_remove_brick(c, r);
-                        apply_brick_effect(bt, bx + kBrickW * 0.5f, by + kBrickH * 0.5f, ball);
+                        apply_brick_effect(bt, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
                         if (G.murderTimer <= 0)
                         {
                             // Seam handling: if we are in a solid band of indestructible bricks and
@@ -874,6 +894,8 @@ namespace game
             else
             {
                 int ts2 = ts; // only need top offset for moving rows (ls already baked into mb.pos)
+                int cellW = levels_brick_width();
+                int cellH = levels_brick_height();
                 for (int r = 0; r < kBrickRows; ++r)
                     for (int c = 0; c < kBrickCols; ++c)
                     {
@@ -887,9 +909,9 @@ namespace game
                         if (mb.pos < 0.f)
                             continue;
                         float bx = mb.pos;
-                        float by = ts2 + r * kBrickH;
-                        float br = bx + kBrickW;
-                        float bb = by + kBrickH;
+                        float by = ts2 + r * cellH;
+                        float br = bx + cellW;
+                        float bb = by + cellH;
                         if (ballR <= bx || ballL >= br || ballB <= by || ballT >= bb)
                             continue;
                         BrickType bt = (BrickType)raw;
@@ -899,12 +921,12 @@ namespace game
                         else if (bt == BrickType::BO)
                         {
                             levels_remove_brick(c, r);
-                            apply_brick_effect(BrickType::BO, bx + kBrickW * 0.5f, by + kBrickH * 0.5f, ball);
+                            apply_brick_effect(BrickType::BO, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
                             for (int k = 0; k < 8; k++)
                             {
                                 float angle = (float)k / 8.f * 6.28318f;
                                 float sp = 0.6f + 0.4f * (k % 4);
-                                Particle p{bx + kBrickW * 0.5f, by + kBrickH * 0.5f, std::cos(angle) * sp, std::sin(angle) * sp, 32, C2D_Color32(255, 200, 50, 255)};
+                                Particle p{bx + cellW * 0.5f, by + cellH * 0.5f, std::cos(angle) * sp, std::sin(angle) * sp, 32, C2D_Color32(255, 200, 50, 255)};
                                 G.particles.push_back(p);
                             }
                             schedule_neighbor_bombs(c, r, 15);
@@ -914,12 +936,12 @@ namespace game
                         else if (bt == BrickType::F1 || bt == BrickType::F2)
                         {
                             levels_remove_brick(c, r);
-                            apply_brick_effect(bt, bx + kBrickW * 0.5f, by + kBrickH * 0.5f, ball);
-                            spawn_destroy_bat_brick(bt, bx + kBrickW * 0.5f, by + kBrickH * 0.5f);
+                            apply_brick_effect(bt, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
+                            spawn_destroy_bat_brick(bt, bx + cellW * 0.5f, by + cellH * 0.5f);
                         }
                         else
                             levels_remove_brick(c, r);
-                        apply_brick_effect(bt, bx + kBrickW * 0.5f, by + kBrickH * 0.5f, ball);
+                        apply_brick_effect(bt, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
                         if (G.murderTimer <= 0)
                         {
                             float penLeft = ballR - bx;
@@ -1151,7 +1173,15 @@ namespace game
 
     void update(const InputState &in)
     {
-        if (G.mode == Mode::Title)
+        // Keep brick logic in world coordinates: X has no +40 (render-only), Y uses a 3-brick gap (45px => +27 from TOPSTART=18)
+        if (G.mode == Mode::Playing) {
+            if (levels_get_draw_offset() != 0) levels_set_draw_offset(0);
+            if (levels_get_draw_offset_y() != 27) levels_set_draw_offset_y(27);
+        } else if (G.mode == Mode::Editor) {
+            if (levels_get_draw_offset() != 0) levels_set_draw_offset(0);
+            if (levels_get_draw_offset_y() != 0) levels_set_draw_offset_y(0);
+        }
+    if (G.mode == Mode::Title)
         {
             // Touch-driven title buttons now trigger on release (press-release inside same button)
             static int sPressedBtn = -1; // index into kTitleButtons while stylus held
@@ -1428,7 +1458,7 @@ namespace game
                     b.vy = -b.vy;
                 }
                 // bottom: lose life
-                if (b.y > 240)
+                if (b.y > 480)
                 {
                     // Only lose a life if this was the last active ball.
                     int activeCount = 0;
@@ -1502,11 +1532,11 @@ namespace game
                     G.laserReady = false;
                     continue;
                 }
-                // Bat collision using legacy logical sizes (BATWIDTH/BATHEIGHT, BALLWIDTH/BALLHEIGHT)
+                // Bat collision using updated logical sizes (bat width follows sprite; ball 6x6)
                 if (b.vy > 0)
                 {
-                    constexpr float ballCollW = (float)BALLWIDTH;  // legacy collision width
-                    constexpr float ballCollH = (float)BALLHEIGHT; // legacy collision height
+                    constexpr float ballCollW = (float)kBallW;  // logical collision width
+                    constexpr float ballCollH = (float)kBallH;  // logical collision height
                     // Align logical collision box centered within the ACTUAL rendered sprite (handles atlas trims)
                     float spriteW = (b.img.subtex ? b.img.subtex->width : 8.f);
                     float spriteH = (b.img.subtex ? b.img.subtex->height : 8.f);
@@ -1517,9 +1547,9 @@ namespace game
                     float ballHalfH = ballCollH * 0.5f;
                     float ballBottomPrev = ballCenterYPrev + ballHalfH;
                     float ballBottom = ballCenterY + ballHalfH;
-                    // Bat effective rectangle: shrink sprite to legacy BATWIDTH/BATHEIGHT centered
+                    // Bat effective rectangle: centered reduced width (batCollWidth) and legacy height
                     float effBatW = G.batCollWidth;
-                    float effBatH = (float)BATHEIGHT;
+                    float effBatH = (G.bat.img.subtex ? G.bat.img.subtex->height : G.bat.height);
                     float batPadX = (G.bat.width - effBatW) * 0.5f;
                     if (batPadX < 0)
                         batPadX = 0;
@@ -1588,6 +1618,10 @@ namespace game
                     b0.vy = -1.5f;
                     float batDX = G.bat.x - G.prevBatX;
                     b0.vx = batDX * 0.15f;
+                    // Apply per-level speed to initial launch velocity (both axes)
+                    float mul = level_speed_multiplier();
+                    b0.vx *= mul;
+                    b0.vy *= mul;
                 }
                 G.ballLocked = false;
                 sawTouchWhileLocked = false; // reset for next time we lock
@@ -1600,9 +1634,8 @@ namespace game
 
     void render()
     {
-    // Ensure correct brick horizontal offset per mode (editor unshifted, gameplay shifted)
-    int desiredOffset = 0;
-    if (G.mode == Mode::Playing) desiredOffset = (int)kPlayfieldOffsetX; // gameplay shift
+    // Ensure correct brick horizontal offset per mode (no background-aligned shift anymore)
+    int desiredOffset = 0; // gameplay and editor both use base left now
     if (levels_get_draw_offset() != desiredOffset) levels_set_draw_offset(desiredOffset);
         if (G.mode == Mode::Title)
         {
@@ -1643,12 +1676,194 @@ namespace game
             }
             return;
         }
-        // Gameplay background (BREAK.png) - draw first so overlays appear above
+        // NOTE: Backgrounds removed for new dual-screen refactor; gameplay renders on plain backdrop.
+    // (Previously drew BREAK.png here.)
+        // Top-screen phase (HUD and brick field). Gameplay objects are drawn on both screens appropriately.
         if (G.mode == Mode::Playing) {
-            C2D_Image bg = hw_image_from(HwSheet::Break, BREAK_idx);
-            if (bg.tex) hw_draw_sprite(bg, 0, 0);
+            hw_set_top();
+            // Top-screen bricks pass: center horizontally via +40px X and use a three-brick top gap
+            levels_set_draw_offset(kTopXOffset);
+            // Desired top-of-field equals exactly three brick heights (45px)
+            // With TOPSTART=18 in levels, offsetY = 45 - 18 = 27
+            levels_set_draw_offset_y(27);
+            // Fill side/top borders outside the brick field plus a 1-brick margin
+            {
+                int cols = levels_grid_width();
+                int ls = levels_left(); // includes +40 offset
+                int ts = levels_top();
+                int cw = levels_brick_width();
+                int ch = levels_brick_height();
+                // Compute outer bounds: extend one brick on left/right/top
+                int outerLeft = ls - cw;
+                int outerRight = ls + cols * cw + cw;
+                int outerTop = ts - ch;
+                // Clamp and draw fills in top-screen coordinates (0..400 x 0..240)
+                int leftW = std::max(0, std::min(outerLeft, 400));
+                if (leftW > 0)
+                    C2D_DrawRectSolid(0, 0, 0, (float)leftW, 240.0f, C2D_Color32(0, 0, 0, 255));
+                if (outerRight < 400)
+                    C2D_DrawRectSolid((float)outerRight, 0, 0, (float)(400 - outerRight), 240.0f, C2D_Color32(0, 0, 0, 255));
+                if (outerTop > 0)
+                    C2D_DrawRectSolid((float)std::max(0, outerLeft), 0, 0, (float)std::min(400, outerRight) - (float)std::max(0, outerLeft), (float)outerTop, C2D_Color32(0, 0, 0, 255));
+            }
+            levels_render();
+            int cols = levels_grid_width();
+            int rows = levels_grid_height();
+            int ls = levels_left(); // offset-aware (includes +40)
+            int ts = levels_top();
+            int cw = levels_brick_width();
+            int ch = levels_brick_height();
+            // Draw dynamic moving bricks over static grid
+            for (int r = 0; r < rows; ++r)
+                for (int c = 0; c < cols; ++c)
+                {
+                    int raw = levels_brick_at(c, r);
+                    if (!is_moving_type(raw))
+                        continue;
+                    int idx = r * cols + c;
+                    int atlas = levels_atlas_index(raw);
+                    if (atlas < 0)
+                        continue;
+                    float y = ts + r * ch; // clear original cell to avoid ghost
+                    C2D_DrawRectSolid(ls + c * cw, y, 0, cw, ch, C2D_Color32(0, 0, 0, 255));
+                    // Compute world-space X and clamp within world-space bounds, then convert to draw-space
+                    int offX = levels_get_draw_offset(); // should be kTopXOffset here
+                    float worldLeft = (float)(ls - offX);
+                    float xWorld = (idx < (int)G.moving.size() && G.moving[idx].pos >= 0.f) ? G.moving[idx].pos : (worldLeft + c * cw);
+                    if (idx < (int)G.moving.size())
+                    {
+                        if (xWorld < G.moving[idx].minX)
+                            xWorld = G.moving[idx].minX;
+                        if (xWorld > G.moving[idx].maxX)
+                            xWorld = G.moving[idx].maxX;
+                    }
+                    float xDraw = xWorld + offX;
+                    hw_draw_sprite(hw_image(atlas), xDraw, y);
+                    if (raw == (int)BrickType::T5)
+                    {
+                        int hp = levels_brick_hp(c, r);
+                        if (hp > 0)
+                        {
+                            int missing = 5 - hp;
+                            int alpha = 30 + missing * 40;
+                            if (alpha > 180) alpha = 180;
+                            C2D_DrawRectSolid(xDraw, y, 0, cw, ch, C2D_Color32(255, 0, 0, (uint8_t)alpha));
+                        }
+                    }
+                }
+#if defined(DEBUG) && DEBUG
+            // Debug colliders for static bricks
+            for (int r = 0; r < rows; ++r)
+                for (int c = 0; c < cols; ++c)
+                {
+                    int raw = levels_brick_at(c, r);
+                    if (raw <= 0) continue;
+                    if (is_moving_type(raw)) continue;
+                    float bx = ls + c * cw;
+                    float by = ts + r * ch;
+                    C2D_DrawRectSolid(bx, by, 0, cw, 1, C2D_Color32(255, 0, 0, 200));
+                    C2D_DrawRectSolid(bx, by + ch - 1, 0, cw, 1, C2D_Color32(255, 0, 0, 80));
+                    C2D_DrawRectSolid(bx, by, 0, 1, ch, C2D_Color32(255, 0, 0, 120));
+                    C2D_DrawRectSolid(bx + cw - 1, by, 0, 1, ch, C2D_Color32(255, 0, 0, 120));
+                }
+            // Debug colliders for moving bricks
+        for (int r = 0; r < rows; ++r)
+                for (int c = 0; c < cols; ++c)
+                {
+                    int raw = levels_brick_at(c, r);
+                    if (!is_moving_type(raw)) continue;
+                    int idx = r * cols + c;
+                    if (idx >= (int)G.moving.size()) continue;
+                    if (G.moving[idx].pos < 0.f) continue;
+            int offX = levels_get_draw_offset();
+            float x = G.moving[idx].pos + offX; // draw-space X on top screen
+            float y = ts + r * ch;
+            C2D_DrawRectSolid(x, y, 0, cw, 1, C2D_Color32(255, 0, 0, 200));
+            C2D_DrawRectSolid(x, y + ch - 1, 0, cw, 1, C2D_Color32(255, 0, 0, 80));
+            C2D_DrawRectSolid(x, y, 0, 1, ch, C2D_Color32(255, 0, 0, 120));
+            C2D_DrawRectSolid(x + cw - 1, y, 0, 1, ch, C2D_Color32(255, 0, 0, 120));
+                }
+#endif
+            // Light/dark overlay on top as well
+            if (G.lightsOffTimer > 0) {
+                C2D_DrawRectSolid(0, 0, 0, 400, 240, C2D_Color32(0, 0, 0, 140));
+            }
+            // HUD overlay on top screen (aligned to 320px logical area via +40px offset)
+            char hud[128];
+            char bonus[8];
+            int bi = 0;
+            if (G.bonusBits & 0x01) bonus[bi++] = 'B';
+            if (G.bonusBits & 0x02) bonus[bi++] = 'O';
+            if (G.bonusBits & 0x04) bonus[bi++] = 'N';
+            if (G.bonusBits & 0x08) bonus[bi++] = 'U';
+            if (G.bonusBits & 0x10) bonus[bi++] = 'S';
+            bonus[bi] = '\0';
+            const char* laserStr = (!G.laserEnabled ? "OFF" : (G.laserReady ? "RDY" : "BEAM"));
+            snprintf(hud, sizeof hud, "L%02d SCO:%lu LIVES:%d LA:%s %s%s%s",
+                     levels_current() + 1, G.score, G.lives, laserStr,
+                     (G.reverseTimer > 0 ? "REV " : ""), (G.murderTimer > 0 ? "MB " : ""), bonus);
+            hw_draw_text(kTopXOffset + 4, 4, hud, 0xFFFFFFFF);
+            // Laser ready indicator icon on top screen (to the right of HUD text)
+            if (G.laserEnabled && G.laserReady) {
+                C2D_Image ind = hw_image(IMAGE_laser_indicator_idx);
+                float iw = (ind.subtex ? ind.subtex->width : 6.0f);
+                float cx = (float)(kTopXOffset + 320 - 8 - iw);
+                hw_draw_sprite(ind, cx, 4.0f);
+            }
+            // BONUS indicators: draw on top (aligned via +40px)
+            {
+                const int iconIdx[5] = { IMAGE_letterb_idx, IMAGE_lettero_idx, IMAGE_lettern_idx, IMAGE_letteru_idx, IMAGE_letters_idx };
+                for (int i = 0; i < 5; ++i)
+                {
+                    C2D_Image img = hw_image(iconIdx[i]);
+                    float w = (img.subtex ? img.subtex->width : 10.0f);
+                    float h = (img.subtex ? img.subtex->height : 11.0f);
+                    int drawX = kTopXOffset + kBonusIndicatorLeftX - 320; // convert right-side anchor to top-screen coords
+                    int drawY = kBonusIndicatorTopY + i * ((int)h + kBonusIndicatorGapY);
+                    hw_draw_sprite(img, (float)drawX, (float)drawY);
+                    if ((G.bonusBits & (1 << i)) == 0)
+                        C2D_DrawRectSolid((float)drawX, (float)drawY, 0, w, h, C2D_Color32(0, 0, 0, 140));
+                }
+            }
+            // Generic per-level intro (rendered on top now)
+            if (G.levelIntroTimer > 0)
+            {
+                C2D_DrawRectSolid(0,0,0,400,240,C2D_Color32(0,0,0,120));
+                const char *nm = levels_get_name(levels_current()); if (!nm) nm = "Level";
+                float scale = 2.0f;
+                int tw = hw_text_width(nm);
+                int x = (int)((400 - tw * scale) * 0.5f);
+                int y = 110 + 24; // moved down 24px
+                hw_draw_text_shadow_scaled(x, y, nm, 0xFFFFFFFF, 0x000000FF, scale);
+                --G.levelIntroTimer;
+            }
+            // Death fade overlay (top-screen copy)
+            if (G.deathActive && G.deathFadeAlpha > 0) {
+                int a = G.deathFadeAlpha; if (a > 200) a = 200; if (a < 0) a = 0;
+                C2D_DrawRectSolid(0, 0, 0, 400, 240, C2D_Color32(0, 0, 0, (uint8_t)a));
+            }
+            // Draw world side borders on the top screen for clarity (ball bounces at these walls)
+            {
+                int leftX  = kTopXOffset + (int)kPlayfieldLeftWallX;
+                int rightX = kTopXOffset + (int)kPlayfieldRightWallX - 1;
+#if defined(DEBUG) && DEBUG
+                uint32_t wallCol = C2D_Color32(0, 255, 0, 160);   // collider-highlight color
+#else
+                uint32_t wallCol = C2D_Color32(128, 128, 128, 200); // neutral guide
+#endif
+                C2D_DrawRectSolid((float)leftX, 0.0f, 0, 1.0f, 240.0f, wallCol);
+                C2D_DrawRectSolid((float)rightX, 0.0f, 0, 1.0f, 240.0f, wallCol);
+#if defined(DEBUG) && DEBUG
+                // Optional: draw top-wall collider line too
+                C2D_DrawRectSolid((float)kTopXOffset, (float)kPlayfieldTopWallY, 0, 320.0f, 1.0f, C2D_Color32(0,255,0,120));
+#endif
+            }
+            // Restore X offset for bottom pass (editor uses base; gameplay bottom uses world coords). Keep Y at 27 globally.
+            levels_set_draw_offset(0);
+            // Switch back to bottom for gameplay rendering
+            hw_set_bottom();
         }
-        // Editor-specific fade overlay still displays if active
+        // Editor-specific fade overlay still displays if active (bottom screen)
         if (G.mode == Mode::Playing && editor::fade_overlay_active())
             editor::render_fade_overlay();
         // Death sequence fade overlay (on top of everything else except HUD text)
@@ -1657,214 +1872,114 @@ namespace game
             int a = G.deathFadeAlpha; if (a > 200) a = 200; if (a < 0) a = 0;
             C2D_DrawRectSolid(0, 0, 0, 320, 240, C2D_Color32(0, 0, 0, (uint8_t)a));
         }
-        // Generic per-level intro (shows level name every level start)
-        if (G.mode == Mode::Playing && G.levelIntroTimer > 0)
-        {
-            C2D_DrawRectSolid(0,0,0,320,240,C2D_Color32(0,0,0,120));
-            const char *nm = levels_get_name(levels_current());
-            if (!nm) nm = "Level";
-            float scale = 2.0f; // double size
-            int tw = hw_text_width(nm);
-            int x = (int)((320 - tw * scale) * 0.5f);
-            int y = 110 + 24; // moved down 24px
-            hw_draw_text_shadow_scaled(x, y, nm, 0xFFFFFFFF, 0x000000FF, scale);
-            --G.levelIntroTimer;
-        }
+    // (Level intro moved to top-screen phase above.)
         if (G.mode == Mode::Editor)
         {
             editor::render();
             return;
         }
     if (G.mode == Mode::Options) { options::render(); return; }
-        // Render static bricks first then overwrite dynamic moving bricks at their current x
-        levels_render();
-        int cols = levels_grid_width();
-        int rows = levels_grid_height();
-    int ls = levels_left(); // offset-aware
-        int ts = levels_top();
-        int cw = levels_brick_width();
-        int ch = levels_brick_height();
-        for (int r = 0; r < rows; ++r)
-            for (int c = 0; c < cols; ++c)
-            {
-                int raw = levels_brick_at(c, r);
-                if (!is_moving_type(raw))
-                    continue;
-                int idx = r * cols + c;
-                int atlas = levels_atlas_index(raw);
-                if (atlas < 0)
-                    continue;
-                float y = ts + r * ch; // clear original cell to avoid ghost
-                C2D_DrawRectSolid(ls + c * cw, y, 0, cw, ch, C2D_Color32(0, 0, 0, 255));
-                float x = (idx < (int)G.moving.size() && G.moving[idx].pos >= 0.f) ? G.moving[idx].pos : (ls + c * cw);
-                if (idx < (int)G.moving.size())
-                {
-                    if (x < G.moving[idx].minX)
-                        x = G.moving[idx].minX;
-                    if (x > G.moving[idx].maxX)
-                        x = G.moving[idx].maxX;
-                }
-                hw_draw_sprite(hw_image(atlas), x, y);
-                if (raw == (int)BrickType::T5)
-                {
-                    int hp = levels_brick_hp(c, r);
-                    if (hp > 0)
-                    {
-                        // darker overlay increases with damage (hp ranges 1..5). When hp=5 (full) no overlay; hp=1 heavy overlay.
-                        int missing = 5 - hp;
-                        int alpha = 30 + missing * 40;
-                        if (alpha > 180)
-                            alpha = 180;
-                        C2D_DrawRectSolid(x, y, 0, cw, ch, C2D_Color32(255, 0, 0, (uint8_t)alpha));
-                    }
-                }
-            }
-#if defined(DEBUG) && DEBUG
-        // Draw static brick colliders (red outlines)
-        for (int r = 0; r < rows; ++r)
-            for (int c = 0; c < cols; ++c)
-            {
-                int raw = levels_brick_at(c, r);
-                if (raw <= 0)
-                    continue;
-                if (is_moving_type(raw))
-                    continue;
-                float bx = ls + c * cw;
-                float by = ts + r * ch;
-                C2D_DrawRectSolid(bx, by, 0, cw, 1, C2D_Color32(255, 0, 0, 200));          // top
-                C2D_DrawRectSolid(bx, by + ch - 1, 0, cw, 1, C2D_Color32(255, 0, 0, 80));  // bottom
-                C2D_DrawRectSolid(bx, by, 0, 1, ch, C2D_Color32(255, 0, 0, 120));          // left
-                C2D_DrawRectSolid(bx + cw - 1, by, 0, 1, ch, C2D_Color32(255, 0, 0, 120)); // right
-            }
-        // Draw moving brick colliders (solid red border)
-        for (int r = 0; r < rows; ++r)
-            for (int c = 0; c < cols; ++c)
-            {
-                int raw = levels_brick_at(c, r);
-                if (!is_moving_type(raw))
-                    continue;
-                int idx = r * cols + c;
-                if (idx >= (int)G.moving.size())
-                    continue;
-                if (G.moving[idx].pos < 0.f)
-                    continue;
-                float x = G.moving[idx].pos;
-                float y = ts + r * ch;
-                C2D_DrawRectSolid(x, y, 0, cw, 1, C2D_Color32(255, 0, 0, 200));
-                C2D_DrawRectSolid(x, y + ch - 1, 0, cw, 1, C2D_Color32(255, 0, 0, 80));
-                C2D_DrawRectSolid(x, y, 0, 1, ch, C2D_Color32(255, 0, 0, 120));
-                C2D_DrawRectSolid(x + cw - 1, y, 0, 1, ch, C2D_Color32(255, 0, 0, 120));
-            }
-#endif
-        // Simple particles
-        for (auto &p : G.particles)
-        {
-            if (p.life <= 0)
-                continue;
-            C2D_DrawRectSolid(p.x, p.y, 0, 2, 2, p.color);
+    // Bricks are only rendered on the top screen now; bottom screen draws gameplay objects.
+        // Draw world-space objects across both screens
+        // Top screen pass for objects with y < 240
+        hw_set_top();
+    for (auto &p : G.particles) if (p.life > 0 && p.y < 240.0f) {
+            C2D_DrawRectSolid(p.x + kTopXOffset, p.y, 0, 2, 2, p.color);
         }
-    // Draw falling BONUS letters and other pickups
-        for (auto &L : G.letters)
-            if (L.active)
-                hw_draw_sprite(L.img, L.x, L.y);
-        // Draw falling hazards (F1/F2)
-        for (auto &H : G.hazards)
-            if (H.active)
-                hw_draw_sprite(H.img, H.x, H.y);
-        // HUD overlay
-        char hud[128];
-        char bonus[8];
-        int bi = 0;
-        if (G.bonusBits & 0x01)
-            bonus[bi++] = 'B';
-        if (G.bonusBits & 0x02)
-            bonus[bi++] = 'O';
-        if (G.bonusBits & 0x04)
-            bonus[bi++] = 'N';
-        if (G.bonusBits & 0x08)
-            bonus[bi++] = 'U';
-        if (G.bonusBits & 0x10)
-            bonus[bi++] = 'S';
-        bonus[bi] = '\0';
-    const char* laserStr = (!G.laserEnabled ? "OFF" : (G.laserReady ? "RDY" : "BEAM"));
-    snprintf(hud, sizeof hud, "L%02d SCO:%lu LIVES:%d LA:%s %s%s%s", levels_current() + 1, G.score, G.lives, laserStr,
-         (G.reverseTimer > 0 ? "REV " : ""), (G.murderTimer > 0 ? "MB " : ""), bonus);
-        hw_draw_text(4, 4, hud, 0xFFFFFFFF);
-        if (G.lightsOffTimer > 0)
-        {
-            // dark overlay (draw first so HUD stays bright) - simple approach: semi-transparent rect
+        for (auto &L : G.letters) if (L.active && L.y < 240.0f) {
+            hw_draw_sprite(L.img, L.x + kTopXOffset, L.y);
+        }
+        for (auto &H : G.hazards) if (H.active && H.y < 240.0f) {
+            hw_draw_sprite(H.img, H.x + kTopXOffset, H.y);
+        }
+    for (auto &b : G.balls) if (b.active && b.y < 240.0f) {
+        hw_draw_sprite(b.img, b.x + kTopXOffset, b.y);
+#if defined(DEBUG) && DEBUG
+        // Draw ball collider on top screen alongside sprite
+        float spriteW = (b.img.subtex ? b.img.subtex->width : 8.f);
+        float spriteH = (b.img.subtex ? b.img.subtex->height : 8.f);
+        float cx = b.x + spriteW * 0.5f;
+        float cy = b.y + spriteH * 0.5f;
+        float lx = cx - kBallW * 0.5f;
+        float ly = cy - kBallH * 0.5f;
+        C2D_DrawRectSolid(lx + kTopXOffset, ly, 0, kBallW, kBallH, C2D_Color32(0, 255, 0, 90));
+#endif
+    }
+        for (auto &LZ : G.lasers) if (LZ.active && LZ.y < 240.0f) {
+            C2D_DrawRectSolid(LZ.x + kTopXOffset, LZ.y, 0, 2, 6, C2D_Color32(255,255,100,255));
+        }
+        // Bottom screen pass for objects with y >= 240 (subtract 240 to map to bottom viewport)
+        hw_set_bottom();
+        if (G.lightsOffTimer > 0) {
             C2D_DrawRectSolid(0, 0, 0, 320, 240, C2D_Color32(0, 0, 0, 140));
         }
-        // Laser indicator: when enabled and ready, draw flush with the bat top
-        if (G.laserEnabled && G.laserReady)
-        {
-            C2D_Image ind = hw_image(IMAGE_laser_indicator_idx);
-            float iw = (ind.subtex ? ind.subtex->width : 6.0f);
-            float ih = (ind.subtex ? ind.subtex->height : 6.0f);
-            float cx = G.bat.x + G.bat.width * 0.5f - iw * 0.5f;
-            float cy = G.bat.y - ih; // sit exactly on the bat's top edge
-            hw_draw_sprite(ind, cx, cy);
+        for (auto &p : G.particles) if (p.life > 0 && p.y >= 240.0f) {
+            C2D_DrawRectSolid(p.x, p.y - 240.0f, 0, 2, 2, p.color);
         }
-    // BONUS indicators: draw five letter icons at right side, dim when not collected
-        {
-            const int iconIdx[5] = { IMAGE_letterb_idx, IMAGE_lettero_idx, IMAGE_lettern_idx, IMAGE_letteru_idx, IMAGE_letters_idx };
-            for (int i = 0; i < 5; ++i)
-            {
-                C2D_Image img = hw_image(iconIdx[i]);
-                float w = (img.subtex ? img.subtex->width : 10.0f);
-                float h = (img.subtex ? img.subtex->height : 11.0f);
-                int drawX = kBonusIndicatorLeftX; // left-align to anchor
-        int drawY = kBonusIndicatorTopY + i * ((int)h + kBonusIndicatorGapY);
-                hw_draw_sprite(img, (float)drawX, (float)drawY);
-                if ((G.bonusBits & (1 << i)) == 0)
-                    C2D_DrawRectSolid(drawX, drawY, 0, w, h, C2D_Color32(0, 0, 0, 140)); // dim overlay
-            }
+        for (auto &L : G.letters) if (L.active && L.y >= 240.0f) {
+            hw_draw_sprite(L.img, L.x, L.y - 240.0f);
         }
-        // TODO: overlay HUD (score/lives/bonus) using tiny font logger or future UI layer
-        // Draw bat (account for atlas left trim so column 0 visible)
-        float batAtlasLeft = (G.bat.img.subtex ? G.bat.img.subtex->left : 0.0f);
-        float batDrawX = G.bat.x - batAtlasLeft;
-        hw_draw_sprite(G.bat.img, batDrawX, G.bat.y);
+        for (auto &H : G.hazards) if (H.active && H.y >= 240.0f) {
+            hw_draw_sprite(H.img, H.x, H.y - 240.0f);
+        }
+    for (auto &b : G.balls) if (b.active && b.y >= 240.0f) {
+        hw_draw_sprite(b.img, b.x, b.y - 240.0f);
 #if defined(DEBUG) && DEBUG
-        // Draw logical bat collision rectangle (centered reduced width & height)
-    float effBatW = G.batCollWidth;
-        float effBatH = (float)BATHEIGHT;
-        float batPadX = (G.bat.width - effBatW) * 0.5f;
-        if (batPadX < 0)
-            batPadX = 0;
-        // Match centered padding logic from collision code
-        float batPadY = (G.bat.height - effBatH) * 0.5f;
-        if (batPadY < 0)
-            batPadY = 0;
-        float batLeft = G.bat.x + batPadX - batAtlasLeft;
-        float batTop = G.bat.y + batPadY;
-        C2D_DrawRectSolid(batLeft, batTop, 0, effBatW, 1, C2D_Color32(255, 0, 0, 180));              // top line
-        C2D_DrawRectSolid(batLeft, batTop + effBatH - 1, 0, effBatW, 1, C2D_Color32(255, 0, 0, 80)); // bottom line
-        C2D_DrawRectSolid(batLeft, batTop, 0, 1, effBatH, C2D_Color32(255, 0, 0, 80));               // left
-        C2D_DrawRectSolid(batLeft + effBatW - 1, batTop, 0, 1, effBatH, C2D_Color32(255, 0, 0, 80)); // right
-        // Draw ball logical footprint(s)
-        for (auto &b : G.balls)
-            if (b.active)
-            {
-                float spriteW = (b.img.subtex ? b.img.subtex->width : 8.f);
-                float spriteH = (b.img.subtex ? b.img.subtex->height : 8.f);
-                float ballCenterX = b.x + spriteW * 0.5f;
-                float ballCenterY = b.y + spriteH * 0.5f;
-                float halfW = BALLWIDTH * 0.5f;
-                float halfH = BALLHEIGHT * 0.5f;
-                float lx = ballCenterX - halfW;
-                float ly = ballCenterY - halfH;
-                C2D_DrawRectSolid(lx, ly, 0, BALLWIDTH, BALLHEIGHT, C2D_Color32(0, 255, 0, 90));
-            }
+        // Draw ball collider on bottom screen alongside sprite
+        float spriteW = (b.img.subtex ? b.img.subtex->width : 8.f);
+        float spriteH = (b.img.subtex ? b.img.subtex->height : 8.f);
+        float cx = b.x + spriteW * 0.5f;
+        float cy = b.y + spriteH * 0.5f;
+        float lx = cx - kBallW * 0.5f;
+        float ly = cy - kBallH * 0.5f;
+        C2D_DrawRectSolid(lx, ly - 240.0f, 0, kBallW, kBallH, C2D_Color32(0, 255, 0, 90));
 #endif
-        // Draw balls (multi-hit bricks visual tweak: overlay HP number optional later)
-        for (auto &b : G.balls)
-            if (b.active)
-                hw_draw_sprite(b.img, b.x, b.y);
-        // Draw lasers
-        for (auto &L : G.lasers)
-            if (L.active)
-                C2D_DrawRectSolid(L.x, L.y, 0, 2, 6, C2D_Color32(255, 255, 100, 255));
+    }
+        for (auto &LZ : G.lasers) if (LZ.active && LZ.y >= 240.0f) {
+            C2D_DrawRectSolid(LZ.x, LZ.y - 240.0f, 0, 2, 6, C2D_Color32(255,255,100,255));
+        }
+        // Draw bat on bottom screen only
+        {
+            float batAtlasLeft = (G.bat.img.subtex ? G.bat.img.subtex->left : 0.0f);
+            float batDrawX = G.bat.x - batAtlasLeft;
+            hw_draw_sprite(G.bat.img, batDrawX, G.bat.y - 240.0f);
+        }
+#if defined(DEBUG) && DEBUG
+        // Draw world side borders (colliders) on the bottom screen as well
+        {
+            int leftX  = (int)kPlayfieldLeftWallX;
+            int rightX = (int)kPlayfieldRightWallX - 1;
+            C2D_DrawRectSolid((float)leftX, 0.0f, 0, 1.0f, 240.0f, C2D_Color32(0, 255, 0, 160));
+            C2D_DrawRectSolid((float)rightX, 0.0f, 0, 1.0f, 240.0f, C2D_Color32(0, 255, 0, 160));
+        }
+#else
+        // Non-debug: show faint side borders on bottom for clarity
+        {
+            int leftX  = (int)kPlayfieldLeftWallX;
+            int rightX = (int)kPlayfieldRightWallX - 1;
+            C2D_DrawRectSolid((float)leftX, 0.0f, 0, 1.0f, 240.0f, C2D_Color32(128, 128, 128, 200));
+            C2D_DrawRectSolid((float)rightX, 0.0f, 0, 1.0f, 240.0f, C2D_Color32(128, 128, 128, 200));
+        }
+#endif
+#if defined(DEBUG) && DEBUG
+        // Draw logical bat collision rectangle (centered reduced width & height) on bottom screen
+        {
+            float effBatW = G.batCollWidth;
+            float effBatH = (G.bat.img.subtex ? G.bat.img.subtex->height : G.bat.height);
+            float batPadX = (G.bat.width - effBatW) * 0.5f;
+            if (batPadX < 0) batPadX = 0;
+            float batPadY = (G.bat.height - effBatH) * 0.5f;
+            if (batPadY < 0) batPadY = 0;
+            float batAtlasLeft2 = (G.bat.img.subtex ? G.bat.img.subtex->left : 0.0f);
+            float batLeft2 = G.bat.x + batPadX - batAtlasLeft2;
+            float batTop2 = G.bat.y + batPadY;
+            C2D_DrawRectSolid(batLeft2, batTop2 - 240.0f, 0, effBatW, 1, C2D_Color32(255, 0, 0, 180));              // top line
+            C2D_DrawRectSolid(batLeft2, batTop2 - 240.0f + effBatH - 1, 0, effBatW, 1, C2D_Color32(255, 0, 0, 80)); // bottom line
+            C2D_DrawRectSolid(batLeft2, batTop2 - 240.0f, 0, 1, effBatH, C2D_Color32(255, 0, 0, 80));               // left
+            C2D_DrawRectSolid(batLeft2 + effBatW - 1, batTop2 - 240.0f, 0, 1, effBatH, C2D_Color32(255, 0, 0, 80)); // right
+        }
+#endif
+    // Ball and laser drawing handled in split top/bottom passes above
         // If in test mode (editor launched) and level ended (no breakables) or lives depleted, return to editor
         if (editor::test_return_active() && G.mode == Mode::Playing)
         {

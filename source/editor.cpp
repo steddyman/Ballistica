@@ -10,6 +10,8 @@
 #include "DESIGNER.h"
 #include "INSTRUCT.h"
 #include "ui_button.hpp"
+// IMAGE indices include both e_* (editor) and gameplay sprites
+#include "IMAGE.h"
 
 namespace editor {
 
@@ -66,6 +68,48 @@ struct EditorState {
 static EditorState E;
 static std::vector<UIButton> g_buttons; // cached buttons built after init
 static EditorAction g_lastAction = EditorAction::None; // set by button lambdas needing a return
+
+// Map BrickType id (0..COUNT-1) to editor atlas index (e_*). Falls back to normal if missing.
+static int editor_atlas_index(int brickId) {
+    switch (brickId) {
+        case (int)BrickType::NB: return IMAGE_e_designer_nobrick_idx; // empty
+        case (int)BrickType::YB: return IMAGE_e_yellow_brick_idx;
+        case (int)BrickType::GB: return IMAGE_e_green_brick_idx;
+        case (int)BrickType::CB: return IMAGE_e_cyan_brick_idx;
+        case (int)BrickType::TB: return IMAGE_e_tan_brick_idx;
+        case (int)BrickType::PB: return IMAGE_e_purple_brick_idx;
+        case (int)BrickType::RB: return IMAGE_e_red_brick_idx;
+        case (int)BrickType::LB: return IMAGE_e_life_brick_idx;
+        case (int)BrickType::SB: return IMAGE_e_slow_brick_idx;
+        case (int)BrickType::FB: return IMAGE_e_fast_brick_idx;
+        case (int)BrickType::F1: return IMAGE_e_skull_brick_idx;
+        case (int)BrickType::F2: return IMAGE_e_skull_brick_idx;
+        case (int)BrickType::B1: return IMAGE_e_b_brick_idx;
+        case (int)BrickType::B2: return IMAGE_e_o_brick_idx;
+        case (int)BrickType::B3: return IMAGE_e_n_brick_idx;
+        case (int)BrickType::B4: return IMAGE_e_u_brick_idx;
+        case (int)BrickType::B5: return IMAGE_e_s_brick_idx;
+        case (int)BrickType::BS: return IMAGE_e_batsmall_brick_idx;
+        case (int)BrickType::BB: return IMAGE_e_batbig_brick_idx;
+        case (int)BrickType::ID: return IMAGE_e_indestructible_brick_idx;
+        case (int)BrickType::RW: return IMAGE_e_rewind_brick_idx;
+        case (int)BrickType::RE: return IMAGE_e_reverse_brick_idx;
+        case (int)BrickType::IS: return IMAGE_e_islow_brick_idx;
+        case (int)BrickType::IF: return IMAGE_e_ifast_brick_idx;
+        case (int)BrickType::AB: return IMAGE_e_another_ball_idx;
+        case (int)BrickType::FO: return IMAGE_e_forward_brick_idx;
+        case (int)BrickType::LA: return IMAGE_e_laser_brick_idx;
+        case (int)BrickType::MB: return IMAGE_e_murderball_brick_idx;
+        case (int)BrickType::BA: return IMAGE_e_bonus_brick_idx;
+        case (int)BrickType::T5: return IMAGE_e_fivehit_brick_idx;
+        case (int)BrickType::BO: return IMAGE_e_bomb_brick_idx;
+        case (int)BrickType::OF: return IMAGE_e_offswitch_brick_idx;
+        case (int)BrickType::ON: return IMAGE_e_onswitch_brick_idx;
+        case (int)BrickType::SS: return IMAGE_e_sideslow_brick_idx;
+        case (int)BrickType::SF: return IMAGE_e_sidehard_brick_idx;
+        default: return levels_atlas_index(brickId);
+    }
+}
 
 // ---------------- Undo stack -------------------------------------------------
 struct UndoEntry {
@@ -190,11 +234,11 @@ EditorAction update(const InputState &in) {
         return EditorAction::None;
 
     int x = in.stylusX, y = in.stylusY;
-    // Grid region
-    int left = levels_left();
-    int top = levels_top();
-    int cw = levels_brick_width();
-    int ch = levels_brick_height();
+    // Grid region (use editor design cell size)
+    int left = levels_edit_left();
+    int top = levels_edit_top();
+    int cw = levels_edit_brick_width();
+    int ch = levels_edit_brick_height();
     int gw = levels_grid_width();
     int gh = levels_grid_height();
     if (x >= left && x < left + gw * cw && y >= top && y < top + gh * ch) {
@@ -211,8 +255,8 @@ EditorAction update(const InputState &in) {
     int palX = ui::PaletteX;
     int palY = ui::PaletteY;
     int pad = 3;
-    int itemW = cw;
-    int itemH = ch;
+    int itemW = levels_edit_brick_width();
+    int itemH = levels_edit_brick_height();
     int bx = palX, by = palY;
     for (int b = 0; b < (int)BrickType::COUNT; ++b) {
         if (by + itemH > 230) { by = palY; bx += itemW + pad; }
@@ -262,14 +306,31 @@ void render() {
         if (img.tex) hw_draw_sprite(img, 0, 0);
         else C2D_DrawRectSolid(0, 0, 0, 320, 240, C2D_Color32(10,10,20,255));
     }
-    levels_render();
+    // Draw level grid using editor (e_*) visuals only (avoid gameplay bricks underneath)
+    {
+        int gw = levels_grid_width();
+        int gh = levels_grid_height();
+    int cw = levels_edit_brick_width();
+    int ch = levels_edit_brick_height();
+    int ls = levels_edit_left();
+    int ts = levels_edit_top();
+        for (int r = 0; r < gh; ++r) {
+            for (int c = 0; c < gw; ++c) {
+                int raw = levels_edit_get_brick(E.curLevel, c, r);
+                if (raw <= 0) continue;
+                int atlas = editor_atlas_index(raw);
+                if (atlas < 0) continue;
+                hw_draw_sprite(hw_image(atlas), (float)(ls + c * cw), (float)(ts + r * ch));
+            }
+        }
+    }
     // Palette
-    int cw = levels_brick_width();
-    int ch = levels_brick_height();
+    int cw = levels_edit_brick_width();
+    int ch = levels_edit_brick_height();
     int pad = 3;
     int bx = ui::PaletteX, by = ui::PaletteY;
     for (int b = 0; b < (int)BrickType::COUNT; ++b) {
-        int atlas = levels_atlas_index(b);
+        int atlas = editor_atlas_index(b);
         if (atlas >= 0) hw_draw_sprite(hw_image(atlas), bx, by);
         if (b == E.curBrick) {
             C2D_DrawRectSolid(bx - 1, by - 1, 0, cw + 2, 1, C2D_Color32(255,255,255,255));
@@ -310,7 +371,7 @@ void render() {
     label_bg(LevelPlusX, LevelPlusY, "+", true);  hw_draw_text(LevelPlusX, LevelPlusY, "+", 0xFFFFFFFF);
     label_bg(SpeedMinusX, SpeedMinusY, "-", true); hw_draw_text(SpeedMinusX, SpeedMinusY, "-", 0xFFFFFFFF);
     label_bg(SpeedPlusX, SpeedPlusY, "+", true);  hw_draw_text(SpeedPlusX, SpeedPlusY, "+", 0xFFFFFFFF);
-    int atlas = levels_atlas_index(E.curBrick);
+    int atlas = editor_atlas_index(E.curBrick);
     if (atlas >= 0) hw_draw_sprite(hw_image(atlas), ui::CurrentBrickSpriteX, ui::CurrentBrickSpriteY);
     hw_draw_text(ui::LabelCurrentBrickX, ui::LabelCurrentBrickY, "Current Brick:", 0xFFFFFFFF);
     hw_draw_text(ui::LabelEffectX, ui::LabelEffectY, "Effect:", 0xFFFFFFFF);

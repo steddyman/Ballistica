@@ -16,12 +16,22 @@
 #include "levels.hpp"
 
 namespace levels {
-    // Geometry constants (match legacy main.cpp values for layout region)
+    // Geometry constants
     static const int BricksX=13;
     static const int BricksY=11;
     static const int NumBricks = BricksX*BricksY;    // 143 bricks
-    static constexpr int LEFTSTART=28; // base left (unshifted); gameplay shift applied via render offset
+    // Gameplay grid origin (affects in-game brick rendering/collisions)
+    static constexpr int LEFTSTART=17; // Centered within 320 - (2 x 22*13)/2 = 17
     static const int TOPSTART=18;
+    // Gameplay cell size (large bricks): 24x15
+    static const int CellW = 22;
+    static const int CellH = 13;
+    // Editor design cell size (small preview grid): 16x9
+    static const int EditCellW = 16;
+    static const int EditCellH = 9;
+    // Editor grid origin (independent from gameplay). Default to horizontal centering for 16x9 cells.
+    static constexpr int EDIT_LEFTSTART = 28; // Based on background art grid
+    static const int EDIT_TOPSTART = 18; // align with background art baseline
 
     static const char* kSdDir = "sdmc:/ballistica";
     static const char* kLevelsSubDir = "sdmc:/ballistica/levels";
@@ -41,7 +51,8 @@ namespace levels {
     static bool g_loaded = false;         // successfully parsed any levels
     static std::vector<Level> g_levels;    // parsed levels
     static int g_currentLevel = 0;         // index into g_levels
-    static int g_renderOffsetX = 0;        // runtime horizontal render offset (gameplay mode)
+    static int g_renderOffsetX = 0;        // runtime horizontal render offset (kept 0 for dual-screen alignment)
+    static int g_renderOffsetY = 0;        // runtime vertical render offset
 
     struct BrickDef { int atlasIndex; };
     // Map legacy shorthand index (enum order) to atlas image indices
@@ -270,13 +281,15 @@ namespace levels {
     }
 
     void renderBricks() {
+        // Caller is responsible for setting draw offset (e.g., +40 on top screen).
         if(!g_loaded || g_levels.empty()) return;
         const Level& L = g_levels[g_currentLevel];
         if(L.bricks.size()!=NumBricks) return;
         for(int i=0;i<NumBricks;i++) {
             uint8_t v = L.bricks[i]; if(v==0) continue; if(v >= (int)(sizeof(brickMap)/sizeof(brickMap[0]))) continue;
             int col = i % BricksX; int row = i / BricksX;
-        float x = (float)(LEFTSTART + g_renderOffsetX) + col * 16; float y = TOPSTART + row * 9;
+            float x = (float)(LEFTSTART + g_renderOffsetX) + col * CellW;
+            float y = (float)(TOPSTART + g_renderOffsetY) + row * CellH;
             int atlasIndex = brickMap[v].atlasIndex; if(atlasIndex<0) continue;
             // For multi-hit bricks we could choose alternate visual based on HP later.
             hw_draw_sprite(hw_image(atlasIndex), x, y);
@@ -286,6 +299,9 @@ namespace levels {
     void set_draw_offset(int off) { g_renderOffsetX = off; }
     int draw_offset() { return g_renderOffsetX; }
     int left_with_offset() { return LEFTSTART + g_renderOffsetX; }
+    int top_with_offset() { return TOPSTART + g_renderOffsetY; }
+    int edit_left() { return EDIT_LEFTSTART; }
+    int edit_top() { return EDIT_TOPSTART; }
     int levels_remaining_breakable() {
     if(g_levels.empty()) return 0;
     const auto &L = g_levels[g_currentLevel];
@@ -459,9 +475,13 @@ bool levels_set_current(int idx) { if(idx>=0 && idx < (int)levels::g_levels.size
 int levels_grid_width() { return 13; }
 int levels_grid_height() { return 11; }
 int levels_left() { return levels::left_with_offset(); }
-int levels_top() { return 18; }
-int levels_brick_width() { return 16; }
-int levels_brick_height() { return 9; }
+int levels_top() { return levels::top_with_offset(); }
+int levels_edit_left() { using namespace levels; return edit_left(); }
+int levels_edit_top() { using namespace levels; return edit_top(); }
+int levels_brick_width() { return levels::CellW; }
+int levels_brick_height() { return levels::CellH; }
+int levels_edit_brick_width() { return levels::EditCellW; }
+int levels_edit_brick_height() { return levels::EditCellH; }
 int levels_brick_at(int c,int r) { if(levels::g_levels.empty()) return -1; if(c<0||c>=13||r<0||r>=11) return -1; const auto &L = levels::g_levels[levels::g_currentLevel]; int idx=r*13+c; if(idx >= (int)L.bricks.size()) return -1; return (int)L.bricks[idx]; }
 void levels_remove_brick(int c,int r) { if(levels::g_levels.empty()) return; if(c<0||c>=13||r<0||r>=11) return; auto &L = levels::g_levels[levels::g_currentLevel]; int idx=r*13+c; if(idx >= (int)L.bricks.size()) return; L.bricks[idx]=0; if(L.hp.size()==L.bricks.size()) L.hp[idx]=0; }
 int levels_remaining_breakable() { return levels::levels_remaining_breakable(); }
@@ -473,6 +493,8 @@ void levels_reset_level(int idx) { levels::levels_reset_level(idx); }
 void levels_snapshot_level(int idx) { levels::levels_snapshot_level(idx); }
 void levels_set_draw_offset(int off) { levels::set_draw_offset(off); }
 int levels_get_draw_offset() { return levels::draw_offset(); }
+void levels_set_draw_offset_y(int off) { using namespace levels; g_renderOffsetY = off; }
+int levels_get_draw_offset_y() { using namespace levels; return g_renderOffsetY; }
 // New selection APIs
 const std::vector<std::string>& levels_available_files() { return levels::available_level_files(); }
 void levels_refresh_files() { levels::refresh_level_files(); }
