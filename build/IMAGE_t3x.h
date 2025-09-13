@@ -6,7 +6,7 @@
 extern const uint8_t IMAGE_t3x[];
 extern const uint8_t IMAGE_t3x_end[];
 #if __cplusplus >= 201103L
-static constexpr size_t IMAGE_t3x_size=8013;
+static constexpr size_t IMAGE_t3x_size=16337;
 #else
-static const size_t IMAGE_t3x_size=8013;
+static const size_t IMAGE_t3x_size=16337;
 #endif
