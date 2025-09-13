@@ -31,16 +31,13 @@ namespace highscores {
 
     void init() {
         if(g_loaded) return;
-        hw_log("hs init\n");
         FILE* f = fopen("sdmc:/ballistica/scores.dat", "rb");
         if(!f) {
             set_default();
             save();
             g_loaded = true;
-            hw_log("scores default (no file)\n");
             return; // do NOT attempt to read back immediately (eliminates file-read path for missing file case)
         }
-        hw_log("hs file open ok\n");
         bool ok = true;
         for(int i=0;i<NUM_SCORES;i++) {
             uint32_t sc; uint8_t lvl; char line[128];
@@ -63,12 +60,12 @@ namespace highscores {
         if(!ok) { set_default(); hw_log("scores corrupt reset\n"); }
         // Summary log (avoid spamming all entries every frame)
         if(ok) {
-            hw_log("hs loaded\n");
-            char buf[80];
-            for(int i=0;i<NUM_SCORES;i++) {
-                std::snprintf(buf,sizeof buf,"hs %02d %" PRIu32 "/%u/%s\n", i, g_entries[i].score,(unsigned)g_entries[i].level,g_entries[i].name);
-                hw_log(buf);
-            }
+            // hw_log("hs loaded\n");
+            // char buf[80];
+            // for(int i=0;i<NUM_SCORES;i++) {
+            //     std::snprintf(buf,sizeof buf,"hs %02d %" PRIu32 "/%u/%s\n", i, g_entries[i].score,(unsigned)g_entries[i].level,g_entries[i].name);
+            //     hw_log(buf);
+            // }
         }
         dbg_verify_guard("init");
         g_loaded = true;

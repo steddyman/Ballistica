@@ -14,6 +14,7 @@
 #include "IMAGE.h"
 #include "brick.hpp"
 #include "levels.hpp"
+#include "game.hpp"
 
 namespace levels {
     // Geometry constants
@@ -22,7 +23,11 @@ namespace levels {
     static const int NumBricks = BricksX*BricksY;    // 143 bricks
     // Gameplay grid origin (affects in-game brick rendering/collisions)
     static constexpr int LEFTSTART=17; // Centered within 320 - (2 x 22*13)/2 = 17
-    static const int TOPSTART=18;
+    // The vertical offset for the brick grid is always hudHeight + 16 pixels below the UI background
+    #include "layout.hpp" // centralized layout constants
+    static const int UI_BRICK_OFFSET = layout::UI_BRICK_OFFSET;
+    static const int HUD_HEIGHT = layout::HUD_HEIGHT;
+    static const int TOPSTART = layout::BRICK_GRID_TOP;
     // Gameplay cell size (large bricks): 24x15
     static const int CellW = 22;
     static const int CellH = 13;
@@ -87,7 +92,7 @@ namespace levels {
         {IMAGE_laser_brick_idx},
         {IMAGE_murderball_brick_idx},
         {IMAGE_bonus_brick_idx},
-        {IMAGE_fivehit_brick_idx},
+    {IMAGE_fivehit_brick1_idx},
         {IMAGE_bomb_brick_idx},
         {IMAGE_offswitch_brick_idx},
         {IMAGE_onswitch_brick_idx},
@@ -290,8 +295,16 @@ namespace levels {
             int col = i % BricksX; int row = i / BricksX;
             float x = (float)(LEFTSTART + g_renderOffsetX) + col * CellW;
             float y = (float)(TOPSTART + g_renderOffsetY) + row * CellH;
-            int atlasIndex = brickMap[v].atlasIndex; if(atlasIndex<0) continue;
-            // For multi-hit bricks we could choose alternate visual based on HP later.
+            int atlasIndex = brickMap[v].atlasIndex;
+            // For five-hit bricks, select sprite based on HP
+            if (v == (int)BrickType::T5 && L.hp.size() == NumBricks) {
+                int hp = L.hp[i];
+                // Clamp hp to [1,5], show correct stage (5=full, 1=last)
+                if (hp >= 1 && hp <= 5) {
+                    atlasIndex = IMAGE_fivehit_brick1_idx + (5 - hp);
+                }
+            }
+            if(atlasIndex<0) continue;
             hw_draw_sprite(hw_image(atlasIndex), x, y);
         }
     }
@@ -299,6 +312,9 @@ namespace levels {
     void set_draw_offset(int off) { g_renderOffsetX = off; }
     int draw_offset() { return g_renderOffsetX; }
     int left_with_offset() { return LEFTSTART + g_renderOffsetX; }
+    // The score UI background is drawn at y=0 with height hudHeight (currently 34).
+    // To start the bricks one brick height below the UI, set top = hudHeight + CellH
+    // Always use TOPSTART for both rendering and colliders
     int top_with_offset() { return TOPSTART + g_renderOffsetY; }
     int edit_left() { return EDIT_LEFTSTART; }
     int edit_top() { return EDIT_TOPSTART; }
@@ -328,10 +344,17 @@ bool levels_damage_brick(int c,int r) {
             else if(L.bricks[i]==0 || L.bricks[i]==(int)BrickType::ID) L.hp[i]=0;
         }
     }
-    if(L.hp[idx] > 1) {
+    if (L.hp[idx] > 1) {
         L.hp[idx]--;
-        if(L.hp[idx]==0) { L.bricks[idx]=0; return true; }
         return false;
+    }
+    // Now HP is 1 or less, so destroy and show effect if needed
+    // log an event for testing
+    char dbg[64]; snprintf(dbg,sizeof dbg,"brick %d,%d destroyed\n", c, r); hw_log(dbg);
+    if (L.bricks[idx] == (int)BrickType::T5) {
+        float x = (float)(LEFTSTART + g_renderOffsetX) + c * CellW + CellW * 0.5f;
+        float y = (float)(TOPSTART + g_renderOffsetY) + r * CellH + CellH * 0.5f;
+        game::spawn_dust_effect(x, y); // Visual effect on brick destruction
     }
     L.bricks[idx]=0;
     L.hp[idx]=0;
