@@ -103,6 +103,15 @@ namespace game
         Options
     };
 
+    // Map per-level speed (1..99, with 10 as default) to a velocity multiplier.
+    // This scales the initial launch speed of the ball before any brick-induced modifiers.
+    static float level_speed_multiplier()
+    {
+        int s = levels_get_speed(levels_current());
+        if (s <= 0) s = 10; // fallback default
+        return (float)s / 10.0f;
+    }
+
     // Title buttons
     struct TitleBtn { UIButton btn; Mode next; };
     static TitleBtn kTitleButtons[3];
@@ -1609,6 +1618,10 @@ namespace game
                     b0.vy = -1.5f;
                     float batDX = G.bat.x - G.prevBatX;
                     b0.vx = batDX * 0.15f;
+                    // Apply per-level speed to initial launch velocity (both axes)
+                    float mul = level_speed_multiplier();
+                    b0.vx *= mul;
+                    b0.vy *= mul;
                 }
                 G.ballLocked = false;
                 sawTouchWhileLocked = false; // reset for next time we lock
