@@ -1405,10 +1405,10 @@ namespace game
 
     void update(const InputState &in)
     {
-        // Keep brick logic in world coordinates: X has no +40 (render-only), Y uses a 3-brick gap (45px => +27 from TOPSTART=18)
+        // Keep brick logic in world coordinates; runtime brick Y offset matches layout (no extra padding)
         if (G.mode == Mode::Playing) {
             if (levels_get_draw_offset() != 0) levels_set_draw_offset(0);
-            if (levels_get_draw_offset_y() != 27) levels_set_draw_offset_y(27);
+            if (levels_get_draw_offset_y() != 0) levels_set_draw_offset_y(0);
         } else if (G.mode == Mode::Editor) {
             if (levels_get_draw_offset() != 0) levels_set_draw_offset(0);
             if (levels_get_draw_offset_y() != 0) levels_set_draw_offset_y(0);
@@ -1913,39 +1913,30 @@ namespace game
         // Top-screen phase (HUD and brick field). Gameplay objects are drawn on both screens appropriately.
         if (G.mode == Mode::Playing) {
             hw_set_top();
-            // Draw starfield background (top half visible on top screen)
+        // Draw background (top screen half aligned to screen top, under the HUD)
             {
                 C2D_Image sf = hw_image_from(HwSheet::Background, BACKGROUND_idx);
                 if (sf.tex) {
-                    float atlasLeft = (sf.subtex ? sf.subtex->left : 0.0f);
-                    float atlasTop  = (sf.subtex ? sf.subtex->top  : 0.0f);
-                    hw_draw_sprite(sf, (float)kTopXOffset - atlasLeft, -atlasTop);
+                    hw_draw_sprite(sf, (float)layout::BG_TOP_X, (float)layout::BG_TOP_Y);
                 }
             }
-            // Top-screen bricks pass: center horizontally via +40px X and use a three-brick top gap
+            // Top-screen bricks pass: center horizontally via +40px X; Y is defined by layout (no extra gap)
             levels_set_draw_offset(kTopXOffset);
-            // Desired top-of-field equals exactly three brick heights (45px)
-            // With TOPSTART=18 in levels, offsetY = 45 - 18 = 27
-            levels_set_draw_offset_y(27);
-            // Fill side/top borders outside the brick field plus a 1-brick margin
+            levels_set_draw_offset_y(0);
+            // Fill only side borders outside the brick field (background now covers top)
             {
                 int cols = levels_grid_width();
                 int ls = levels_left(); // includes +40 offset
-                int ts = levels_top();
                 int cw = levels_brick_width();
-                int ch = levels_brick_height();
                 // Compute outer bounds: extend one brick on left/right/top
                 int outerLeft = ls - cw;
                 int outerRight = ls + cols * cw + cw;
-                int outerTop = ts - ch;
                 // Clamp and draw fills in top-screen coordinates (0..400 x 0..240)
                 int leftW = std::max(0, std::min(outerLeft, 400));
                 if (leftW > 0)
                     C2D_DrawRectSolid(0, 0, 0, (float)leftW, 240.0f, C2D_Color32(0, 0, 0, 255));
                 if (outerRight < 400)
                     C2D_DrawRectSolid((float)outerRight, 0, 0, (float)(400 - outerRight), 240.0f, C2D_Color32(0, 0, 0, 255));
-                if (outerTop > 0)
-                    C2D_DrawRectSolid((float)std::max(0, outerLeft), 0, 0, (float)std::min(400, outerRight) - (float)std::max(0, outerLeft), (float)outerTop, C2D_Color32(0, 0, 0, 255));
             }
             levels_render();
             int cols = levels_grid_width();
@@ -2138,13 +2129,11 @@ namespace game
             levels_set_draw_offset(0);
             // Switch back to bottom for gameplay rendering
             hw_set_bottom();
-            // Draw starfield background (bottom half visible on bottom screen)
+        // Draw background (show lower half and center 400px-wide image on 320px bottom screen)
             {
                 C2D_Image sf = hw_image_from(HwSheet::Background, BACKGROUND_idx);
                 if (sf.tex) {
-                    float atlasLeft = (sf.subtex ? sf.subtex->left : 0.0f);
-                    float atlasTop  = (sf.subtex ? sf.subtex->top  : 0.0f);
-                    hw_draw_sprite(sf, -atlasLeft, -240.0f - atlasTop);
+                    hw_draw_sprite(sf, (float)layout::BG_BOTTOM_X, (float)layout::BG_BOTTOM_Y);
                 }
             }
         }
