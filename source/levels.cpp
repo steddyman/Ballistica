@@ -20,7 +20,8 @@ namespace levels {
     static const int BricksX=13;
     static const int BricksY=11;
     static const int NumBricks = BricksX*BricksY;    // 143 bricks
-    static constexpr int LEFTSTART=17; // centered within 320: (320 - 13*24)/2 = 4
+    // Gameplay grid origin (affects in-game brick rendering/collisions)
+    static constexpr int LEFTSTART=17; // Centered within 320 - (2 x 22*13)/2 = 17
     static const int TOPSTART=18;
     // Gameplay cell size (large bricks): 24x15
     static const int CellW = 22;
@@ -28,6 +29,9 @@ namespace levels {
     // Editor design cell size (small preview grid): 16x9
     static const int EditCellW = 16;
     static const int EditCellH = 9;
+    // Editor grid origin (independent from gameplay). Default to horizontal centering for 16x9 cells.
+    static constexpr int EDIT_LEFTSTART = 28; // Based on background art grid
+    static const int EDIT_TOPSTART = 18; // align with background art baseline
 
     static const char* kSdDir = "sdmc:/ballistica";
     static const char* kLevelsSubDir = "sdmc:/ballistica/levels";
@@ -296,6 +300,8 @@ namespace levels {
     int draw_offset() { return g_renderOffsetX; }
     int left_with_offset() { return LEFTSTART + g_renderOffsetX; }
     int top_with_offset() { return TOPSTART + g_renderOffsetY; }
+    int edit_left() { return EDIT_LEFTSTART; }
+    int edit_top() { return EDIT_TOPSTART; }
     int levels_remaining_breakable() {
     if(g_levels.empty()) return 0;
     const auto &L = g_levels[g_currentLevel];
@@ -470,6 +476,8 @@ int levels_grid_width() { return 13; }
 int levels_grid_height() { return 11; }
 int levels_left() { return levels::left_with_offset(); }
 int levels_top() { return levels::top_with_offset(); }
+int levels_edit_left() { using namespace levels; return edit_left(); }
+int levels_edit_top() { using namespace levels; return edit_top(); }
 int levels_brick_width() { return levels::CellW; }
 int levels_brick_height() { return levels::CellH; }
 int levels_edit_brick_width() { return levels::EditCellW; }

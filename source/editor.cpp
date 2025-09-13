@@ -235,8 +235,8 @@ EditorAction update(const InputState &in) {
 
     int x = in.stylusX, y = in.stylusY;
     // Grid region (use editor design cell size)
-    int left = levels_left();
-    int top = levels_top();
+    int left = levels_edit_left();
+    int top = levels_edit_top();
     int cw = levels_edit_brick_width();
     int ch = levels_edit_brick_height();
     int gw = levels_grid_width();
@@ -312,8 +312,8 @@ void render() {
         int gh = levels_grid_height();
     int cw = levels_edit_brick_width();
     int ch = levels_edit_brick_height();
-        int ls = levels_left();
-        int ts = levels_top();
+    int ls = levels_edit_left();
+    int ts = levels_edit_top();
         for (int r = 0; r < gh; ++r) {
             for (int c = 0; c < gw; ++c) {
                 int raw = levels_edit_get_brick(E.curLevel, c, r);

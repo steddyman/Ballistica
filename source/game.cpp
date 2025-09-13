@@ -1676,7 +1676,6 @@ namespace game
             // Fill side/top borders outside the brick field plus a 1-brick margin
             {
                 int cols = levels_grid_width();
-                int rows = levels_grid_height();
                 int ls = levels_left(); // includes +40 offset
                 int ts = levels_top();
                 int cw = levels_brick_width();

@@ -24,6 +24,9 @@ int levels_brick_height();
 // Editor-design brick cell size (smaller visuals for editor grid)
 int levels_edit_brick_width();
 int levels_edit_brick_height();
+// Editor grid origin (independent from gameplay origin)
+int levels_edit_left();
+int levels_edit_top();
 
 // Access brick at grid coordinate; returns raw index (same as BrickType int) or -1
 int levels_brick_at(int col, int row);
