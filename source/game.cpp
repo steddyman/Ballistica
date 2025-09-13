@@ -74,6 +74,7 @@ namespace game
         float vx, vy;
         float px, py;
         bool active;
+    bool isMurder;
         C2D_Image img;
     };
     struct Laser
@@ -153,6 +154,7 @@ namespace game
     std::vector<FallingLetter> letters; // falling BONUS pickups
     std::vector<FallingHazard> hazards; // falling kill bricks (F1/F2)
         C2D_Image imgBall{};
+    C2D_Image imgMurderBall{};
     C2D_Image imgBatNormal{};
     C2D_Image imgBatSmall{};
     C2D_Image imgBatBig{};
@@ -175,7 +177,7 @@ namespace game
         // Timers/effects
         int reverseTimer = 0;   // frames remaining reverse controls
         int lightsOffTimer = 0; // frames until lights restore
-        int murderTimer = 0;    // murderball active
+    int murderTimer = 0;    // deprecated: per-ball isMurder now controls behaviour
     // Life-loss death sequence (bat sinks then fade out/in)
     bool deathActive = false;
     int  deathPhase = 0;       // 0=sink, 1=fadeOut, 2=fadeIn
@@ -217,6 +219,7 @@ namespace game
     void init_assets()
     {
         G.imgBall = hw_image(IMAGE_ball_sprite_idx);
+    G.imgMurderBall = hw_image(IMAGE_murderball_sprite_idx);
         G.imgBatNormal = hw_image(IMAGE_bat_normal_idx);
     G.imgBatSmall = hw_image(IMAGE_bat_small_idx);
     G.imgBatBig   = hw_image(IMAGE_bat_big_idx);
@@ -231,7 +234,7 @@ namespace game
                 G.batCollWidth = std::max(8.0f, bw);
             }
     float ballStartX = kScreenWidth * 0.5f - kInitialBallHalf;
-    G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, G.imgBall});
+    G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, false, G.imgBall});
     G.ballLocked = true;
         char buf[96];
         snprintf(buf, sizeof buf, "bat sprite w=%.1f h=%.1f\n", bw, bh);
@@ -281,7 +284,7 @@ namespace game
             G.balls.clear();
             {
                 float ballStartX = kScreenWidth * 0.5f + kPlayfieldOffsetX - kInitialBallHalf;
-                G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, G.imgBall});
+                G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, false, G.imgBall});
             }
             G.ballLocked = true;
             G.lives = 3;
@@ -335,7 +338,7 @@ namespace game
                 if (G.balls.empty())
                 {
                     float ballStartX = kScreenWidth * 0.5f + kPlayfieldOffsetX - kInitialBallHalf;
-                    G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, G.imgBall});
+                    G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, false, G.imgBall});
                 }
                 Ball &b0 = G.balls[0];
                 b0.x = G.bat.x + G.bat.width * 0.5f - kBallW * 0.5f;
@@ -401,7 +404,51 @@ namespace game
     {
         if (G.balls.size() >= 8)
             return;
-        G.balls.push_back(Ball{x, y, vx, vy, x, y, true, G.imgBall});
+    G.balls.push_back(Ball{x, y, vx, vy, x, y, true, false, G.imgBall});
+    }
+
+    static void spawn_murder_ball(float x, float y, float vx, float vy)
+    {
+        if (G.balls.size() >= 8)
+            return;
+    G.balls.push_back(Ball{x, y, vx, vy, x, y, true, true, G.imgMurderBall});
+    }
+
+    // Choose an alternate diagonal for a split ball. Guarantees both components non-zero.
+    static void choose_split_velocity(const Ball &src, float &outVx, float &outVy)
+    {
+        // Preserve overall speed magnitude
+        float spd = std::sqrt(src.vx * src.vx + src.vy * src.vy);
+        if (spd < 0.01f) spd = 1.5f; // fallback
+        // If already diagonal, flip the vertical component to choose a different diagonal
+        if (std::fabs(src.vx) > 0.01f && std::fabs(src.vy) > 0.01f)
+        {
+            outVx = src.vx;
+            outVy = -src.vy;
+            return;
+        }
+        // If moving purely horizontal or vertical, pick a diagonal based on current signs
+        int sx = (src.vx >= 0.0f) ? 1 : -1;
+        int sy = (src.vy >= 0.0f) ? 1 : -1;
+        if (std::fabs(src.vx) <= 0.01f && std::fabs(src.vy) > 0.01f)
+        {
+            // Vertical -> choose left or right keeping opposite vertical direction
+            float comp = spd * 0.7071f;
+            outVx = (sx == 0 ? 1 : sx) * comp; // default to right if 0
+            outVy = -sy * comp;
+            return;
+        }
+        if (std::fabs(src.vy) <= 0.01f && std::fabs(src.vx) > 0.01f)
+        {
+            // Horizontal -> choose up or down keeping horizontal direction
+            float comp = spd * 0.7071f;
+            outVx = sx * comp;
+            outVy = -1 * comp; // prefer upward split
+            return;
+        }
+        // Degenerate: standstill
+        outVx = spd * 0.7071f;
+        outVy = -spd * 0.7071f;
     }
 
     static void spawn_bonus_letter(int letter, float cx, float cy)
@@ -534,7 +581,11 @@ namespace game
             ball.vy *= 1.1f;
             break;
         case BrickType::AB:
-            spawn_extra_ball(cx, cy, -ball.vx, -std::fabs(ball.vy));
+        {
+            float svx, svy; choose_split_velocity(ball, svx, svy);
+            // Spawn a standard extra ball; original continues without additional reflection handling
+            spawn_extra_ball(cx, cy, svx, svy);
+        }
             break;
         case BrickType::T5:
             G.score += 60;
@@ -577,7 +628,11 @@ namespace game
             spawn_laser_pickup(cx, cy);
             break;
         case BrickType::MB:
-            G.murderTimer = 600;
+        {
+            float svx, svy; choose_split_velocity(ball, svx, svy);
+            // Spawn a murder ball variant while original continues on its path
+            spawn_murder_ball(cx, cy, svx, svy);
+        }
             break;
         case BrickType::OF:
             G.lightsOffTimer = 600;
@@ -868,7 +923,22 @@ namespace game
                         else
                             levels_remove_brick(c, r);
                         apply_brick_effect(bt, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
-                        if (G.murderTimer <= 0)
+                        // For AB/MB bricks, original ball continues without reflecting this frame
+                        if (bt == BrickType::AB || bt == BrickType::MB)
+                        {
+                            if (destroyed && levels_remaining_breakable() == 0 && levels_count() > 0) {
+                                if(!editor::test_return_active()) {
+                                    int next = (levels_current() + 1) % levels_count();
+                                    levels_set_current(next);
+                                    set_bat_size(1); // reset to normal at level end
+                                    G.laserEnabled = false;
+                                    G.laserReady = false;
+                                    hw_log("LEVEL COMPLETE\n");
+                                }
+                            }
+                            return true;
+                        }
+                        if (!ball.isMurder)
                         {
                             // Seam handling: if we are in a solid band of indestructible bricks and
                             // the collision is near a vertical seam (between two adjacent ID bricks),
@@ -886,21 +956,24 @@ namespace game
                                 if (neighborType == (int)BrickType::ID)
                                     preferVertical = true; // continuous wall
                             }
-                            if (!preferVertical && penX < penY)
+                            if (bt != BrickType::AB && bt != BrickType::MB)
                             {
-                                if (penLeft < penRight)
-                                    ball.x -= penLeft;
-                                else
-                                    ball.x += penRight;
-                                ball.vx = -ball.vx;
-                            }
-                            else
-                            {
-                                if (penTop < penBottom)
-                                    ball.y -= penTop;
-                                else
-                                    ball.y += penBottom;
-                                ball.vy = -ball.vy;
+                                    if (!preferVertical && penX < penY)
+                                    {
+                                        if (penLeft < penRight)
+                                            ball.x -= penLeft;
+                                        else
+                                            ball.x += penRight;
+                                        ball.vx = -ball.vx;
+                                    }
+                                    else
+                                    {
+                                        if (penTop < penBottom)
+                                            ball.y -= penTop;
+                                        else
+                                            ball.y += penBottom;
+                                        ball.vy = -ball.vy;
+                                    }
                             }
                         }
             if (destroyed && levels_remaining_breakable() == 0 && levels_count() > 0) {
@@ -968,7 +1041,19 @@ namespace game
                         else
                             levels_remove_brick(c, r);
                         apply_brick_effect(bt, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
-                        if (G.murderTimer <= 0)
+                        if (bt == BrickType::AB || bt == BrickType::MB)
+                        {
+                            if (destroyed && levels_remaining_breakable() == 0 && levels_count() > 0) {
+                                if(!editor::test_return_active()) {
+                                    int next = (levels_current() + 1) % levels_count();
+                                    levels_set_current(next);
+                                    set_bat_size(1); // reset to normal at level end
+                                    hw_log("LEVEL COMPLETE\n");
+                                }
+                            }
+                            return true;
+                        }
+                        if (!ball.isMurder)
                         {
                             float penLeft = ballR - bx;
                             float penRight = br - ballL;
@@ -988,21 +1073,24 @@ namespace game
                                 if (neighborType == (int)BrickType::ID)
                                     preferVertical = true;
                             }
-                            if (!preferVertical && penX < penY)
+                            if (bt != BrickType::AB && bt != BrickType::MB)
                             {
-                                if (penLeft < penRight)
-                                    ball.x -= penLeft;
+                                if (!preferVertical && penX < penY)
+                                {
+                                    if (penLeft < penRight)
+                                        ball.x -= penLeft;
+                                    else
+                                        ball.x += penRight;
+                                    ball.vx = -ball.vx;
+                                }
                                 else
-                                    ball.x += penRight;
-                                ball.vx = -ball.vx;
-                            }
-                            else
-                            {
-                                if (penTop < penBottom)
-                                    ball.y -= penTop;
-                                else
-                                    ball.y += penBottom;
-                                ball.vy = -ball.vy;
+                                {
+                                    if (penTop < penBottom)
+                                        ball.y -= penTop;
+                                    else
+                                        ball.y += penBottom;
+                                    ball.vy = -ball.vy;
+                                }
                             }
                         }
             if (destroyed && levels_remaining_breakable() == 0 && levels_count() > 0) {
@@ -1126,11 +1214,13 @@ namespace game
                 BrickType bt = (BrickType)raw;
                 float bx = ls + hitC * cellW;
                 float by = ts + hitR * cellH;
-                // Always reflect velocity for any brick except moving/empty
-                if (hitPenX)
-                    ball.vx = -ball.vx;
-                if (hitPenY)
-                    ball.vy = -ball.vy;
+                // For AB/MB we split a new ball and let the original continue without reflection.
+                if (bt != BrickType::AB && bt != BrickType::MB) {
+                    if (hitPenX)
+                        ball.vx = -ball.vx;
+                    if (hitPenY)
+                        ball.vy = -ball.vy;
+                }
                 bool destroyed = true;
                 if (bt == BrickType::T5)
                     destroyed = levels_damage_brick(hitC, hitR);
@@ -1154,6 +1244,10 @@ namespace game
                     levels_remove_brick(hitC, hitR);
                 }
                 apply_brick_effect(bt, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
+                if (bt == BrickType::AB || bt == BrickType::MB) {
+                    remainingT -= earliestT;
+                    break;
+                }
                 // Only one hit per frame
                 if (destroyed && levels_remaining_breakable() == 0 && levels_count() > 0) {
                     if(!editor::test_return_active()) {
@@ -1228,8 +1322,8 @@ namespace game
                     }
                     apply_brick_effect(bt, bx + cw * 0.5f, by + ch * 0.5f, ball);
 
-                    // Reflect if not in murder mode
-                    if (G.murderTimer <= 0) {
+                    // Reflect if not murder ball, and not AB/MB
+                    if (bt != BrickType::AB && bt != BrickType::MB) {
                         float penLeft = ballR - bx;
                         float penRight = br - ballL;
                         float penTop = ballB - by;
@@ -1527,7 +1621,7 @@ namespace game
                 G.balls.clear();
                 {
                     float ballStartX = kScreenWidth * 0.5f + kPlayfieldOffsetX - kInitialBallHalf;
-                    G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, G.imgBall});
+                    G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, false, G.imgBall});
                 }
                 G.ballLocked = true;
                 G.lives = 3; // ensure lives reset (updated default)
@@ -1576,7 +1670,7 @@ namespace game
                 G.balls.clear();
                 {
                     float ballStartX = kScreenWidth * 0.5f + kPlayfieldOffsetX - kInitialBallHalf;
-                    G.balls.push_back(Ball{ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, G.imgBall});
+                    G.balls.push_back(Ball{ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, false, G.imgBall});
                 }
                 G.ballLocked = true;
                 G.lives = 3; // reset lives when starting from Title
@@ -1631,8 +1725,7 @@ namespace game
             --G.reverseTimer;
         if (G.lightsOffTimer > 0)
             --G.lightsOffTimer;
-    if (G.murderTimer > 0)
-            --G.murderTimer;
+    // per-ball murder behavior; no global timer countdown needed
     if (!G.deathActive) update_moving_bricks();
     if (!G.deathActive) update_bonus_letters();
     if (!G.deathActive) update_falling_hazards();
@@ -1738,7 +1831,7 @@ namespace game
                         G.balls.clear();
                         {
                             float ballStartX = kScreenWidth * 0.5f + kPlayfieldOffsetX - kInitialBallHalf;
-                            G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, G.imgBall});
+                            G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, false, G.imgBall});
                         }
                         G.ballLocked = true;
                         G.lives = 3; // reset lives after returning to title
@@ -1802,6 +1895,12 @@ namespace game
                     bool enteredFromAbove = (ballCenterYPrev <= batTop && (ballCenterY + ballHalfH) >= batTop * 0.999f);
                     if (horizOverlap && (crossedTop || enteredFromAbove))
                     {
+                        if (b.isMurder) {
+                            // Murderball kills on bat hit
+                            begin_death_sequence();
+                            b.active = false; // remove this ball; death sequence takes over
+                            continue;
+                        }
                         // Place ball just above logical top using full rendered sprite alignment
                         float adjust = (ballBottom - batTop);
                         b.y -= adjust; // shift up so that logical bottom sits on top line
