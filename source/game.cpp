@@ -622,12 +622,14 @@ namespace game
             spawn_effect_pickup(PK_REVERSE, IMAGE_reverse_brick_idx, cx, cy);
             break; // ~10s pickup
         case BrickType::IS:
-            ball.vx *= 0.8f;
-            ball.vy *= 0.8f;
+            // Immediate slight slow; pass-through handled in collision code (no bounce)
+            ball.vx *= 0.98f;
+            ball.vy *= 0.98f;
             break;
         case BrickType::IF:
-            ball.vx *= 1.25f;
-            ball.vy *= 1.25f;
+            // Immediate slight fast; pass-through handled in collision code (no bounce)
+            ball.vx *= 1.025f;
+            ball.vy *= 1.025f;
             break;
         case BrickType::LA:
             spawn_laser_pickup(cx, cy);
@@ -714,10 +716,10 @@ namespace game
                     if (G.lives < 99) G.lives++;
                     break;
                 case PK_SLOW:
-                    for (auto &b : G.balls) { b.vx *= 0.9f; b.vy *= 0.9f; }
+                    for (auto &b : G.balls) { b.vx *= 0.99f; b.vy *= 0.99f; }
                     break;
                 case PK_FAST:
-                    for (auto &b : G.balls) { b.vx *= 1.1f; b.vy *= 1.1f; }
+                    for (auto &b : G.balls) { b.vx *= 1.01f; b.vy *= 1.01f; }
                     break;
                 case PK_REWIND:
                 {
@@ -994,7 +996,7 @@ namespace game
                                 if (neighborType == (int)BrickType::ID)
                                     preferVertical = true; // continuous wall
                             }
-                            if (bt != BrickType::AB && bt != BrickType::MB)
+                            if (bt != BrickType::AB && bt != BrickType::MB && bt != BrickType::IS && bt != BrickType::IF)
                             {
                                     if (!preferVertical && penX < penY)
                                     {
@@ -1111,7 +1113,7 @@ namespace game
                                 if (neighborType == (int)BrickType::ID)
                                     preferVertical = true;
                             }
-                            if (bt != BrickType::AB && bt != BrickType::MB)
+                            if (bt != BrickType::AB && bt != BrickType::MB && bt != BrickType::IS && bt != BrickType::IF)
                             {
                                 if (!preferVertical && penX < penY)
                                 {
@@ -1253,7 +1255,7 @@ namespace game
                 float bx = ls + hitC * cellW;
                 float by = ts + hitR * cellH;
                 // For AB/MB we split a new ball and let the original continue without reflection.
-                if (bt != BrickType::AB && bt != BrickType::MB) {
+                if (bt != BrickType::AB && bt != BrickType::MB && bt != BrickType::IS && bt != BrickType::IF) {
                     if (hitPenX)
                         ball.vx = -ball.vx;
                     if (hitPenY)
@@ -1361,7 +1363,7 @@ namespace game
                     apply_brick_effect(bt, bx + cw * 0.5f, by + ch * 0.5f, ball);
 
                     // Reflect if not murder ball, and not AB/MB
-                    if (bt != BrickType::AB && bt != BrickType::MB) {
+                    if (bt != BrickType::AB && bt != BrickType::MB && bt != BrickType::IS && bt != BrickType::IF) {
                         float penLeft = ballR - bx;
                         float penRight = br - ballL;
                         float penTop = ballB - by;
