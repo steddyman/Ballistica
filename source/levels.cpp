@@ -24,9 +24,10 @@ namespace levels {
     // Gameplay grid origin (affects in-game brick rendering/collisions)
     static constexpr int LEFTSTART=17; // Centered within 320 - (2 x 22*13)/2 = 17
     // The vertical offset for the brick grid is always hudHeight + 16 pixels below the UI background
-    static const int UI_BRICK_OFFSET = 16; // pixels below UI
-    static const int HUD_HEIGHT = 34; // must match hudHeight in game.cpp
-    static const int TOPSTART = HUD_HEIGHT + UI_BRICK_OFFSET;
+    #include "layout.hpp" // centralized layout constants
+    static const int UI_BRICK_OFFSET = layout::UI_BRICK_OFFSET;
+    static const int HUD_HEIGHT = layout::HUD_HEIGHT;
+    static const int TOPSTART = layout::BRICK_GRID_TOP;
     // Gameplay cell size (large bricks): 24x15
     static const int CellW = 22;
     static const int CellH = 13;

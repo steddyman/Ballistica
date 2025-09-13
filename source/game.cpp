@@ -42,19 +42,18 @@ namespace game
 {
     // Dual-screen alignment: use a 320px logical width on both screens.
     // On the top screen (400px wide), add a +40px X offset so content aligns horizontally.
-    static constexpr int kTopXOffset = 40; // 400 - 320 = 80; centered => 40 left offset
-    // Global horizontal offset to shift entire play area (bricks already shifted via levels.cpp)
-    static constexpr float kPlayfieldOffsetX = 0.0f; // no global shift in dual-screen mode
-    static constexpr float kScreenWidth = 320.0f;
-    // World coordinates: 320x480 (top screen: y 0..239, bottom: y 240..479)
-    static constexpr float kInitialBatY = 440.0f;  // previously 200 on bottom -> 200+240
-    static constexpr float kInitialBallY = 420.0f; // previously 180 on bottom -> 180+240
-    static constexpr float kInitialBallHalf = 4.0f; // legacy center adjust
     // Playfield interior boundaries (logical movement space for bat & balls)
     // Left wall currently aligned with background interior pillar (was 0, now 80).
-    static constexpr float kPlayfieldLeftWallX = 0.0f;   // 10px wall
-    static constexpr float kPlayfieldRightWallX = kScreenWidth - 1.0f; // 10px wall
-    static constexpr float kPlayfieldTopWallY = 10.0f;     // 10px wall
+    #include "layout.hpp"
+    static constexpr int kTopXOffset = layout::TOP_X_OFFSET;
+    static constexpr float kPlayfieldOffsetX = 0.0f;
+    static constexpr float kScreenWidth = layout::SCREEN_WIDTH;
+    static constexpr float kPlayfieldLeftWallX = layout::PLAYFIELD_LEFT_WALL_X;
+    static constexpr float kPlayfieldRightWallX = layout::PLAYFIELD_RIGHT_WALL_X;
+    static constexpr float kPlayfieldTopWallY = layout::PLAYFIELD_TOP_WALL_Y;
+    static constexpr float kInitialBatY = layout::kInitialBatY;
+    static constexpr float kInitialBallY = layout::kInitialBallY;
+    static constexpr float kInitialBallHalf = layout::kInitialBallHalf;
     
     // UI placement for BONUS indicators: top row Y and inter-icon gap
     static constexpr int kBonusIndicatorTopY = 4;   // top row alongside HUD
@@ -1067,9 +1066,9 @@ namespace game
             float ballR1 = ballL1 + (float)kBallW;
             float ballB1 = ballT1 + (float)kBallH;
             int minCol = (int)((std::min(ballL0, ballL1) - ls) / cellW);
-            int maxCol = (int)((std::max(ballR0, ballR1) - 1 - ls) / cellW);
+            int maxCol = (int)(((std::max(ballR0, ballR1) - ls) - 0.001f) / cellW);
             int minRow = (int)((std::min(ballT0, ballT1) - ts) / cellH);
-            int maxRow = (int)((std::max(ballB0, ballB1) - 1 - ts) / cellH);
+            int maxRow = (int)(((std::max(ballB0, ballB1) - ts) - 0.001f) / cellH);
             if (minCol < 0) minCol = 0;
             if (maxCol >= kBrickCols) maxCol = kBrickCols - 1;
             if (minRow < 0) minRow = 0;
@@ -1127,7 +1126,11 @@ namespace game
                 BrickType bt = (BrickType)raw;
                 float bx = ls + hitC * cellW;
                 float by = ts + hitR * cellH;
-                // Removed unused variables 'br' and 'bb' to fix compiler warnings
+                // Always reflect velocity for any brick except moving/empty
+                if (hitPenX)
+                    ball.vx = -ball.vx;
+                if (hitPenY)
+                    ball.vy = -ball.vy;
                 bool destroyed = true;
                 if (bt == BrickType::T5)
                     destroyed = levels_damage_brick(hitC, hitR);
@@ -1151,11 +1154,6 @@ namespace game
                     levels_remove_brick(hitC, hitR);
                 }
                 apply_brick_effect(bt, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
-                // Reflect velocity
-                if (hitPenX)
-                    ball.vx = -ball.vx;
-                if (hitPenY)
-                    ball.vy = -ball.vy;
                 // Only one hit per frame
                 if (destroyed && levels_remaining_breakable() == 0 && levels_count() > 0) {
                     if(!editor::test_return_active()) {
@@ -1174,7 +1172,8 @@ namespace game
                 remainingT -= stepT;
             }
         }
-        // Final guard: if we end the frame embedded in an indestructible brick, push out and reflect
+        // Final guard: if we end the frame embedded in any solid brick, resolve now.
+        // This covers edge cases where the swept test missed due to starting overlapped at a substep.
         {
             int ls = levels_left();
             int ts = levels_top();
@@ -1198,22 +1197,61 @@ namespace game
                 for (int c = minCol; c <= maxCol; ++c)
                 {
                     int raw = levels_brick_at(c, r);
-                    if (raw != (int)BrickType::ID) continue;
+                    if (raw <= 0 || is_moving_type(raw)) continue;
                     float bx = ls + c * cw, by = ts + r * ch;
                     float br = bx + cw, bb = by + ch;
                     if (ballR <= bx || ballL >= br || ballB <= by || ballT >= bb) continue;
-                    float penLeft = ballR - bx;
-                    float penRight = br - ballL;
-                    float penTop = ballB - by;
-                    float penBottom = bb - ballT;
-                    float penX = std::min(penLeft, penRight);
-                    float penY = std::min(penTop, penBottom);
-                    if (penX < penY) {
-                        if (penLeft < penRight) ball.x -= penLeft; else ball.x += penRight;
-                        ball.vx = -ball.vx;
+
+                    // Handle destruction/damage/effects similar to main collision path
+                    BrickType bt = (BrickType)raw;
+                    bool destroyed = true;
+                    if (bt == BrickType::T5) {
+                        destroyed = levels_damage_brick(c, r);
+                    } else if (bt == BrickType::BO) {
+                        levels_remove_brick(c, r);
+                        apply_brick_effect(BrickType::BO, bx + cw * 0.5f, by + ch * 0.5f, ball);
+                        for (int k = 0; k < 8; k++) {
+                            float angle = (float)k / 8.f * 6.28318f;
+                            float sp = 0.6f + 0.4f * (k % 4);
+                            Particle p{bx + cw * 0.5f, by + ch * 0.5f, std::cos(angle) * sp, std::sin(angle) * sp, 32, C2D_Color32(255, 200, 50, 255)};
+                            G.particles.push_back(p);
+                        }
+                        schedule_neighbor_bombs(c, r, 15);
+                    } else if (bt == BrickType::ID) {
+                        destroyed = false;
+                    } else if (bt == BrickType::F1 || bt == BrickType::F2) {
+                        levels_remove_brick(c, r);
+                        apply_brick_effect(bt, bx + cw * 0.5f, by + ch * 0.5f, ball);
+                        spawn_destroy_bat_brick(bt, bx + cw * 0.5f, by + ch * 0.5f);
                     } else {
-                        if (penTop < penBottom) ball.y -= penTop; else ball.y += penBottom;
-                        ball.vy = -ball.vy;
+                        levels_remove_brick(c, r);
+                    }
+                    apply_brick_effect(bt, bx + cw * 0.5f, by + ch * 0.5f, ball);
+
+                    // Reflect if not in murder mode
+                    if (G.murderTimer <= 0) {
+                        float penLeft = ballR - bx;
+                        float penRight = br - ballL;
+                        float penTop = ballB - by;
+                        float penBottom = bb - ballT;
+                        float penX = std::min(penLeft, penRight);
+                        float penY = std::min(penTop, penBottom);
+                        if (penX < penY) {
+                            if (penLeft < penRight) ball.x -= penLeft; else ball.x += penRight;
+                            ball.vx = -ball.vx;
+                        } else {
+                            if (penTop < penBottom) ball.y -= penTop; else ball.y += penBottom;
+                            ball.vy = -ball.vy;
+                        }
+                    }
+
+                    if (destroyed && levels_remaining_breakable() == 0 && levels_count() > 0) {
+                        if(!editor::test_return_active()) {
+                            int next = (levels_current() + 1) % levels_count();
+                            levels_set_current(next);
+                            set_bat_size(1);
+                            hw_log("LEVEL COMPLETE\n");
+                        }
                     }
                     return;
                 }
@@ -1994,7 +2032,7 @@ namespace game
             // HUD overlay on top screen (aligned to 320px logical area via +40px offset)
             // --- Enhanced HUD ---
             // Layout: Score (left), Level (center), Bonus (right)
-            const int hudHeight = 34; // Reduced by 4px
+            const int hudHeight = layout::HUD_HEIGHT;
             const int hudY = 0;
             const int hudX = kTopXOffset;
             const int hudW = 320;
@@ -2036,29 +2074,31 @@ namespace game
                 float cx = (float)(kTopXOffset + 320 - 8 - iw);
                 hw_draw_sprite(ind, cx, hudY + 6.0f);
             }
-            // BONUS indicators: centered and moved up to appear over the blue UI background
+            // BONUS indicators: centered and moved up to appear over the blue UI background (pixel-snapped)
             {
                 const int iconIdx[5] = { IMAGE_letterb_idx, IMAGE_lettero_idx, IMAGE_lettern_idx, IMAGE_letteru_idx, IMAGE_letters_idx };
-                float totalW = 0.0f;
-                float heights[5] = {0,0,0,0,0};
-                float widths[5] = {0,0,0,0,0};
+                int totalW = 0;
+                int heights[5] = {0,0,0,0,0};
+                int widths[5] = {0,0,0,0,0};
                 C2D_Image imgs[5];
                 for (int i = 0; i < 5; ++i) {
                     imgs[i] = hw_image(iconIdx[i]);
-                    widths[i] = (imgs[i].subtex ? imgs[i].subtex->width : 10.0f);
-                    heights[i] = (imgs[i].subtex ? imgs[i].subtex->height : 11.0f);
+                    widths[i] = (int)std::round(imgs[i].subtex ? imgs[i].subtex->width : 10.0f);
+                    heights[i] = (int)std::round(imgs[i].subtex ? imgs[i].subtex->height : 11.0f);
                     totalW += widths[i];
                 }
-                totalW += (5 - 1) * (float)kBonusIndicatorGapY;
-                float startX = hudX + (hudW - totalW) * 0.5f;
-                float y = hudY + hudHeight / 2.0f + 6.0f; // vertically centered in HUD bar
-                float x = startX;
+                totalW += (5 - 1) * kBonusIndicatorGapY;
+                int startXi = hudX + (hudW - totalW) / 2; // integer center
+                // Place BONUS row relative to HUD height; center by default with a small nudge (all integer math)
+                int maxH = 0; for (int i=0;i<5;++i) if (heights[i] > maxH) maxH = heights[i];
+                int yi = (int)std::round((double)hudY + (double)hudHeight * (double)layout::BONUS_Y_FACTOR - (double)maxH * 0.5 + (double)layout::BONUS_Y_OFFSET);
+                int xi = startXi;
                 for (int i = 0; i < 5; ++i) {
-                    hw_draw_sprite(imgs[i], x, y);
+                    hw_draw_sprite(imgs[i], (float)xi, (float)yi);
                     if ((G.bonusBits & (1 << i)) == 0) {
-                        C2D_DrawRectSolid(x, y, 0, widths[i], heights[i], C2D_Color32(0, 0, 0, 140));
+                        C2D_DrawRectSolid((float)xi, (float)yi, 0, (float)widths[i], (float)heights[i], C2D_Color32(0, 0, 0, 140));
                     }
-                    x += widths[i] + (float)kBonusIndicatorGapY;
+                    xi += widths[i] + kBonusIndicatorGapY;
                 }
             }
             // Generic per-level intro (rendered on top now)
