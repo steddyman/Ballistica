@@ -30,7 +30,7 @@ namespace layout {
     static constexpr int   BONUS_Y_OFFSET = 10; // fine-tune nudge in pixels
 
     // Initial positions for bat and ball
-    static constexpr float kInitialBatY = 460.0f; // 220 + 240, bottom screen space
+    static constexpr float kInitialBatY = 420.0f; // 220 + 240, bottom screen space
     static constexpr float kInitialBallY = kInitialBatY - 8.0f; // Ball just above bat
     static constexpr float kInitialBallHalf = 3.0f; // Half ball width (if ball is 6px)
 }
