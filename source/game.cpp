@@ -483,6 +483,28 @@ namespace game
         G.letters.push_back(fl);
     }
 
+    // Effect pickup codes (avoid clashes with 0..4, 100/101, 200 used elsewhere)
+    enum : int {
+        PK_LIFE = 300,
+        PK_SLOW = 301,
+        PK_FAST = 302,
+        PK_REWIND = 303,
+        PK_REVERSE = 304,
+        PK_FORWARD = 305,
+        PK_BONUS1000 = 306,
+        PK_LIGHTS_OFF = 307,
+        PK_LIGHTS_ON = 308,
+    };
+
+    static void spawn_effect_pickup(int effectCode, int atlasIdx, float cx, float cy)
+    {
+        C2D_Image img = hw_image(atlasIdx);
+        float w = (img.subtex ? img.subtex->width : 16.0f);
+        float h = (img.subtex ? img.subtex->height : 9.0f);
+        FallingLetter fl{cx - w * 0.5f, cy - h * 0.5f, 0.6f, effectCode, true, img};
+        G.letters.push_back(fl);
+    }
+
     static void spawn_destroy_bat_brick(BrickType bt, float cx, float cy)
     {
         // Use skull brick visual for both F1/F2 for now
@@ -569,16 +591,13 @@ namespace game
             G.score += 100;
             break;
         case BrickType::LB:
-            if (G.lives < 99)
-                G.lives++;
+            spawn_effect_pickup(PK_LIFE, IMAGE_life_brick_idx, cx, cy);
             break;
         case BrickType::SB:
-            ball.vx *= 0.9f;
-            ball.vy *= 0.9f;
+            spawn_effect_pickup(PK_SLOW, IMAGE_slow_brick_idx, cx, cy);
             break;
         case BrickType::FB:
-            ball.vx *= 1.1f;
-            ball.vy *= 1.1f;
+            spawn_effect_pickup(PK_FAST, IMAGE_fast_brick_idx, cx, cy);
             break;
         case BrickType::AB:
         {
@@ -594,28 +613,14 @@ namespace game
             G.score += 120;
             break; // base bomb score before chain
         case BrickType::RW:
-        {
-            int cur = levels_current();
-            if (levels_count() > 0)
-            {
-                cur = (cur - 1 + levels_count()) % levels_count();
-                levels_set_current(cur);
-            }
-        }
-        break;
+            spawn_effect_pickup(PK_REWIND, IMAGE_rewind_brick_idx, cx, cy);
+            break;
         case BrickType::FO:
-        {
-            int cur = levels_current();
-            if (levels_count() > 0)
-            {
-                cur = (cur + 1) % levels_count();
-                levels_set_current(cur);
-            }
-        }
-        break;
+            spawn_effect_pickup(PK_FORWARD, IMAGE_forward_brick_idx, cx, cy);
+            break;
         case BrickType::RE:
-            G.reverseTimer = 600;
-            break; // ~10s
+            spawn_effect_pickup(PK_REVERSE, IMAGE_reverse_brick_idx, cx, cy);
+            break; // ~10s pickup
         case BrickType::IS:
             ball.vx *= 0.8f;
             ball.vy *= 0.8f;
@@ -635,13 +640,13 @@ namespace game
         }
             break;
         case BrickType::OF:
-            G.lightsOffTimer = 600;
+            spawn_effect_pickup(PK_LIGHTS_OFF, IMAGE_offswitch_brick_idx, cx, cy);
             break;
         case BrickType::ON:
-            G.lightsOffTimer = 0;
+            spawn_effect_pickup(PK_LIGHTS_ON, IMAGE_onswitch_brick_idx, cx, cy);
             break;
         case BrickType::BA:
-            G.score += 1000;
+            spawn_effect_pickup(PK_BONUS1000, IMAGE_bonus_brick_idx, cx, cy);
             break;
         case BrickType::BS:
             spawn_bat_pickup(false, cx, cy);
@@ -704,6 +709,39 @@ namespace game
                 case 200: // Laser pickup
                     G.laserEnabled = true;
                     G.laserReady = true;
+                    break;
+                case PK_LIFE:
+                    if (G.lives < 99) G.lives++;
+                    break;
+                case PK_SLOW:
+                    for (auto &b : G.balls) { b.vx *= 0.9f; b.vy *= 0.9f; }
+                    break;
+                case PK_FAST:
+                    for (auto &b : G.balls) { b.vx *= 1.1f; b.vy *= 1.1f; }
+                    break;
+                case PK_REWIND:
+                {
+                    int cur = levels_current();
+                    if (levels_count() > 0) { cur = (cur - 1 + levels_count()) % levels_count(); levels_set_current(cur); }
+                }
+                    break;
+                case PK_FORWARD:
+                {
+                    int cur = levels_current();
+                    if (levels_count() > 0) { cur = (cur + 1) % levels_count(); levels_set_current(cur); }
+                }
+                    break;
+                case PK_REVERSE:
+                    G.reverseTimer = 600; // ~10s
+                    break;
+                case PK_BONUS1000:
+                    G.score += 1000;
+                    break;
+                case PK_LIGHTS_OFF:
+                    G.lightsOffTimer = 600;
+                    break;
+                case PK_LIGHTS_ON:
+                    G.lightsOffTimer = 0;
                     break;
                 }
                 L.active = false;
@@ -1350,6 +1388,8 @@ namespace game
                     return;
                 }
         }
+    // After swept/static resolution, also check moving bricks once this frame so SS/SF collide properly.
+    (void)detect_and_resolve(true);
     }
 
     static void update_moving_bricks()
