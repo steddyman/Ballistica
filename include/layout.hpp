@@ -33,4 +33,8 @@ namespace layout {
     static constexpr float kInitialBatY = 420.0f; // 220 + 240, bottom screen space
     static constexpr float kInitialBallY = kInitialBatY - 8.0f; // Ball just above bat
     static constexpr float kInitialBallHalf = 3.0f; // Half ball width (if ball is 6px)
+
+    // Gameplay tuning
+    // Speed modifier for speed-affecting bricks (value 0.05f means +/-5% per effect)
+    static constexpr float SPEED_MODIFIER = 0.05f;
 }

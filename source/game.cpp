@@ -622,14 +622,14 @@ namespace game
             spawn_effect_pickup(PK_REVERSE, IMAGE_reverse_brick_idx, cx, cy);
             break; // ~10s pickup
         case BrickType::IS:
-            // Immediate slight slow; pass-through handled in collision code (no bounce)
-            ball.vx *= 0.98f;
-            ball.vy *= 0.98f;
+            // Immediate slow; pass-through handled in collision code (no bounce)
+            ball.vx *= (1.0f - layout::SPEED_MODIFIER);
+            ball.vy *= (1.0f - layout::SPEED_MODIFIER);
             break;
         case BrickType::IF:
-            // Immediate slight fast; pass-through handled in collision code (no bounce)
-            ball.vx *= 1.025f;
-            ball.vy *= 1.025f;
+            // Immediate fast; pass-through handled in collision code (no bounce)
+            ball.vx *= (1.0f + layout::SPEED_MODIFIER);
+            ball.vy *= (1.0f + layout::SPEED_MODIFIER);
             break;
         case BrickType::LA:
             spawn_laser_pickup(cx, cy);
@@ -716,10 +716,10 @@ namespace game
                     if (G.lives < 99) G.lives++;
                     break;
                 case PK_SLOW:
-                    for (auto &b : G.balls) { b.vx *= 0.99f; b.vy *= 0.99f; }
+                    for (auto &b : G.balls) { b.vx *= (1.0f - layout::SPEED_MODIFIER); b.vy *= (1.0f - layout::SPEED_MODIFIER); }
                     break;
                 case PK_FAST:
-                    for (auto &b : G.balls) { b.vx *= 1.01f; b.vy *= 1.01f; }
+                    for (auto &b : G.balls) { b.vx *= (1.0f + layout::SPEED_MODIFIER); b.vy *= (1.0f + layout::SPEED_MODIFIER); }
                     break;
                 case PK_REWIND:
                 {
