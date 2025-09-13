@@ -17,6 +17,12 @@ namespace layout {
     static constexpr int SCREEN_WIDTH = 320;
     static constexpr int TOP_X_OFFSET = 40; // For top screen centering
 
+    // Background image placement (single tall background drawn on both screens)
+    static constexpr int BG_TOP_X = 40;     // top screen background X (center 320px on 400px)
+    static constexpr int BG_TOP_Y = 0;      // top screen background Y
+    static constexpr int BG_BOTTOM_X = 0;   // bottom screen background X (full width at x=0)
+    static constexpr int BG_BOTTOM_Y = -240; // bottom shows lower half of a 480px region
+
     // BONUS indicators vertical placement within the HUD bar
     // y = hudY + HUD_HEIGHT * BONUS_Y_FACTOR - (maxIconH * 0.5f) + BONUS_Y_OFFSET
     // Set BONUS_Y_FACTOR to 0.5f for center, 0.0f for top, 1.0f for bottom.
