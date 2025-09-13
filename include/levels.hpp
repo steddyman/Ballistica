@@ -21,6 +21,9 @@ int levels_left();
 int levels_top();
 int levels_brick_width();
 int levels_brick_height();
+// Editor-design brick cell size (smaller visuals for editor grid)
+int levels_edit_brick_width();
+int levels_edit_brick_height();
 
 // Access brick at grid coordinate; returns raw index (same as BrickType int) or -1
 int levels_brick_at(int col, int row);
@@ -74,3 +77,6 @@ bool levels_save_active();
 // Runtime horizontal render offset (gameplay only) – editor keeps base positions.
 void levels_set_draw_offset(int offsetPixels);
 int  levels_get_draw_offset();
+// Runtime vertical render offset (for top-screen centering/padding)
+void levels_set_draw_offset_y(int offsetPixels);
+int  levels_get_draw_offset_y();
