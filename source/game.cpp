@@ -1,3 +1,13 @@
+
+#include <cstdint>
+#include <cmath>
+#include <citro2d.h>
+
+// ...existing code...
+
+
+// ...existing code...
+
 // game.cpp - incremental gameplay port (modernizing legacy main.cpp)
 #include <vector>
 #include <citro2d.h>
@@ -13,6 +23,7 @@
 #include "INSTRUCT.h"
 #include "DESIGNER.h"
 #include "HIGH.h"
+#include "BACKGROUND.h"
 #include "highscores.hpp"
 #include "game.hpp"
 #include "levels.hpp"
@@ -45,10 +56,9 @@ namespace game
     static constexpr float kPlayfieldRightWallX = kScreenWidth - 1.0f; // 10px wall
     static constexpr float kPlayfieldTopWallY = 10.0f;     // 10px wall
     
-    // UI placement: BONUS indicator stack anchor (left-aligned X), top Y, and vertical gap
-    static constexpr int kBonusIndicatorLeftX = 358; // left edge anchor for icons (adjust as needed)
-    static constexpr int kBonusIndicatorTopY = 78;    // top Y for the first icon
-    static constexpr int kBonusIndicatorGapY = 3;    // gap between icons (in pixels)
+    // UI placement for BONUS indicators: top row Y and inter-icon gap
+    static constexpr int kBonusIndicatorTopY = 4;   // top row alongside HUD
+    static constexpr int kBonusIndicatorGapY = 3;   // gap between icons (pixels); reused horizontally
     // Title buttons declared later and initialized in init()
     // (Editor UI constants moved to editor.cpp)
     // Fixed geometry (design guarantees these never change now)
@@ -184,8 +194,22 @@ namespace game
         std::vector<BombEvent> bombEvents; // pending delayed explosions
     };
 
+
     static State G;
     static bool g_exitRequested = false;
+
+        // Simple dust effect: spawn a burst of particles at (x, y)
+        void spawn_dust_effect(float x, float y) {
+            for (int i = 0; i < 12; ++i) {
+                float angle = (float)i / 12.0f * 6.28318f;
+                float speed = 0.4f + 0.2f * (i % 3); // smaller spread, half brick size
+                uint32_t dustColor = C2D_Color32(245, 245, 245, 220); // nearly white, high opacity
+                float px = x;
+                float py = y;
+                Particle p{ px, py, std::cos(angle) * speed, std::sin(angle) * speed, 10, dustColor };
+                G.particles.push_back(p);
+            }
+        }
     bool exit_requested_internal() { return g_exitRequested; }
 
     // Forward declare helpers defined later
@@ -766,10 +790,13 @@ namespace game
             int ts = levels_top();
             int cellW = levels_brick_width();
             int cellH = levels_brick_height();
-            float ballL = ball.x;
-            float ballT = ball.y;
-            float ballR = ball.x + kBallW;
-            float ballB = ball.y + kBallH;
+            // Align logical 6x6 collider centered within the rendered sprite (handles atlas trims)
+            float spriteW = (ball.img.subtex ? ball.img.subtex->width : (float)kBallW);
+            float spriteH = (ball.img.subtex ? ball.img.subtex->height : (float)kBallH);
+            float ballL = ball.x + (spriteW - (float)kBallW) * 0.5f;
+            float ballT = ball.y + (spriteH - (float)kBallH) * 0.5f;
+            float ballR = ballL + (float)kBallW;
+            float ballB = ballT + (float)kBallH;
             // center values can be derived on demand; avoid unused locals
 
             if (!movingPhase)
@@ -993,10 +1020,13 @@ namespace game
             }
         };
 
-        // Sub-step integration to prevent corner tunnelling between adjacent bricks.
-        // We subdivide the frame movement if speed exceeds 1px in any axis. On first
+    // Sub-step integration to prevent tunnelling, especially through indestructibles at high speeds.
+    // We subdivide the frame movement so that translation per substep is <= 0.5px on the fastest axis. On first
         // collision we stop (maintaining one-hit-per-frame behaviour).
-        int steps = (int)std::ceil(std::max(std::fabs(ball.vx), std::fabs(ball.vy)));
+    const float kSubstepPixels = 0.5f; // higher resolution to reduce miss chance on thin seams
+    float maxAxis = std::max(std::fabs(ball.vx), std::fabs(ball.vy));
+    int steps = (int)std::ceil(maxAxis / kSubstepPixels);
+    if (steps > 64) steps = 64; // safety cap
         if (steps < 1)
             steps = 1;
         if (steps == 1)
@@ -1011,18 +1041,182 @@ namespace game
         float startY = ball.py;
         float totalDX = ball.x - startX;
         float totalDY = ball.y - startY;
-        // Reset to start; we will advance in increments
         ball.x = startX;
         ball.y = startY;
-        for (int s = 1; s <= steps; ++s)
+        float remainingT = 1.0f;
+        for (int substep = 0; substep < steps && remainingT > 0.0f; ++substep) {
+            float stepT = remainingT / (steps - substep);
+            float endX = ball.x + totalDX * stepT;
+            float endY = ball.y + totalDY * stepT;
+            // Swept AABB collision detection
+            float earliestT = stepT;
+            int hitC = -1, hitR = -1;
+            float hitPenX = 0, hitPenY = 0;
+            int ls = levels_left();
+            int ts = levels_top();
+            int cellW = levels_brick_width();
+            int cellH = levels_brick_height();
+            float spriteW = (ball.img.subtex ? ball.img.subtex->width : (float)kBallW);
+            float spriteH = (ball.img.subtex ? ball.img.subtex->height : (float)kBallH);
+            float ballL0 = ball.x + (spriteW - (float)kBallW) * 0.5f;
+            float ballT0 = ball.y + (spriteH - (float)kBallH) * 0.5f;
+            float ballR0 = ballL0 + (float)kBallW;
+            float ballB0 = ballT0 + (float)kBallH;
+            float ballL1 = endX + (spriteW - (float)kBallW) * 0.5f;
+            float ballT1 = endY + (spriteH - (float)kBallH) * 0.5f;
+            float ballR1 = ballL1 + (float)kBallW;
+            float ballB1 = ballT1 + (float)kBallH;
+            int minCol = (int)((std::min(ballL0, ballL1) - ls) / cellW);
+            int maxCol = (int)((std::max(ballR0, ballR1) - 1 - ls) / cellW);
+            int minRow = (int)((std::min(ballT0, ballT1) - ts) / cellH);
+            int maxRow = (int)((std::max(ballB0, ballB1) - 1 - ts) / cellH);
+            if (minCol < 0) minCol = 0;
+            if (maxCol >= kBrickCols) maxCol = kBrickCols - 1;
+            if (minRow < 0) minRow = 0;
+            if (maxRow >= kBrickRows) maxRow = kBrickRows - 1;
+            for (int r = minRow; r <= maxRow; ++r) {
+                for (int c = minCol; c <= maxCol; ++c) {
+                    int raw = levels_brick_at(c, r);
+                    if (raw <= 0 || is_moving_type(raw)) continue;
+                    float bx = ls + c * cellW;
+                    float by = ts + r * cellH;
+                    float br = bx + cellW;
+                    float bb = by + cellH;
+                    // Swept AABB: calculate time of impact
+                    float tEntryX, tExitX, tEntryY, tExitY;
+                    float vx = endX - ball.x;
+                    float vy = endY - ball.y;
+                    if (vx > 0) {
+                        tEntryX = (bx - ballR0) / vx;
+                        tExitX = (br - ballL0) / vx;
+                    } else if (vx < 0) {
+                        tEntryX = (br - ballL0) / vx;
+                        tExitX = (bx - ballR0) / vx;
+                    } else {
+                        tEntryX = -INFINITY;
+                        tExitX = INFINITY;
+                    }
+                    if (vy > 0) {
+                        tEntryY = (by - ballB0) / vy;
+                        tExitY = (bb - ballT0) / vy;
+                    } else if (vy < 0) {
+                        tEntryY = (bb - ballT0) / vy;
+                        tExitY = (by - ballB0) / vy;
+                    } else {
+                        tEntryY = -INFINITY;
+                        tExitY = INFINITY;
+                    }
+                    float tEntry = std::max(tEntryX, tEntryY);
+                    float tExit = std::min(tExitX, tExitY);
+                    if (tEntry < 0.0f || tEntry > stepT || tEntry > tExit || tExit < 0.0f || tEntry > earliestT)
+                        continue;
+                    // Found earlier collision
+                    earliestT = tEntry;
+                    hitC = c;
+                    hitR = r;
+                    hitPenX = (tEntryX > tEntryY) ? 1 : 0;
+                    hitPenY = (tEntryY >= tEntryX) ? 1 : 0;
+                }
+            }
+            if (hitC != -1 && hitR != -1) {
+                // Move ball to collision point
+                ball.x += totalDX * earliestT;
+                ball.y += totalDY * earliestT;
+                // Resolve collision
+                int raw = levels_brick_at(hitC, hitR);
+                BrickType bt = (BrickType)raw;
+                float bx = ls + hitC * cellW;
+                float by = ts + hitR * cellH;
+                // Removed unused variables 'br' and 'bb' to fix compiler warnings
+                bool destroyed = true;
+                if (bt == BrickType::T5)
+                    destroyed = levels_damage_brick(hitC, hitR);
+                else if (bt == BrickType::BO) {
+                    levels_remove_brick(hitC, hitR);
+                    apply_brick_effect(BrickType::BO, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
+                    for (int k = 0; k < 8; k++) {
+                        float angle = (float)k / 8.f * 6.28318f;
+                        float sp = 0.6f + 0.4f * (k % 4);
+                        Particle p{bx + cellW * 0.5f, by + cellH * 0.5f, std::cos(angle) * sp, std::sin(angle) * sp, 32, C2D_Color32(255, 200, 50, 255)};
+                        G.particles.push_back(p);
+                    }
+                    schedule_neighbor_bombs(hitC, hitR, 15);
+                } else if (bt == BrickType::ID) {
+                    destroyed = false;
+                } else if (bt == BrickType::F1 || bt == BrickType::F2) {
+                    levels_remove_brick(hitC, hitR);
+                    apply_brick_effect(bt, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
+                    spawn_destroy_bat_brick(bt, bx + cellW * 0.5f, by + cellH * 0.5f);
+                } else {
+                    levels_remove_brick(hitC, hitR);
+                }
+                apply_brick_effect(bt, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
+                // Reflect velocity
+                if (hitPenX)
+                    ball.vx = -ball.vx;
+                if (hitPenY)
+                    ball.vy = -ball.vy;
+                // Only one hit per frame
+                if (destroyed && levels_remaining_breakable() == 0 && levels_count() > 0) {
+                    if(!editor::test_return_active()) {
+                        int next = (levels_current() + 1) % levels_count();
+                        levels_set_current(next);
+                        set_bat_size(1);
+                        hw_log("LEVEL COMPLETE\n");
+                    }
+                }
+                remainingT -= earliestT;
+                break;
+            } else {
+                // No collision, move to end of substep
+                ball.x = endX;
+                ball.y = endY;
+                remainingT -= stepT;
+            }
+        }
+        // Final guard: if we end the frame embedded in an indestructible brick, push out and reflect
         {
-            float t = (float)s / (float)steps;
-            ball.x = startX + totalDX * t;
-            ball.y = startY + totalDY * t;
-            if (detect_and_resolve(false))
-                return;
-            if (detect_and_resolve(true))
-                return;
+            int ls = levels_left();
+            int ts = levels_top();
+            int cw = levels_brick_width();
+            int ch = levels_brick_height();
+            float spriteW = (ball.img.subtex ? ball.img.subtex->width : (float)kBallW);
+            float spriteH = (ball.img.subtex ? ball.img.subtex->height : (float)kBallH);
+            float ballL = ball.x + (spriteW - (float)kBallW) * 0.5f;
+            float ballT = ball.y + (spriteH - (float)kBallH) * 0.5f;
+            float ballR = ballL + (float)kBallW;
+            float ballB = ballT + (float)kBallH;
+            int minCol = (int)((ballL - ls) / cw);
+            int maxCol = (int)((ballR - 1 - ls) / cw);
+            int minRow = (int)((ballT - ts) / ch);
+            int maxRow = (int)((ballB - 1 - ts) / ch);
+            if (minCol < 0) minCol = 0;
+            if (maxCol >= kBrickCols) maxCol = kBrickCols - 1;
+            if (minRow < 0) minRow = 0;
+            if (maxRow >= kBrickRows) maxRow = kBrickRows - 1;
+            for (int r = minRow; r <= maxRow; ++r)
+                for (int c = minCol; c <= maxCol; ++c)
+                {
+                    int raw = levels_brick_at(c, r);
+                    if (raw != (int)BrickType::ID) continue;
+                    float bx = ls + c * cw, by = ts + r * ch;
+                    float br = bx + cw, bb = by + ch;
+                    if (ballR <= bx || ballL >= br || ballB <= by || ballT >= bb) continue;
+                    float penLeft = ballR - bx;
+                    float penRight = br - ballL;
+                    float penTop = ballB - by;
+                    float penBottom = bb - ballT;
+                    float penX = std::min(penLeft, penRight);
+                    float penY = std::min(penTop, penBottom);
+                    if (penX < penY) {
+                        if (penLeft < penRight) ball.x -= penLeft; else ball.x += penRight;
+                        ball.vx = -ball.vx;
+                    } else {
+                        if (penTop < penBottom) ball.y -= penTop; else ball.y += penBottom;
+                        ball.vy = -ball.vy;
+                    }
+                    return;
+                }
         }
     }
 
@@ -1681,6 +1875,15 @@ namespace game
         // Top-screen phase (HUD and brick field). Gameplay objects are drawn on both screens appropriately.
         if (G.mode == Mode::Playing) {
             hw_set_top();
+            // Draw starfield background (top half visible on top screen)
+            {
+                C2D_Image sf = hw_image_from(HwSheet::Background, BACKGROUND_idx);
+                if (sf.tex) {
+                    float atlasLeft = (sf.subtex ? sf.subtex->left : 0.0f);
+                    float atlasTop  = (sf.subtex ? sf.subtex->top  : 0.0f);
+                    hw_draw_sprite(sf, (float)kTopXOffset - atlasLeft, -atlasTop);
+                }
+            }
             // Top-screen bricks pass: center horizontally via +40px X and use a three-brick top gap
             levels_set_draw_offset(kTopXOffset);
             // Desired top-of-field equals exactly three brick heights (45px)
@@ -1789,40 +1992,73 @@ namespace game
                 C2D_DrawRectSolid(0, 0, 0, 400, 240, C2D_Color32(0, 0, 0, 140));
             }
             // HUD overlay on top screen (aligned to 320px logical area via +40px offset)
-            char hud[128];
-            char bonus[8];
-            int bi = 0;
-            if (G.bonusBits & 0x01) bonus[bi++] = 'B';
-            if (G.bonusBits & 0x02) bonus[bi++] = 'O';
-            if (G.bonusBits & 0x04) bonus[bi++] = 'N';
-            if (G.bonusBits & 0x08) bonus[bi++] = 'U';
-            if (G.bonusBits & 0x10) bonus[bi++] = 'S';
-            bonus[bi] = '\0';
-            const char* laserStr = (!G.laserEnabled ? "OFF" : (G.laserReady ? "RDY" : "BEAM"));
-            snprintf(hud, sizeof hud, "L%02d SCO:%lu LIVES:%d LA:%s %s%s%s",
-                     levels_current() + 1, G.score, G.lives, laserStr,
-                     (G.reverseTimer > 0 ? "REV " : ""), (G.murderTimer > 0 ? "MB " : ""), bonus);
-            hw_draw_text(kTopXOffset + 4, 4, hud, 0xFFFFFFFF);
-            // Laser ready indicator icon on top screen (to the right of HUD text)
+            // --- Enhanced HUD ---
+            // Layout: Score (left), Level (center), Bonus (right)
+            const int hudHeight = 34; // Reduced by 4px
+            const int hudY = 0;
+            const int hudX = kTopXOffset;
+            const int hudW = 320;
+            // Draw darker blue background bar
+            C2D_DrawRectSolid(hudX, hudY, 0, hudW, hudHeight, C2D_Color32(13, 19, 54, 255));
+            // Score (left)
+            char scoreLabel[] = "SCORE:";
+            char scoreVal[16];
+            snprintf(scoreVal, sizeof scoreVal, "%06lu", G.score); // zero-padded 6 digits
+            // Level (center)
+            char levelLabel[] = "LEVEL:";
+            char levelVal[16];
+            snprintf(levelVal, sizeof levelVal, "%02d", levels_current() + 1); // pad to two digits
+            // Bonus (right)
+            // Removed bonus label and value text
+            // Font sizes
+            float labelScale = 2.0f;
+            float valueScale = 2.0f;
+            // Colors
+            uint32_t labelColor = C2D_Color32(255, 255, 0, 255); // yellow
+            uint32_t valueColor = C2D_Color32(255, 255, 255, 255); // white
+            // Score left
+            int scoreLabelX = hudX + 12;
+            int scoreValX = scoreLabelX + hw_text_width(scoreLabel) * labelScale + 12;
+            int scoreY = hudY + 6;
+            hw_draw_text_shadow_scaled(scoreLabelX, scoreY, scoreLabel, labelColor, 0x000000FF, labelScale);
+            hw_draw_text_shadow_scaled(scoreValX, scoreY, scoreVal, valueColor, 0x000000FF, valueScale);
+            // Level right aligned
+            int levelValWidth = hw_text_width(levelVal) * valueScale;
+            int levelLabelWidth = hw_text_width(levelLabel) * labelScale;
+            int levelLabelX = hudX + hudW - levelLabelWidth - levelValWidth - 12;
+            int levelValX = hudX + hudW - levelValWidth - 8;
+            hw_draw_text_shadow_scaled(levelLabelX, scoreY, levelLabel, labelColor, 0x000000FF, labelScale);
+            hw_draw_text_shadow_scaled(levelValX, scoreY, levelVal, valueColor, 0x000000FF, valueScale);
+            // Laser ready indicator icon on top screen (to the right of HUD text, above bonus)
             if (G.laserEnabled && G.laserReady) {
                 C2D_Image ind = hw_image(IMAGE_laser_indicator_idx);
                 float iw = (ind.subtex ? ind.subtex->width : 6.0f);
                 float cx = (float)(kTopXOffset + 320 - 8 - iw);
-                hw_draw_sprite(ind, cx, 4.0f);
+                hw_draw_sprite(ind, cx, hudY + 6.0f);
             }
-            // BONUS indicators: draw on top (aligned via +40px)
+            // BONUS indicators: centered and moved up to appear over the blue UI background
             {
                 const int iconIdx[5] = { IMAGE_letterb_idx, IMAGE_lettero_idx, IMAGE_lettern_idx, IMAGE_letteru_idx, IMAGE_letters_idx };
-                for (int i = 0; i < 5; ++i)
-                {
-                    C2D_Image img = hw_image(iconIdx[i]);
-                    float w = (img.subtex ? img.subtex->width : 10.0f);
-                    float h = (img.subtex ? img.subtex->height : 11.0f);
-                    int drawX = kTopXOffset + kBonusIndicatorLeftX - 320; // convert right-side anchor to top-screen coords
-                    int drawY = kBonusIndicatorTopY + i * ((int)h + kBonusIndicatorGapY);
-                    hw_draw_sprite(img, (float)drawX, (float)drawY);
-                    if ((G.bonusBits & (1 << i)) == 0)
-                        C2D_DrawRectSolid((float)drawX, (float)drawY, 0, w, h, C2D_Color32(0, 0, 0, 140));
+                float totalW = 0.0f;
+                float heights[5] = {0,0,0,0,0};
+                float widths[5] = {0,0,0,0,0};
+                C2D_Image imgs[5];
+                for (int i = 0; i < 5; ++i) {
+                    imgs[i] = hw_image(iconIdx[i]);
+                    widths[i] = (imgs[i].subtex ? imgs[i].subtex->width : 10.0f);
+                    heights[i] = (imgs[i].subtex ? imgs[i].subtex->height : 11.0f);
+                    totalW += widths[i];
+                }
+                totalW += (5 - 1) * (float)kBonusIndicatorGapY;
+                float startX = hudX + (hudW - totalW) * 0.5f;
+                float y = hudY + hudHeight / 2.0f + 6.0f; // vertically centered in HUD bar
+                float x = startX;
+                for (int i = 0; i < 5; ++i) {
+                    hw_draw_sprite(imgs[i], x, y);
+                    if ((G.bonusBits & (1 << i)) == 0) {
+                        C2D_DrawRectSolid(x, y, 0, widths[i], heights[i], C2D_Color32(0, 0, 0, 140));
+                    }
+                    x += widths[i] + (float)kBonusIndicatorGapY;
                 }
             }
             // Generic per-level intro (rendered on top now)
@@ -1862,6 +2098,15 @@ namespace game
             levels_set_draw_offset(0);
             // Switch back to bottom for gameplay rendering
             hw_set_bottom();
+            // Draw starfield background (bottom half visible on bottom screen)
+            {
+                C2D_Image sf = hw_image_from(HwSheet::Background, BACKGROUND_idx);
+                if (sf.tex) {
+                    float atlasLeft = (sf.subtex ? sf.subtex->left : 0.0f);
+                    float atlasTop  = (sf.subtex ? sf.subtex->top  : 0.0f);
+                    hw_draw_sprite(sf, -atlasLeft, -240.0f - atlasTop);
+                }
+            }
         }
         // Editor-specific fade overlay still displays if active (bottom screen)
         if (G.mode == Mode::Playing && editor::fade_overlay_active())
