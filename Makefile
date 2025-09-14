@@ -32,7 +32,14 @@ INCLUDES	:=	include
 GRAPHICS	:=	gfx
 GFXBUILD	:=	$(BUILD)
 ROMFS		:=	romfs
+FFMPEG ?= ffmpeg
 #GFXBUILD	:=	$(ROMFS)/gfx
+
+# --- Audio auto-conversion (48kHz -> 32kHz PCM16 into ROMFS) ---
+AUDIO48_DIR    := 48khz
+AUDIOROMFS_DIR := $(ROMFS)/audio
+AUDIO48_WAVS   = $(wildcard $(AUDIO48_DIR)/*.wav)
+AUDIO32_WAVS   = $(patsubst $(AUDIO48_DIR)/%.wav,$(AUDIOROMFS_DIR)/%.wav,$(AUDIO48_WAVS))
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -168,7 +175,7 @@ endif
 .PHONY: all clean print-hw
 
 #---------------------------------------------------------------------------------
-all: $(BUILD) $(GFXBUILD) $(DEPSDIR) $(ROMFS_T3XFILES) $(T3XHFILES)
+all: $(BUILD) $(GFXBUILD) $(DEPSDIR) $(ROMFS_T3XFILES) $(T3XHFILES) $(AUDIO32_WAVS)
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
 print-hw:
@@ -188,10 +195,14 @@ $(DEPSDIR):
 	@mkdir -p $@
 endif
 
+# Ensure ROMFS exists (used by audio conversion order-only prereq)
+$(ROMFS):
+	@mkdir -p $@
+
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).3dsx $(OUTPUT).smdh $(TARGET).elf $(GFXBUILD)
+	@rm -fr $(BUILD) $(TARGET).3dsx $(OUTPUT).smdh $(TARGET).elf $(GFXBUILD) $(AUDIOROMFS_DIR)
 
 #---------------------------------------------------------------------------------
 $(GFXBUILD)/%.t3x	$(BUILD)/%.h	:	%.t3s
@@ -204,6 +215,14 @@ $(GFXBUILD)/%.t3x	$(BUILD)/%.h	:	%.t3s
 	fi
 
 #---------------------------------------------------------------------------------
+
+# Convert 48kHz WAV -> 32kHz PCM16 WAV in ROMFS (rebuilds only if source newer/missing)
+$(AUDIOROMFS_DIR)/%.wav : $(AUDIO48_DIR)/%.wav | $(ROMFS)
+	@mkdir -p $(@D)
+	@echo "FFmpeg: $< -> $@ (32kHz s16)"
+	@$(FFMPEG) -nostdin -hide_banner -loglevel error -y -i "$<" -ar 32000 -sample_fmt s16 "$@" > /dev/null 2>&1
+
+
 else
 
 #---------------------------------------------------------------------------------
