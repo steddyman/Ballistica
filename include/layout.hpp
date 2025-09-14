@@ -6,9 +6,9 @@
 namespace layout {
     // UI and playfield
     static constexpr int HUD_HEIGHT = 36; // Height of blue score UI
-    static constexpr int UI_BRICK_OFFSET = 16; // Pixels below UI to start brick grid
+    static constexpr int UI_BRICK_OFFSET = 24; // Pixels below UI to start brick grid
     static constexpr int BRICK_GRID_TOP = HUD_HEIGHT + UI_BRICK_OFFSET; // Top Y of brick grid
-    static constexpr int BRICK_CELL_W = 22;
+    static constexpr int BRICK_CELL_W = 21;
     static constexpr int BRICK_CELL_H = 13;
     static constexpr int BRICK_GRID_LEFT = 17; // Centered horizontally
     static constexpr int PLAYFIELD_LEFT_WALL_X = 0;
