@@ -15,6 +15,7 @@
 #include "brick.hpp"
 #include "levels.hpp"
 #include "game.hpp"
+#include "layout.hpp" // centralized layout constants
 
 namespace levels {
     // Geometry constants
@@ -22,15 +23,15 @@ namespace levels {
     static const int BricksY=11;
     static const int NumBricks = BricksX*BricksY;    // 143 bricks
     // Gameplay grid origin (affects in-game brick rendering/collisions)
-    static constexpr int LEFTSTART=17; // Centered within 320 - (2 x 22*13)/2 = 17
+    // Center horizontally based on configured brick width and number of columns
+    static constexpr int LEFTSTART = (layout::SCREEN_WIDTH - layout::BRICK_CELL_W * BricksX) / 2;
     // The vertical offset for the brick grid is always hudHeight + 16 pixels below the UI background
-    #include "layout.hpp" // centralized layout constants
     static const int UI_BRICK_OFFSET = layout::UI_BRICK_OFFSET;
     static const int HUD_HEIGHT = layout::HUD_HEIGHT;
     static const int TOPSTART = layout::BRICK_GRID_TOP;
-    // Gameplay cell size (large bricks): 24x15
-    static const int CellW = 22;
-    static const int CellH = 13;
+    // Gameplay cell size (large bricks)
+    static const int CellW = layout::BRICK_CELL_W;
+    static const int CellH = layout::BRICK_CELL_H;
     // Editor design cell size (small preview grid): 16x9
     static const int EditCellW = 16;
     static const int EditCellH = 9;
