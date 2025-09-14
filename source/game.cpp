@@ -2289,6 +2289,18 @@ namespace game
             int levelValX = hudX + hudW - levelValWidth - 8;
             hw_draw_text_shadow_scaled(levelLabelX, scoreY, levelLabel, labelColor, 0x000000FF, labelScale);
             hw_draw_text_shadow_scaled(levelValX, scoreY, levelVal, valueColor, 0x000000FF, valueScale);
+
+            // Lives (left, second line below score)
+            {
+                char livesLabel[] = "Lives:";
+                char livesVal[8];
+                snprintf(livesVal, sizeof livesVal, "%02d", G.lives);
+                int livesLabelX = scoreLabelX;
+                int livesValX = livesLabelX + hw_text_width(livesLabel) * labelScale + 12;
+                int livesY = scoreY + 16; // one line below score
+                hw_draw_text_shadow_scaled(livesLabelX, livesY, livesLabel, labelColor, 0x000000FF, labelScale);
+                hw_draw_text_shadow_scaled(livesValX, livesY, livesVal, valueColor, 0x000000FF, valueScale);
+            }
             // Laser ready indicator icon on top screen (to the right of HUD text, above bonus)
             if (G.laserEnabled && G.laserReady) {
                 C2D_Image ind = hw_image(IMAGE_laser_indicator_idx);
