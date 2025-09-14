@@ -54,6 +54,7 @@ namespace game
     static constexpr float kInitialBatY = layout::kInitialBatY;
     static constexpr float kInitialBallY = layout::kInitialBallY;
     static constexpr float kInitialBallHalf = layout::kInitialBallHalf;
+    static constexpr int   kBarrierGlowFrames = 18; // frames to show the barrier hit glow
     
     // UI placement for BONUS indicators: top row Y and inter-icon gap
     static constexpr int kBonusIndicatorTopY = 4;   // top row alongside HUD
@@ -193,6 +194,8 @@ namespace game
         // Particles (bomb / generic)
         std::vector<Particle> particles;
         std::vector<BombEvent> bombEvents; // pending delayed explosions
+    // Barrier hit glow (temporary highlight on top edge when a life is consumed by the barrier)
+    int barrierGlowTimer = 0;      // frames remaining for glow (0=off)
     };
 
 
@@ -369,13 +372,14 @@ namespace game
 
     // Barrier helpers: single source of truth for when it draws and when it collides
     static inline bool barrier_visible() {
-        // Visible for lives > 0 (>=3 green, 2 orange, 1 red); hidden at 0
+        // Visible for lives >= 1; hidden only at 0
         return G.lives > 0;
     }
     static inline bool barrier_collides() {
         // Collides (consumes a life and rebounds) whenever lives > 0 and the ball is launched
         return G.lives > 0 && !G.ballLocked;
     }
+    // (Removed color helpers; glow is always white now)
 
     void init()
     {
@@ -1883,9 +1887,9 @@ namespace game
                     // Unified barrier collision condition
                     if (barrier_collides() && regActive == 1 && !b.isMurder && b.vy > 0)
                     {
-                        // Compute barrier top Y = bat bottom + 8 px
+                        // Compute barrier top Y using layout-configured offset
                         float effBatH = (G.bat.img.subtex ? G.bat.img.subtex->height : G.bat.height);
-                        float barrierTopY = G.bat.y + effBatH + 8.0f;
+                        float barrierTopY = G.bat.y + effBatH + layout::BARRIER_OFFSET_BELOW_BAT;
                         // Compute logical ball bottom previous and current positions (account for sprite vs collider size)
                         float spriteH = (b.img.subtex ? b.img.subtex->height : (float)kBallH);
                         float ballTopPrev = b.py + (spriteH - (float)kBallH) * 0.5f;
@@ -1895,7 +1899,12 @@ namespace game
                         bool crossedBarrier = (ballBottomPrev <= barrierTopY && ballBottom >= barrierTopY);
                         if (crossedBarrier)
                         {
-                            if (G.lives > 0) G.lives--; // consume a life on barrier hit
+                            if (G.lives > 0) {
+                                // Consume life first so tint matches the new barrier state (green/orange/red)
+                                G.lives--;
+                                // Trigger white glow for a short duration
+                                G.barrierGlowTimer = kBarrierGlowFrames;
+                            }
                             // Reflect the ball off the barrier and place it just above the barrier
                             float adjust = (ballBottom - barrierTopY);
                             b.y -= adjust;
@@ -2440,20 +2449,42 @@ namespace game
             float batDrawX = G.bat.x - batAtlasLeft;
             hw_draw_sprite(G.bat.img, batDrawX, G.bat.y - 240.0f);
         }
-    // Barrier line 4px high, 8px below bat. Visible only for lives >= 2 (>=3 green, 2 orange); hidden at 1 and 0.
-    // Note: Collision still applies for lives > 0 so the last life (1) is consumed on a rebound even if invisible.
-    if (barrier_visible())
+    // Barrier line 4px high, 8px below bat. Visible for lives >= 1; hidden at 0.
+    // Glow still appears even if barrier is hidden (life just dropped to 0).
+    {
+        float effBatH = (G.bat.img.subtex ? G.bat.img.subtex->height : G.bat.height);
+    float barrierTopY = G.bat.y + effBatH + layout::BARRIER_OFFSET_BELOW_BAT;
+        float barrierYBottomView = barrierTopY - 240.0f; // bottom screen coords
+        float leftX = (float)kPlayfieldLeftWallX;
+        float width = (float)(kPlayfieldRightWallX - kPlayfieldLeftWallX);
+        if (barrier_visible())
         {
-            float effBatH = (G.bat.img.subtex ? G.bat.img.subtex->height : G.bat.height);
-            float barrierTopY = G.bat.y + effBatH + 8.0f;
-            float barrierYBottomView = barrierTopY - 240.0f; // bottom screen coords
-    uint32_t col = (G.lives >= 3) ? C2D_Color32(0, 200, 0, 200)
-         : (G.lives == 2) ? C2D_Color32(255, 165, 0, 220)
-         : C2D_Color32(220, 0, 0, 220);
-            float leftX = (float)kPlayfieldLeftWallX;
-            float width = (float)(kPlayfieldRightWallX - kPlayfieldLeftWallX);
+            uint32_t col = (G.lives >= 3) ? C2D_Color32(0, 200, 0, 200)
+                             : (G.lives == 2) ? C2D_Color32(255, 165, 0, 220)
+                             : C2D_Color32(220, 0, 0, 220);
             C2D_DrawRectSolid(leftX, barrierYBottomView, 0, width, 4.0f, col);
         }
+        // Draw a momentary semi-transparent glow above the barrier if recently hit (even if barrier is now hidden at 0 lives)
+        if (G.barrierGlowTimer > 0)
+        {
+            // Smooth ease-out over time for a soft fade
+            float t = (float)G.barrierGlowTimer / (float)kBarrierGlowFrames; // 0..1
+            float ease = t * t * (3.0f - 2.0f * t); // smoothstep-like
+            // Alpha gradient: brightest at the top, falling off quickly
+            uint8_t a0 = (uint8_t)(160 * ease);
+            uint8_t a1 = (uint8_t)(90  * ease);
+            uint8_t a2 = (uint8_t)(40  * ease);
+            // Always white glow: 3px feathered band above the barrier top
+            float glowBaseY = barrierYBottomView - layout::BARRIER_GLOW_OFFSET_ABOVE;
+            C2D_DrawRectSolid(leftX, glowBaseY - 2.0f, 0, width, 1.0f, C2D_Color32(255,255,255,a0));
+            C2D_DrawRectSolid(leftX, glowBaseY - 1.0f, 0, width, 1.0f, C2D_Color32(255,255,255,a1));
+            C2D_DrawRectSolid(leftX, glowBaseY,        0, width, 1.0f, C2D_Color32(255,255,255,a2));
+            // Optional tiny specular line right at the edge to sell the glow
+            uint8_t spec = (uint8_t)(70 * ease);
+            C2D_DrawRectSolid(leftX, glowBaseY - 3.0f,            0, width, 1.0f, C2D_Color32(255,255,255,spec));
+            --G.barrierGlowTimer;
+        }
+    }
 #if defined(DEBUG) && DEBUG
         // Draw world side borders (colliders) on the bottom screen as well
         {
