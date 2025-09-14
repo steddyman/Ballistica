@@ -367,6 +367,16 @@ namespace game
         }
     }
 
+    // Barrier helpers: single source of truth for when it draws and when it collides
+    static inline bool barrier_visible() {
+        // Visible for lives > 0 (>=3 green, 2 orange, 1 red); hidden at 0
+        return G.lives > 0;
+    }
+    static inline bool barrier_collides() {
+        // Collides (consumes a life and rebounds) whenever lives > 0 and the ball is launched
+        return G.lives > 0 && !G.ballLocked;
+    }
+
     void init()
     {
         hw_log("game_init\n");
@@ -1558,6 +1568,28 @@ namespace game
             {
                 levels_set_current(0);
                 levels_reset_level(0);
+                // Fresh play session: reset full game state to avoid carry-over from editor/test
+                G.lives = 3; // ensure new game starts with full lives
+                // Reset balls to a single parked ball locked to the bat
+                G.balls.clear();
+                {
+                    float ballStartX = kScreenWidth * 0.5f + kPlayfieldOffsetX - kInitialBallHalf;
+                    G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, false, G.imgBall});
+                }
+                G.ballLocked = true;
+                set_bat_size(1);
+                // Reset score/timers and transient objects
+                G.score = 0;
+                G.bonusBits = 0;
+                G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
+                G.fireCooldown = 0;
+                G.letters.clear();
+                G.hazards.clear();
+                // Reinitialize moving bricks data for current layout
+                {
+                    int totalCells = levels_grid_width() * levels_grid_height();
+                    G.moving.assign(totalCells, {-1.f, 1.f, 0.f, 0.f});
+                }
                 G.mode = Mode::Playing;
                 hw_log("start (START)\n");
                 G.prevTouching = in.touching; // keep touch edge tracking consistent
@@ -1624,10 +1656,29 @@ namespace game
                     {
                         levels_set_current(0);
                         levels_reset_level(0);
-                        G.levelIntroTimer = 90;
+                        // Fresh play session: reset full game state to avoid carry-over from editor/test
+                        G.lives = 3; // ensure touch-Play resets lives
+                        // Reset balls to a single parked ball locked to the bat
+                        G.balls.clear();
+                        {
+                            float ballStartX = kScreenWidth * 0.5f + kPlayfieldOffsetX - kInitialBallHalf;
+                            G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, false, G.imgBall});
+                        }
+                        G.ballLocked = true;
                         set_bat_size(1);
+                        // Reset score/timers and transient objects
+                        G.score = 0;
+                        G.bonusBits = 0;
+                        G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
+                        G.fireCooldown = 0;
                         G.letters.clear();
                         G.hazards.clear();
+                        // Reinitialize moving bricks data for current layout
+                        {
+                            int totalCells = levels_grid_width() * levels_grid_height();
+                            G.moving.assign(totalCells, {-1.f, 1.f, 0.f, 0.f});
+                        }
+                        G.levelIntroTimer = 90;
                     }
                     if (tb.next == Mode::Options)
                         options::begin();
@@ -1824,7 +1875,37 @@ namespace game
                     b.y = kPlayfieldTopWallY;
                     b.vy = -b.vy;
                 }
-                // bottom: lose life
+                // Barrier life: if there's exactly one regular ball and lives>0, bounce off a barrier below the bat and lose a life
+                {
+                    // Count active regular (non-murder) balls
+                    int regActive = 0;
+                    for (const auto &bb : G.balls) if (bb.active && !bb.isMurder) ++regActive;
+                    // Unified barrier collision condition
+                    if (barrier_collides() && regActive == 1 && !b.isMurder && b.vy > 0)
+                    {
+                        // Compute barrier top Y = bat bottom + 8 px
+                        float effBatH = (G.bat.img.subtex ? G.bat.img.subtex->height : G.bat.height);
+                        float barrierTopY = G.bat.y + effBatH + 8.0f;
+                        // Compute logical ball bottom previous and current positions (account for sprite vs collider size)
+                        float spriteH = (b.img.subtex ? b.img.subtex->height : (float)kBallH);
+                        float ballTopPrev = b.py + (spriteH - (float)kBallH) * 0.5f;
+                        float ballBottomPrev = ballTopPrev + (float)kBallH;
+                        float ballTop = b.y + (spriteH - (float)kBallH) * 0.5f;
+                        float ballBottom = ballTop + (float)kBallH;
+                        bool crossedBarrier = (ballBottomPrev <= barrierTopY && ballBottom >= barrierTopY);
+                        if (crossedBarrier)
+                        {
+                            if (G.lives > 0) G.lives--; // consume a life on barrier hit
+                            // Reflect the ball off the barrier and place it just above the barrier
+                            float adjust = (ballBottom - barrierTopY);
+                            b.y -= adjust;
+                            b.vy = -b.vy;
+                            // Do not process bottom loss this frame
+                            continue;
+                        }
+                    }
+                }
+                // bottom: lose life (only applies when no barrier is active or ball skipped it)
                 if (b.y > 480)
                 {
                     // Only lose a life if this was the last active ball.
@@ -2359,6 +2440,20 @@ namespace game
             float batDrawX = G.bat.x - batAtlasLeft;
             hw_draw_sprite(G.bat.img, batDrawX, G.bat.y - 240.0f);
         }
+    // Barrier line 4px high, 8px below bat. Visible only for lives >= 2 (>=3 green, 2 orange); hidden at 1 and 0.
+    // Note: Collision still applies for lives > 0 so the last life (1) is consumed on a rebound even if invisible.
+    if (barrier_visible())
+        {
+            float effBatH = (G.bat.img.subtex ? G.bat.img.subtex->height : G.bat.height);
+            float barrierTopY = G.bat.y + effBatH + 8.0f;
+            float barrierYBottomView = barrierTopY - 240.0f; // bottom screen coords
+    uint32_t col = (G.lives >= 3) ? C2D_Color32(0, 200, 0, 200)
+         : (G.lives == 2) ? C2D_Color32(255, 165, 0, 220)
+         : C2D_Color32(220, 0, 0, 220);
+            float leftX = (float)kPlayfieldLeftWallX;
+            float width = (float)(kPlayfieldRightWallX - kPlayfieldLeftWallX);
+            C2D_DrawRectSolid(leftX, barrierYBottomView, 0, width, 4.0f, col);
+        }
 #if defined(DEBUG) && DEBUG
         // Draw world side borders (colliders) on the bottom screen as well
         {
@@ -2399,13 +2494,12 @@ namespace game
         if (editor::test_return_active() && G.mode == Mode::Playing)
         {
             bool levelDone = (!editor::test_grace_active() && levels_remaining_breakable() == 0);
-            bool livesGone = (G.lives <= 0);
-            if (levelDone || livesGone)
+            if (levelDone)
             {
                 G.mode = Mode::Editor;
                 levels_set_current(editor::current_level_index());
                 editor::on_return_from_test_full();
-                hw_log("TEST return (levelDone or livesGone)\n");
+                hw_log("TEST return (levelDone)\n");
             }
         }
         // Tick grace after all logic
