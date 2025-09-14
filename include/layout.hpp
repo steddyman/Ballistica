@@ -34,6 +34,11 @@ namespace layout {
     static constexpr float kInitialBallY = kInitialBatY - 8.0f; // Ball just above bat
     static constexpr float kInitialBallHalf = 3.0f; // Half ball width (if ball is 6px)
 
+    // Barrier placement: vertical gap between bat bottom and barrier top (in pixels)
+    static constexpr float BARRIER_OFFSET_BELOW_BAT = 10.0f;
+    // Glow placement: distance above barrier top to the bottom of the glow (in pixels)
+    static constexpr float BARRIER_GLOW_OFFSET_ABOVE = -1.0f;
+
     // Gameplay tuning
     // Speed modifier for speed-affecting bricks (value 0.05f means +/-5% per effect)
     static constexpr float SPEED_MODIFIER = 0.05f;
