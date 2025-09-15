@@ -10,6 +10,7 @@
 #include "options.hpp"
 #include "ui_button.hpp"
 #include "ui_dropdown.hpp"
+#include "sound.hpp"
 
 namespace options {
 
@@ -113,6 +114,8 @@ Action update(const InputState &in) {
         for(size_t i=0;i<buttons.size();++i) {
             if (buttons[i].contains(x,y)) {
                 // Determine button semantics before trigger (in case of cancel/save we return action)
+                // Play click SFX for any options button
+                sound::play_sfx("menu-click", 4, 1.0f, true);
                 if (buttons[i].label && std::string(buttons[i].label)=="CANCEL") return Action::ExitToTitle;
                 if (buttons[i].label && std::string(buttons[i].label)=="SAVE") { apply_save(); return Action::SaveAndExit; }
                 buttons[i].trigger();

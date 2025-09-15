@@ -26,6 +26,7 @@
 #include "BACKGROUND.h"
 #include "highscores.hpp"
 #include "game.hpp"
+#include "sound.hpp"
 #include "levels.hpp"
 #include "brick.hpp"
 #include "SUPPORT.HPP" // legacy constants BATWIDTH, BATHEIGHT, BALLWIDTH, BALLHEIGHT
@@ -196,11 +197,21 @@ namespace game
         std::vector<BombEvent> bombEvents; // pending delayed explosions
     // Barrier hit glow (temporary highlight on top edge when a life is consumed by the barrier)
     int barrierGlowTimer = 0;      // frames remaining for glow (0=off)
+    // Game Over sequence (fade to message on top screen)
+    bool gameOverActive = false;
+    int  gameOverPhase = 0;   // 0=fadeIn, 1=hold, (future: 2=out)
+    int  gameOverTimer = 0;   // per-phase timer
+    int  gameOverAlpha = 0;   // overlay alpha (0..200)
     };
 
 
     static State G;
     static bool g_exitRequested = false;
+
+    // Forward declarations for Game Over sequence helpers
+    static void update_game_over();
+    static void finalize_game_over();
+    void begin_game_over();
 
         // Simple dust effect: spawn a burst of particles at (x, y)
         void spawn_dust_effect(float x, float y) {
@@ -262,43 +273,8 @@ namespace game
                 G.letters.clear();
                 return;
             }
-            // Trigger existing game-over flow via the same path used on bottom loss
-            hw_log("GAME OVER (hazard)\n");
-            int levelReached = levels_current() + 1;
-            int pos = highscores::submit(G.score, levelReached);
-            if (pos >= 0) {
-#ifdef PLATFORM_3DS
-                {
-                    SwkbdState swkbd;
-                    char name[highscores::MAX_NAME + 1] = "";
-                    swkbdInit(&swkbd, SWKBD_TYPE_QWERTY, 1, highscores::MAX_NAME);
-                    swkbdSetHintText(&swkbd, "Name");
-                    if (swkbdInputText(&swkbd, name, sizeof(name)) == SWKBD_BUTTON_RIGHT)
-                        highscores::set_name(pos, name);
-                    else
-                        highscores::set_name(pos, "PLAYER");
-                    highscores::save();
-                }
-#endif
-            }
-            G.mode = Mode::Title;
-            levels_set_current(0);
-            levels_reset_level(0);
-            G.balls.clear();
-            {
-                float ballStartX = kScreenWidth * 0.5f + kPlayfieldOffsetX - kInitialBallHalf;
-                G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, false, G.imgBall});
-            }
-            G.ballLocked = true;
-            G.lives = 3;
-            set_bat_size(1);
-            G.score = 0;
-            G.bonusBits = 0;
-            G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
-            G.fireCooldown = 0;
-            G.letters.clear();
-            G.hazards.clear();
-            G.deathActive = false; G.deathFadeAlpha = 0; G.deathTimer = 0; G.deathPhase = 0; G.deathSinkVy = 0.f;
+            // Begin game-over sequence (fade and message with sound)
+            begin_game_over();
             return;
         }
         // Start non-gameover death sequence
@@ -368,6 +344,88 @@ namespace game
             }
             break;
         }
+    }
+
+    // Game Over sequence API
+    void begin_game_over()
+    {
+        if (G.gameOverActive) return;
+        hw_log("GAME OVER\n");
+        G.gameOverActive = true;
+        G.gameOverPhase = 0;
+        G.gameOverTimer = 0;
+        G.gameOverAlpha = 0;
+        // Stop gameplay interactions
+        for (auto &b : G.balls) b.active = false;
+        G.laserEnabled = false;
+        G.laserReady = false;
+        // Play the new game-over sound on a free channel (reserve 3)
+    sound::play_sfx("game-over", 3, 1.0f, true);
+    }
+
+    static void update_game_over()
+    {
+        if (!G.gameOverActive) return;
+        switch (G.gameOverPhase)
+        {
+        case 0: // fade in overlay to near-black and show message
+            if (G.gameOverAlpha < 200) G.gameOverAlpha += 10; // ~0.33s
+            if (++G.gameOverTimer > 60) { // after fade-in, move to hold
+                G.gameOverPhase = 1;
+                G.gameOverTimer = 0;
+            }
+            break;
+        case 1: // hold
+            if (++G.gameOverTimer > 150) { // auto-finalize after ~2.5s
+                finalize_game_over();
+            }
+            break;
+        }
+    }
+
+    static void finalize_game_over()
+    {
+        // Submit score and reset to title (similar to prior flow)
+        int levelReached = levels_current() + 1;
+        int pos = highscores::submit(G.score, levelReached);
+    if (pos >= 0) {
+#ifdef PLATFORM_3DS
+            {
+                SwkbdState swkbd;
+                char name[highscores::MAX_NAME + 1] = "";
+                swkbdInit(&swkbd, SWKBD_TYPE_QWERTY, 1, highscores::MAX_NAME);
+                swkbdSetHintText(&swkbd, "Name");
+                if (swkbdInputText(&swkbd, name, sizeof(name)) == SWKBD_BUTTON_RIGHT)
+                    highscores::set_name(pos, name);
+                else
+                    highscores::set_name(pos, "PLAYER");
+                highscores::save();
+            }
+#endif
+        }
+        G.mode = Mode::Title;
+        levels_set_current(0);
+        levels_reset_level(0);
+        G.balls.clear();
+        {
+            float ballStartX = kScreenWidth * 0.5f + kPlayfieldOffsetX - kInitialBallHalf;
+            G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, false, G.imgBall});
+        }
+        G.ballLocked = true;
+        G.lives = 3; // reset lives after returning to title
+        set_bat_size(1); // reset bat to normal
+        G.score = 0;
+        G.bonusBits = 0;
+        G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
+        G.fireCooldown = 0;
+        G.letters.clear();
+        G.hazards.clear();
+        // Clear sequences
+        G.deathActive = false; G.deathFadeAlpha = 0; G.deathTimer = 0; G.deathPhase = 0; G.deathSinkVy = 0.f;
+        G.gameOverActive = false; G.gameOverAlpha = 0; G.gameOverPhase = 0; G.gameOverTimer = 0;
+        // Jump to High screen in title sequence if a new score was placed
+        // Keep existing behavior: seqPos=1 is High
+        // Note: begin_game_over() already logged; no extra log here
     }
 
     // Barrier helpers: single source of truth for when it draws and when it collides
@@ -670,11 +728,11 @@ namespace game
         case BrickType::BB:
             spawn_bat_pickup(true, cx, cy);
             break;
-        case BrickType::B1: spawn_bonus_letter(0, cx, cy); break;
-        case BrickType::B2: spawn_bonus_letter(1, cx, cy); break;
-        case BrickType::B3: spawn_bonus_letter(2, cx, cy); break;
-        case BrickType::B4: spawn_bonus_letter(3, cx, cy); break;
-        case BrickType::B5: spawn_bonus_letter(4, cx, cy); break;
+    case BrickType::B1: spawn_bonus_letter(0, cx, cy); break;
+    case BrickType::B2: spawn_bonus_letter(1, cx, cy); break;
+    case BrickType::B3: spawn_bonus_letter(2, cx, cy); break;
+    case BrickType::B4: spawn_bonus_letter(3, cx, cy); break;
+    case BrickType::B5: spawn_bonus_letter(4, cx, cy); break;
         default:
             break; // others TBD
         }
@@ -711,29 +769,41 @@ namespace game
                 // Collect this letter
                 switch (L.letter)
                 {
-                case 0: G.bonusBits |= 0x01; break; // B
-                case 1: G.bonusBits |= 0x02; break; // O
-                case 2: G.bonusBits |= 0x04; break; // N
-                case 3: G.bonusBits |= 0x08; break; // U
-                case 4: G.bonusBits |= 0x10; break; // S
+                case 0: G.score += 100; G.bonusBits |= 0x01; sound::play_sfx("bonus-step", 5, 1.0f, true); break; // B
+                case 1: G.score += 100; G.bonusBits |= 0x02; sound::play_sfx("bonus-step", 5, 1.0f, true); break; // O
+                case 2: G.score += 100; G.bonusBits |= 0x04; sound::play_sfx("bonus-step", 5, 1.0f, true); break; // N
+                case 3: G.score += 100; G.bonusBits |= 0x08; sound::play_sfx("bonus-step", 5, 1.0f, true); break; // U
+                case 4: G.score += 100; G.bonusBits |= 0x10; sound::play_sfx("bonus-step", 5, 1.0f, true); break; // S
                 case 100: // Bat smaller
                     set_bat_size(G.batSizeMode - 1);
+                    // Bad pickup
+                    sound::play_sfx("bad", 5, 1.0f, true);
                     break;
                 case 101: // Bat bigger
                     set_bat_size(G.batSizeMode + 1);
+                    // Good pickup
+                    sound::play_sfx("good", 5, 1.0f, true);
                     break;
                 case 200: // Laser pickup
                     G.laserEnabled = true;
                     G.laserReady = true;
+                    // Good pickup
+                    sound::play_sfx("good", 5, 1.0f, true);
                     break;
                 case PK_LIFE:
                     if (G.lives < 99) G.lives++;
+                    // Good pickup
+                    sound::play_sfx("extra-life", 5, 1.0f, true);
                     break;
                 case PK_SLOW:
                     for (auto &b : G.balls) { b.vx *= (1.0f - layout::SPEED_MODIFIER); b.vy *= (1.0f - layout::SPEED_MODIFIER); }
+                    // Good pickup
+                    sound::play_sfx("good", 5, 1.0f, true);
                     break;
                 case PK_FAST:
                     for (auto &b : G.balls) { b.vx *= (1.0f + layout::SPEED_MODIFIER); b.vy *= (1.0f + layout::SPEED_MODIFIER); }
+                    // Bad pickup
+                    sound::play_sfx("bad", 5, 1.0f, true);
                     break;
                 case PK_REWIND:
                 {
@@ -746,18 +816,28 @@ namespace game
                     int cur = levels_current();
                     if (levels_count() > 0) { cur = (cur + 1) % levels_count(); levels_set_current(cur); }
                 }
+                    // Good pickup
+                    sound::play_sfx("good", 5, 1.0f, true);
                     break;
                 case PK_REVERSE:
                     G.reverseTimer = 600; // ~10s
+                    // Bad pickup
+                    sound::play_sfx("bad", 5, 1.0f, true);
                     break;
                 case PK_BONUS1000:
                     G.score += 1000;
+                    // Good pickup
+                    sound::play_sfx("good", 5, 1.0f, true);
                     break;
                 case PK_LIGHTS_OFF:
                     G.lightsOffTimer = 600;
+                    // Bad pickup
+                    sound::play_sfx("bad", 5, 1.0f, true);
                     break;
                 case PK_LIGHTS_ON:
                     G.lightsOffTimer = 0;
+                    // Good pickup
+                    sound::play_sfx("good", 5, 1.0f, true);
                     break;
                 }
                 L.active = false;
@@ -768,6 +848,7 @@ namespace game
                     int levelNumber = lvl + 1; // levels are 1-based for scoring
                     G.score += 250 * levelNumber;
                     G.bonusBits = 0;
+                    sound::play_sfx("all-bonus", 5, 1.0f, true);
                     hw_log("BONUS COMPLETE (award)\n");
                 }
             }
@@ -806,6 +887,9 @@ namespace game
             bool overlap = !(hRight <= batLeft || hLeft >= batRight || hBottom <= batTop || hTop >= batBottom);
             if (overlap)
             {
+                // Play hazard pickup SFX; avoid double-playing if this will cause Game Over
+                if (G.lives > 1)
+                    sound::play_sfx("game-over", 3, 1.0f, true);
                 H.active = false;
                 begin_death_sequence();
                 return; // bail; sequence takes control
@@ -867,6 +951,11 @@ namespace game
                 continue;
             levels_remove_brick(ev.c, ev.r);
             apply_brick_effect(BrickType::BO, ls + ev.c * cw + cw / 2, ts + ev.r * ch + ch / 2, G.balls[0]);
+            // Play explosion SFX at the start of the particle effect (with fallback channel)
+            if (!sound::play_sfx("explosion", 6, 1.0f, true)) {
+                sound::stop_sfx_channel(6);
+                sound::play_sfx("explosion", 7, 1.0f, true);
+            }
             for (int k = 0; k < 8; k++)
             {
                 float angle = (float)k / 8.f * 6.28318f;
@@ -957,6 +1046,8 @@ namespace game
                         {
                             levels_remove_brick(c, r);
                             apply_brick_effect(BrickType::BO, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
+                            // Immediate explosion sound for direct BO hit
+                            if (!sound::play_sfx("explosion", 6, 1.0f, true)) { sound::stop_sfx_channel(6); sound::play_sfx("explosion", 7, 1.0f, true); }
                             for (int k = 0; k < 8; k++)
                             {
                                 float angle = (float)k / 8.f * 6.28318f;
@@ -977,6 +1068,20 @@ namespace game
                         else
                             levels_remove_brick(c, r);
                         apply_brick_effect(bt, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
+                        // Play context-aware SFX: ID/SF and T5 non-final hits use a harder impact
+                        {
+                            // Use channel 6 for T5 final break to avoid debounce suppression on channel 1
+                            if (bt == BrickType::T5 && destroyed) {
+                                // Ensure prior hit-hard on brick channel doesn't mask the final break
+                                sound::stop_sfx_channel(1);
+                                sound::play_sfx("hard-explode", 6, 1.0f, true);
+                            } else {
+                                const char* sfx = "ball-brick";
+                                if (bt == BrickType::ID || bt == BrickType::SF) sfx = "hit-hard";
+                                else if (bt == BrickType::T5) sfx = "hit-hard"; // non-final hits
+                                sound::play_sfx(sfx, 1, 1.0f, true);
+                            }
+                        }
                         // For AB/MB bricks, original ball continues without reflecting this frame
                         if (bt == BrickType::AB || bt == BrickType::MB)
                         {
@@ -1075,6 +1180,8 @@ namespace game
                         {
                             levels_remove_brick(c, r);
                             apply_brick_effect(BrickType::BO, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
+                            // Immediate explosion sound for direct BO hit (moving brick)
+                            if (!sound::play_sfx("explosion", 6, 1.0f, true)) { sound::stop_sfx_channel(6); sound::play_sfx("explosion", 7, 1.0f, true); }
                             for (int k = 0; k < 8; k++)
                             {
                                 float angle = (float)k / 8.f * 6.28318f;
@@ -1095,6 +1202,18 @@ namespace game
                         else
                             levels_remove_brick(c, r);
                         apply_brick_effect(bt, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
+                        // Play context-aware SFX for moving bricks as well
+                        {
+                            if (bt == BrickType::T5 && destroyed) {
+                                sound::stop_sfx_channel(1);
+                                sound::play_sfx("hard-explode", 6, 1.0f, true);
+                            } else {
+                                const char* sfx = "ball-brick";
+                                if (bt == BrickType::ID || bt == BrickType::SF) sfx = "hit-hard";
+                                else if (bt == BrickType::T5) sfx = "hit-hard";
+                                sound::play_sfx(sfx, 1, 1.0f, true);
+                            }
+                        }
                         if (bt == BrickType::AB || bt == BrickType::MB)
                         {
                             if (destroyed && levels_remaining_breakable() == 0 && levels_count() > 0) {
@@ -1281,6 +1400,8 @@ namespace game
                 else if (bt == BrickType::BO) {
                     levels_remove_brick(hitC, hitR);
                     apply_brick_effect(BrickType::BO, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
+                    // Immediate explosion sound for direct BO hit (swept collision)
+                    if (!sound::play_sfx("explosion", 6, 1.0f, true)) { sound::stop_sfx_channel(6); sound::play_sfx("explosion", 7, 1.0f, true); }
                     for (int k = 0; k < 8; k++) {
                         float angle = (float)k / 8.f * 6.28318f;
                         float sp = 0.6f + 0.4f * (k % 4);
@@ -1298,6 +1419,18 @@ namespace game
                     levels_remove_brick(hitC, hitR);
                 }
                 apply_brick_effect(bt, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
+                // Play context-aware SFX for swept collision
+                {
+                    if (bt == BrickType::T5 && destroyed) {
+                        sound::stop_sfx_channel(1);
+                        sound::play_sfx("hard-explode", 6, 1.0f, true);
+                    } else {
+                        const char* sfx = "ball-brick";
+                        if (bt == BrickType::ID || bt == BrickType::SF) sfx = "hit-hard";
+                        else if (bt == BrickType::T5) sfx = "hit-hard";
+                        sound::play_sfx(sfx, 1, 1.0f, true);
+                    }
+                }
                 if (bt == BrickType::AB || bt == BrickType::MB) {
                     remainingT -= earliestT;
                     break;
@@ -1358,6 +1491,8 @@ namespace game
                     } else if (bt == BrickType::BO) {
                         levels_remove_brick(c, r);
                         apply_brick_effect(BrickType::BO, bx + cw * 0.5f, by + ch * 0.5f, ball);
+                        // Immediate explosion sound for BO hit (embedded fix-up)
+                        if (!sound::play_sfx("explosion", 6, 1.0f, true)) { sound::stop_sfx_channel(6); sound::play_sfx("explosion", 7, 1.0f, true); }
                         for (int k = 0; k < 8; k++) {
                             float angle = (float)k / 8.f * 6.28318f;
                             float sp = 0.6f + 0.4f * (k % 4);
@@ -1375,6 +1510,18 @@ namespace game
                         levels_remove_brick(c, r);
                     }
                     apply_brick_effect(bt, bx + cw * 0.5f, by + ch * 0.5f, ball);
+                    // Play context-aware SFX for embedded fix-up
+                    {
+                        if (bt == BrickType::T5 && destroyed) {
+                            sound::stop_sfx_channel(1);
+                            sound::play_sfx("hard-explode", 6, 1.0f, true);
+                        } else {
+                            const char* sfx = "ball-brick";
+                            if (bt == BrickType::ID || bt == BrickType::SF) sfx = "hit-hard";
+                            else if (bt == BrickType::T5) sfx = "hit-hard";
+                            sound::play_sfx(sfx, 1, 1.0f, true);
+                        }
+                    }
 
                     // Reflect if not murder ball, and not AB/MB
                     if (bt != BrickType::AB && bt != BrickType::MB && bt != BrickType::IS && bt != BrickType::IF) {
@@ -1570,6 +1717,7 @@ namespace game
             // Physical button mappings: START=Play, SELECT=Editor, X=Exit
             if (in.startPressed)
             {
+                sound::play_sfx("menu-click", 4, 1.0f, true);
                 levels_set_current(0);
                 levels_reset_level(0);
                 // Fresh play session: reset full game state to avoid carry-over from editor/test
@@ -1602,6 +1750,7 @@ namespace game
             }
             if (in.selectPressed)
             {
+                sound::play_sfx("menu-click", 4, 1.0f, true);
                 G.mode = Mode::Editor;
                 hw_log("editor (SELECT)\n");
                 G.prevTouching = in.touching;
@@ -1609,6 +1758,7 @@ namespace game
             }
             if (in.xPressed)
             {
+                sound::play_sfx("menu-click", 4, 1.0f, true);
                 g_exitRequested = true;
                 hw_log("exit (X)\n");
                 G.prevTouching = in.touching;
@@ -1616,6 +1766,7 @@ namespace game
             }
             if (in.selectPressed)
             {
+                sound::play_sfx("menu-click", 4, 1.0f, true);
                 G.mode = Mode::Editor;
                 hw_log("editor (SELECT)\n");
                 G.prevTouching = in.touching;
@@ -1623,6 +1774,7 @@ namespace game
             }
             if (in.xPressed)
             {
+                sound::play_sfx("menu-click", 4, 1.0f, true);
                 g_exitRequested = true;
                 hw_log("exit (X)\n");
                 G.prevTouching = in.touching;
@@ -1654,6 +1806,7 @@ namespace game
             {
                 if (sPressedBtn >= 0)
                 {
+                    sound::play_sfx("menu-click", 4, 1.0f, true);
                     // We treat release as valid regardless of final coords (optional: require inside)
                     TitleBtn &tb = kTitleButtons[sPressedBtn];
                     if (tb.next == Mode::Playing)
@@ -1702,7 +1855,10 @@ namespace game
             G.prevTouching = in.touching; // update before early return
             return;
         }
-        if (G.mode == Mode::Options)
+    // Update Game Over sequence regardless of mode, but it only activates from Playing
+    update_game_over();
+
+    if (G.mode == Mode::Options)
         {
             options::Action act = options::update(in);
             if (act == options::Action::ExitToTitle) { G.mode = Mode::Title; return; }
@@ -1710,7 +1866,7 @@ namespace game
             if (in.selectPressed) { G.mode = Mode::Title; hw_log("options->title (SELECT)\n"); return; }
             return;
         }
-        if (G.mode == Mode::Editor)
+    if (G.mode == Mode::Editor)
         {
             editor::EditorAction act = editor::update(in);
             if (act == editor::EditorAction::StartTest) {
@@ -1749,6 +1905,10 @@ namespace game
             return;
         }
 #endif
+        // If Game Over active, allow finalize via A/Start after hold but continue to render overlay later
+        if (G.gameOverActive && G.gameOverPhase >= 1 && (in.aPressed || in.startPressed)) {
+            finalize_game_over();
+        }
 #if defined(DEBUG) && DEBUG
         // Debug level switching (L previous, R next)
         if (in.levelPrevPressed || in.levelNextPressed)
@@ -1817,15 +1977,15 @@ namespace game
         // Fire laser on input edge: D-Pad Up, or stylus release (disabled during death sequence)
         if (!G.deathActive && (in.dpadUpPressed || (G.prevTouching && !in.touching)))
             fire_laser();
-        if (!G.deathActive) update_lasers();
+    if (!G.deathActive && !G.gameOverActive) update_lasers();
     if (G.reverseTimer > 0)
             --G.reverseTimer;
         if (G.lightsOffTimer > 0)
             --G.lightsOffTimer;
     // per-ball murder behavior; no global timer countdown needed
-    if (!G.deathActive) update_moving_bricks();
-    if (!G.deathActive) update_bonus_letters();
-    if (!G.deathActive) update_falling_hazards();
+    if (!G.deathActive && !G.gameOverActive) update_moving_bricks();
+    if (!G.deathActive && !G.gameOverActive) update_bonus_letters();
+    if (!G.deathActive && !G.gameOverActive) update_falling_hazards();
     update_death_sequence();
         // Update particles
         for (auto &p : G.particles)
@@ -1868,16 +2028,22 @@ namespace game
                 {
                     b.x = kPlayfieldLeftWallX;
                     b.vx = -b.vx;
+                    // Wall bounce SFX uses the same brick-hit sound (channel 1)
+                    sound::play_sfx("ball-brick", 1, 1.0f, true);
                 }
                 if (b.x > kPlayfieldRightWallX - kBallW)
                 {
                     b.x = kPlayfieldRightWallX - kBallW;
                     b.vx = -b.vx;
+                    // Wall bounce SFX
+                    sound::play_sfx("ball-brick", 1, 1.0f, true);
                 }
                 if (b.y < kPlayfieldTopWallY)
                 {
                     b.y = kPlayfieldTopWallY;
                     b.vy = -b.vy;
+                    // Ceiling bounce SFX
+                    sound::play_sfx("ball-brick", 1, 1.0f, true);
                 }
                 // Barrier life: if there's exactly one regular ball and lives>0, bounce off a barrier below the bat and lose a life
                 {
@@ -1902,6 +2068,8 @@ namespace game
                             if (G.lives > 0) {
                                 // Consume life first so tint matches the new barrier state (green/orange/red)
                                 G.lives--;
+                                // Play barrier hit SFX (channel 2 reserved for barrier events)
+                                sound::play_sfx("barrier-hit", 2, 1.0f, true);
                                 // Trigger white glow for a short duration
                                 G.barrierGlowTimer = kBarrierGlowFrames;
                             }
@@ -1937,43 +2105,8 @@ namespace game
                             G.mode = Mode::Editor;
                             return;
                         }
-                        hw_log("GAME OVER\n");
-                        int levelReached = levels_current() + 1;
-                        int pos = highscores::submit(G.score, levelReached);
-                        if (pos >= 0) {
-#ifdef PLATFORM_3DS
-                            {
-                                SwkbdState swkbd;
-                                char name[highscores::MAX_NAME + 1] = "";
-                                swkbdInit(&swkbd, SWKBD_TYPE_QWERTY, 1, highscores::MAX_NAME);
-                                swkbdSetHintText(&swkbd, "Name");
-                                if (swkbdInputText(&swkbd, name, sizeof(name)) == SWKBD_BUTTON_RIGHT)
-                                    highscores::set_name(pos, name);
-                                else
-                                    highscores::set_name(pos, "PLAYER");
-                                highscores::save();
-                            }
-#endif
-                            seqPos = 1;
-                            seqTimer = 0; // jump to High screen
-                        }
-                        G.mode = Mode::Title;
-                        levels_set_current(0);
-                        levels_reset_level(0);
-                        G.balls.clear();
-                        {
-                            float ballStartX = kScreenWidth * 0.5f + kPlayfieldOffsetX - kInitialBallHalf;
-                            G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, false, G.imgBall});
-                        }
-                        G.ballLocked = true;
-                        G.lives = 3; // reset lives after returning to title
-                        set_bat_size(1); // reset bat to normal
-                        G.score = 0;
-                        G.bonusBits = 0;
-                        G.reverseTimer = G.lightsOffTimer = G.murderTimer = 0;
-                        G.fireCooldown = 0;
-                        G.letters.clear();
-                        G.hazards.clear();
+                        // Begin the new game-over sequence instead of immediate reset
+                        begin_game_over();
                         return;
                     }
                     b.x = G.bat.x + G.bat.width * 0.5f - kBallW * 0.5f;
@@ -2033,6 +2166,8 @@ namespace game
                             b.active = false; // remove this ball; death sequence takes over
                             continue;
                         }
+                        // Normal ball hits the bat: play SFX (exclude Murderball)
+                        sound::play_sfx("ball-bat", 0, 1.0f, true);
                         // Place ball just above logical top using full rendered sprite alignment
                         float adjust = (ballBottom - batTop);
                         b.y -= adjust; // shift up so that logical bottom sits on top line
@@ -2142,7 +2277,7 @@ namespace game
         // NOTE: Backgrounds removed for new dual-screen refactor; gameplay renders on plain backdrop.
     // (Previously drew BREAK.png here.)
         // Top-screen phase (HUD and brick field). Gameplay objects are drawn on both screens appropriately.
-        if (G.mode == Mode::Playing) {
+    if (G.mode == Mode::Playing) {
             hw_set_top();
         // Draw background (top screen half aligned to screen top, under the HUD)
             {
@@ -2352,6 +2487,17 @@ namespace game
                 int a = G.deathFadeAlpha; if (a > 200) a = 200; if (a < 0) a = 0;
                 C2D_DrawRectSolid(0, 0, 0, 400, 240, C2D_Color32(0, 0, 0, (uint8_t)a));
             }
+            // Game Over overlay and message on top screen
+            if (G.gameOverActive) {
+                int a = G.gameOverAlpha; if (a > 200) a = 200; if (a < 0) a = 0;
+                C2D_DrawRectSolid(0, 0, 0, 400, 240, C2D_Color32(0, 0, 0, (uint8_t)a));
+                const char *msg = "GAME OVER";
+                float scale = 3.0f;
+                int tw = hw_text_width(msg);
+                int x = (int)((400 - tw * scale) * 0.5f);
+                int y = 100; // center-ish
+                hw_draw_text_shadow_scaled(x, y, msg, 0xFFFFFFFF, 0x000000FF, scale);
+            }
             // Draw world side borders on the top screen for clarity (ball bounces at these walls)
             {
                 int leftX  = kTopXOffset + (int)kPlayfieldLeftWallX;
@@ -2387,6 +2533,11 @@ namespace game
         if (G.mode == Mode::Playing && G.deathActive && G.deathFadeAlpha > 0)
         {
             int a = G.deathFadeAlpha; if (a > 200) a = 200; if (a < 0) a = 0;
+            C2D_DrawRectSolid(0, 0, 0, 320, 240, C2D_Color32(0, 0, 0, (uint8_t)a));
+        }
+        // Bottom screen darken when in Game Over to keep screens consistent
+        if (G.mode == Mode::Playing && G.gameOverActive) {
+            int a = G.gameOverAlpha; if (a > 200) a = 200; if (a < 0) a = 0;
             C2D_DrawRectSolid(0, 0, 0, 320, 240, C2D_Color32(0, 0, 0, (uint8_t)a));
         }
     // (Level intro moved to top-screen phase above.)
