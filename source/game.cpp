@@ -951,6 +951,11 @@ namespace game
                 continue;
             levels_remove_brick(ev.c, ev.r);
             apply_brick_effect(BrickType::BO, ls + ev.c * cw + cw / 2, ts + ev.r * ch + ch / 2, G.balls[0]);
+            // Play explosion SFX at the start of the particle effect (with fallback channel)
+            if (!sound::play_sfx("explosion", 6, 1.0f, true)) {
+                sound::stop_sfx_channel(6);
+                sound::play_sfx("explosion", 7, 1.0f, true);
+            }
             for (int k = 0; k < 8; k++)
             {
                 float angle = (float)k / 8.f * 6.28318f;
@@ -1041,6 +1046,8 @@ namespace game
                         {
                             levels_remove_brick(c, r);
                             apply_brick_effect(BrickType::BO, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
+                            // Immediate explosion sound for direct BO hit
+                            if (!sound::play_sfx("explosion", 6, 1.0f, true)) { sound::stop_sfx_channel(6); sound::play_sfx("explosion", 7, 1.0f, true); }
                             for (int k = 0; k < 8; k++)
                             {
                                 float angle = (float)k / 8.f * 6.28318f;
@@ -1173,6 +1180,8 @@ namespace game
                         {
                             levels_remove_brick(c, r);
                             apply_brick_effect(BrickType::BO, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
+                            // Immediate explosion sound for direct BO hit (moving brick)
+                            if (!sound::play_sfx("explosion", 6, 1.0f, true)) { sound::stop_sfx_channel(6); sound::play_sfx("explosion", 7, 1.0f, true); }
                             for (int k = 0; k < 8; k++)
                             {
                                 float angle = (float)k / 8.f * 6.28318f;
@@ -1391,6 +1400,8 @@ namespace game
                 else if (bt == BrickType::BO) {
                     levels_remove_brick(hitC, hitR);
                     apply_brick_effect(BrickType::BO, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
+                    // Immediate explosion sound for direct BO hit (swept collision)
+                    if (!sound::play_sfx("explosion", 6, 1.0f, true)) { sound::stop_sfx_channel(6); sound::play_sfx("explosion", 7, 1.0f, true); }
                     for (int k = 0; k < 8; k++) {
                         float angle = (float)k / 8.f * 6.28318f;
                         float sp = 0.6f + 0.4f * (k % 4);
@@ -1480,6 +1491,8 @@ namespace game
                     } else if (bt == BrickType::BO) {
                         levels_remove_brick(c, r);
                         apply_brick_effect(BrickType::BO, bx + cw * 0.5f, by + ch * 0.5f, ball);
+                        // Immediate explosion sound for BO hit (embedded fix-up)
+                        if (!sound::play_sfx("explosion", 6, 1.0f, true)) { sound::stop_sfx_channel(6); sound::play_sfx("explosion", 7, 1.0f, true); }
                         for (int k = 0; k < 8; k++) {
                             float angle = (float)k / 8.f * 6.28318f;
                             float sp = 0.6f + 0.4f * (k % 4);
