@@ -1061,8 +1061,20 @@ namespace game
                         else
                             levels_remove_brick(c, r);
                         apply_brick_effect(bt, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
-                        // Play brick-hit SFX for any ball-vs-brick impact
-                        sound::play_sfx("ball-brick", 1, 1.0f, true);
+                        // Play context-aware SFX: ID/SF and T5 non-final hits use a harder impact
+                        {
+                            // Use channel 6 for T5 final break to avoid debounce suppression on channel 1
+                            if (bt == BrickType::T5 && destroyed) {
+                                // Ensure prior hit-hard on brick channel doesn't mask the final break
+                                sound::stop_sfx_channel(1);
+                                sound::play_sfx("hard-explode", 6, 1.0f, true);
+                            } else {
+                                const char* sfx = "ball-brick";
+                                if (bt == BrickType::ID || bt == BrickType::SF) sfx = "hit-hard";
+                                else if (bt == BrickType::T5) sfx = "hit-hard"; // non-final hits
+                                sound::play_sfx(sfx, 1, 1.0f, true);
+                            }
+                        }
                         // For AB/MB bricks, original ball continues without reflecting this frame
                         if (bt == BrickType::AB || bt == BrickType::MB)
                         {
@@ -1181,8 +1193,18 @@ namespace game
                         else
                             levels_remove_brick(c, r);
                         apply_brick_effect(bt, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
-                        // Play brick-hit SFX for any ball-vs-brick impact (moving bricks)
-                        sound::play_sfx("ball-brick", 1, 1.0f, true);
+                        // Play context-aware SFX for moving bricks as well
+                        {
+                            if (bt == BrickType::T5 && destroyed) {
+                                sound::stop_sfx_channel(1);
+                                sound::play_sfx("hard-explode", 6, 1.0f, true);
+                            } else {
+                                const char* sfx = "ball-brick";
+                                if (bt == BrickType::ID || bt == BrickType::SF) sfx = "hit-hard";
+                                else if (bt == BrickType::T5) sfx = "hit-hard";
+                                sound::play_sfx(sfx, 1, 1.0f, true);
+                            }
+                        }
                         if (bt == BrickType::AB || bt == BrickType::MB)
                         {
                             if (destroyed && levels_remaining_breakable() == 0 && levels_count() > 0) {
@@ -1386,8 +1408,18 @@ namespace game
                     levels_remove_brick(hitC, hitR);
                 }
                 apply_brick_effect(bt, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
-                // Play brick-hit SFX for any ball-vs-brick impact (swept collision)
-                sound::play_sfx("ball-brick", 1, 1.0f, true);
+                // Play context-aware SFX for swept collision
+                {
+                    if (bt == BrickType::T5 && destroyed) {
+                        sound::stop_sfx_channel(1);
+                        sound::play_sfx("hard-explode", 6, 1.0f, true);
+                    } else {
+                        const char* sfx = "ball-brick";
+                        if (bt == BrickType::ID || bt == BrickType::SF) sfx = "hit-hard";
+                        else if (bt == BrickType::T5) sfx = "hit-hard";
+                        sound::play_sfx(sfx, 1, 1.0f, true);
+                    }
+                }
                 if (bt == BrickType::AB || bt == BrickType::MB) {
                     remainingT -= earliestT;
                     break;
@@ -1465,8 +1497,18 @@ namespace game
                         levels_remove_brick(c, r);
                     }
                     apply_brick_effect(bt, bx + cw * 0.5f, by + ch * 0.5f, ball);
-                    // Play brick-hit SFX for any ball-vs-brick impact (embedded fix-up)
-                    sound::play_sfx("ball-brick", 1, 1.0f, true);
+                    // Play context-aware SFX for embedded fix-up
+                    {
+                        if (bt == BrickType::T5 && destroyed) {
+                            sound::stop_sfx_channel(1);
+                            sound::play_sfx("hard-explode", 6, 1.0f, true);
+                        } else {
+                            const char* sfx = "ball-brick";
+                            if (bt == BrickType::ID || bt == BrickType::SF) sfx = "hit-hard";
+                            else if (bt == BrickType::T5) sfx = "hit-hard";
+                            sound::play_sfx(sfx, 1, 1.0f, true);
+                        }
+                    }
 
                     // Reflect if not murder ball, and not AB/MB
                     if (bt != BrickType::AB && bt != BrickType::MB && bt != BrickType::IS && bt != BrickType::IF) {
