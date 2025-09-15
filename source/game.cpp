@@ -776,22 +776,34 @@ namespace game
                 case 4: G.bonusBits |= 0x10; break; // S
                 case 100: // Bat smaller
                     set_bat_size(G.batSizeMode - 1);
+                    // Bad pickup
+                    sound::play_sfx("bad", 5, 1.0f, true);
                     break;
                 case 101: // Bat bigger
                     set_bat_size(G.batSizeMode + 1);
+                    // Good pickup
+                    sound::play_sfx("good", 5, 1.0f, true);
                     break;
                 case 200: // Laser pickup
                     G.laserEnabled = true;
                     G.laserReady = true;
+                    // Good pickup
+                    sound::play_sfx("good", 5, 1.0f, true);
                     break;
                 case PK_LIFE:
                     if (G.lives < 99) G.lives++;
+                    // Good pickup
+                    sound::play_sfx("good", 5, 1.0f, true);
                     break;
                 case PK_SLOW:
                     for (auto &b : G.balls) { b.vx *= (1.0f - layout::SPEED_MODIFIER); b.vy *= (1.0f - layout::SPEED_MODIFIER); }
+                    // Good pickup
+                    sound::play_sfx("good", 5, 1.0f, true);
                     break;
                 case PK_FAST:
                     for (auto &b : G.balls) { b.vx *= (1.0f + layout::SPEED_MODIFIER); b.vy *= (1.0f + layout::SPEED_MODIFIER); }
+                    // Bad pickup
+                    sound::play_sfx("bad", 5, 1.0f, true);
                     break;
                 case PK_REWIND:
                 {
@@ -804,18 +816,28 @@ namespace game
                     int cur = levels_current();
                     if (levels_count() > 0) { cur = (cur + 1) % levels_count(); levels_set_current(cur); }
                 }
+                    // Good pickup
+                    sound::play_sfx("good", 5, 1.0f, true);
                     break;
                 case PK_REVERSE:
                     G.reverseTimer = 600; // ~10s
+                    // Bad pickup
+                    sound::play_sfx("bad", 5, 1.0f, true);
                     break;
                 case PK_BONUS1000:
                     G.score += 1000;
+                    // Good pickup
+                    sound::play_sfx("good", 5, 1.0f, true);
                     break;
                 case PK_LIGHTS_OFF:
                     G.lightsOffTimer = 600;
+                    // Bad pickup
+                    sound::play_sfx("bad", 5, 1.0f, true);
                     break;
                 case PK_LIGHTS_ON:
                     G.lightsOffTimer = 0;
+                    // Good pickup
+                    sound::play_sfx("good", 5, 1.0f, true);
                     break;
                 }
                 L.active = false;
@@ -864,6 +886,9 @@ namespace game
             bool overlap = !(hRight <= batLeft || hLeft >= batRight || hBottom <= batTop || hTop >= batBottom);
             if (overlap)
             {
+                // Play hazard pickup SFX; avoid double-playing if this will cause Game Over
+                if (G.lives > 1)
+                    sound::play_sfx("game-over", 3, 1.0f, true);
                 H.active = false;
                 begin_death_sequence();
                 return; // bail; sequence takes control
