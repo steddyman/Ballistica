@@ -1890,6 +1890,8 @@ namespace game
                 G.moving.assign(totalCells, {-1.f, 1.f, 0.f, 0.f});
                 hw_log("TEST init session\n");
                 G.levelIntroTimer = 90; // reuse generic intro timer (editor fade overlay still draws if active)
+                // Important: reset touch edge so the release of the Test button doesn't auto-launch
+                G.prevTouching = false;
                 G.mode = Mode::Playing; return; }
             if (act == editor::EditorAction::SaveAndExit) { G.mode = Mode::Title; return; }
             if (in.selectPressed) { editor::persist_current_level(); G.mode = Mode::Title; return; }
@@ -1974,8 +1976,9 @@ namespace game
                 G.bat.x = targetX;
             }
         }
-        // Fire laser on input edge: D-Pad Up, or stylus release (disabled during death sequence)
-        if (!G.deathActive && (in.dpadUpPressed || (G.prevTouching && !in.touching)))
+    // Fire laser on input edge: D-Pad Up, or stylus release (disabled during death sequence)
+    // Suppress in the brief editor test grace window to avoid accidental fire from Test tap
+    if (!G.deathActive && !editor::test_grace_active() && (in.dpadUpPressed || (G.prevTouching && !in.touching)))
             fire_laser();
     if (!G.deathActive && !G.gameOverActive) update_lasers();
     if (G.reverseTimer > 0)
@@ -2205,9 +2208,10 @@ namespace game
             // Only allow launching if we have seen a touch while locked and now see its release.
             // prevTouching tracks global previous frame, but we only care about transitions that happen after lock.
             static bool sawTouchWhileLocked = false; // function-static: persists across frames; reset when unlocked
-            if (!sawTouchWhileLocked && in.touching)
+        if (!sawTouchWhileLocked && in.touching)
                 sawTouchWhileLocked = true; // first touch since lock
-            bool released = sawTouchWhileLocked && G.prevTouching && !in.touching; // release of that touch
+        // During the editor test grace window, do not consider releases to prevent auto-launch
+        bool released = !editor::test_grace_active() && sawTouchWhileLocked && G.prevTouching && !in.touching; // release of that touch
             if (released)
             {
                 if (!G.balls.empty())
@@ -2215,7 +2219,11 @@ namespace game
                     Ball &b0 = G.balls[0];
                     b0.vy = -1.5f;
                     float batDX = G.bat.x - G.prevBatX;
-                    b0.vx = batDX * 0.15f;
+            // Clamp initial horizontal influence to avoid extremely shallow angles on quick taps
+            float vx0 = batDX * 0.15f;
+            if (vx0 < -1.0f) vx0 = -1.0f;
+            if (vx0 >  1.0f) vx0 =  1.0f;
+            b0.vx = vx0;
                     // Apply per-level speed to initial launch velocity (both axes)
                     float mul = level_speed_multiplier();
                     b0.vx *= mul;
@@ -2227,7 +2235,9 @@ namespace game
             if (!G.ballLocked)
                 sawTouchWhileLocked = false; // safety
         }
-        G.prevTouching = in.touching;
+    G.prevTouching = in.touching;
+    // Advance editor test grace countdown if active
+    if (editor::test_grace_active()) editor::tick_test_grace();
     }
 
     void render()
