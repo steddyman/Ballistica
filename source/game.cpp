@@ -793,7 +793,7 @@ namespace game
                 case PK_LIFE:
                     if (G.lives < 99) G.lives++;
                     // Good pickup
-                    sound::play_sfx("good", 5, 1.0f, true);
+                    sound::play_sfx("extra-life", 5, 1.0f, true);
                     break;
                 case PK_SLOW:
                     for (auto &b : G.balls) { b.vx *= (1.0f - layout::SPEED_MODIFIER); b.vy *= (1.0f - layout::SPEED_MODIFIER); }
