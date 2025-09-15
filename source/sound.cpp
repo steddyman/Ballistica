@@ -8,6 +8,7 @@
 #include <string>
 #include <cstdarg>
 #include <cerrno>
+#include <cstdint>
 
 #ifdef PLATFORM_3DS
 #include "hardware.hpp" // for hw_log
@@ -18,6 +19,7 @@ namespace sound {
 static constexpr int kMaxSfxChannels = 16; // logical channels
 static constexpr int kBaseNdspChannel = 0; // starting NDSP channel index for SFX
 static constexpr int kMusicNdspChannel = 31; // reserve a high channel for music
+static constexpr int kBrickSfxChannel = 1;   // logical channel reserved for ball-brick/wall hits
 
 struct SfxState {
     ndspWaveBuf wave{};
@@ -48,6 +50,18 @@ struct MusicState {
 static MusicState g_music;
 static bool g_inited = false;
 static bool g_warnedNoInit = false;
+// Per-channel debounce timestamp (ms since boot). Prevents rapid stacking when many hits occur at once.
+static uint64_t g_lastSfxPlayMs[kMaxSfxChannels] = {0};
+static constexpr uint32_t kSfxDebounceMs = 35; // minimum gap between plays on the same logical channel
+
+static inline uint64_t now_ms() {
+#ifdef PLATFORM_3DS
+    return (uint64_t)osGetTime();
+#else
+    using namespace std::chrono;
+    return (uint64_t)duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count();
+#endif
+}
 
 // Lightweight debug logging helper
 static void dbg_logf(const char* fmt, ...) {
@@ -203,6 +217,14 @@ bool play_sfx(const char* pathOrName, int channel, float volume, bool relativePa
     if (!g_inited) { if (!g_warnedNoInit) { dbg_logf("audio disabled (init failed); skipping sfx\n"); g_warnedNoInit = true; } return false; }
     if (channel < 0) channel = 0;
     if (channel >= kMaxSfxChannels) channel = kMaxSfxChannels-1;
+    // Debounce only for the brick SFX channel to avoid stacking in the same frame burst
+    uint64_t t = now_ms();
+    if (channel == kBrickSfxChannel) {
+        if (t - g_lastSfxPlayMs[channel] < kSfxDebounceMs) {
+            dbg_logf("sfx debounce ch=%d dt=%llu<%u\n", channel, (unsigned long long)(t - g_lastSfxPlayMs[channel]), kSfxDebounceMs);
+            return false;
+        }
+    }
     std::string path;
     if (!ensure_romfs_prefix(path, pathOrName, relativePath, "audio")) { dbg_logf("sfx bad path\n"); return false; }
     // Load PCM16 data
@@ -235,6 +257,7 @@ bool play_sfx(const char* pathOrName, int channel, float volume, bool relativePa
     }
     ndspChnWaveBufAdd(ndspCh, &S.wave);
     S.active = true;
+    if (channel == kBrickSfxChannel) g_lastSfxPlayMs[channel] = t;
     dbg_logf("sfx play ch=%d ndsp=%d rate=%d ch=%d nsamp=%u vol=%.2f\n", channel, ndspCh, rate, ch, S.wave.nsamples, volume);
     return true;
 }
