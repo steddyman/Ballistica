@@ -26,6 +26,7 @@
 #include "BACKGROUND.h"
 #include "highscores.hpp"
 #include "game.hpp"
+#include "sound.hpp"
 #include "levels.hpp"
 #include "brick.hpp"
 #include "SUPPORT.HPP" // legacy constants BATWIDTH, BATHEIGHT, BALLWIDTH, BALLHEIGHT
@@ -1902,6 +1903,8 @@ namespace game
                             if (G.lives > 0) {
                                 // Consume life first so tint matches the new barrier state (green/orange/red)
                                 G.lives--;
+                                // Play barrier hit SFX (channel 2 reserved for barrier events)
+                                sound::play_sfx("barrier-hit", 2, 1.0f, true);
                                 // Trigger white glow for a short duration
                                 G.barrierGlowTimer = kBarrierGlowFrames;
                             }

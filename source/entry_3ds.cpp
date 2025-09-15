@@ -4,9 +4,11 @@
 #include "IMAGE_t3x.h"
 #include "sprite_indexes/image_indices.h"
 #include "game.hpp"
+#include "sound.hpp"
 
 int main(int argc, char** argv) {
     if(!hw_init()) return -1;
+    sound::init();
     game_init();
     u32 frame=0;
     bool showTopLogs=false;
@@ -16,7 +18,8 @@ int main(int argc, char** argv) {
         InputState in; hw_poll_input(in);
         // Exit if game layer requested (X on title or touch EXIT) or START+SELECT chord anywhere as hard quit
         if(exit_requested() || (in.startPressed && in.selectPressed)) break;
-        game_update(in);
+    game_update(in);
+    sound::update();
         // Toggle log overlays: exact combo L+R+Up or L+R+Down (edge on Up/Down).
         if(in.lHeld && in.rHeld) {
             if(in.dpadUpPressed) showTopLogs = !showTopLogs;
@@ -77,6 +80,7 @@ int main(int argc, char** argv) {
         hw_end_frame();
     ++frame;
     }
+    sound::shutdown();
     hw_shutdown();
     return 0;
 }
