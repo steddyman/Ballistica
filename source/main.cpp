@@ -183,8 +183,8 @@ char far *brick_shorthand[] = {
 	"ID", 	// indestructible brick
 	"RW",	// Level Rewind brick
 	"RE",	// Controls reverse brick
-	"IS", 	// Invisible slow brick
-	"IF",	// Invisble fast brick
+	"IS", 	// Immediate slow brick
+	"IF",	// Immediate fast brick
 	"AB",	// Create another ball
 	"FO",	// Level Forward brick
 	"LA",	// Laser brick

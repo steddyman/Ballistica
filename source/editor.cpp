@@ -264,7 +264,7 @@ EditorAction update(const InputState &in) {
     int bx = palX, by = palY;
     for (int b = 0; b < (int)BrickType::COUNT; ++b) {
         if (by + itemH > 230) { by = palY; bx += itemW + pad; }
-        if (x >= bx && x < bx + itemW && y >= by && y < by + itemH) { E.curBrick = b; return EditorAction::None; }
+    if (x >= bx && x < bx + itemW && y >= by && y < by + itemH) { E.curBrick = b; sound::play_sfx("menu-click", 4, 1.0f, true); return EditorAction::None; }
         by += itemH + pad;
     }
     // Speed -
