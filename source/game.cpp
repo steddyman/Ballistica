@@ -728,11 +728,11 @@ namespace game
         case BrickType::BB:
             spawn_bat_pickup(true, cx, cy);
             break;
-        case BrickType::B1: spawn_bonus_letter(0, cx, cy); break;
-        case BrickType::B2: spawn_bonus_letter(1, cx, cy); break;
-        case BrickType::B3: spawn_bonus_letter(2, cx, cy); break;
-        case BrickType::B4: spawn_bonus_letter(3, cx, cy); break;
-        case BrickType::B5: spawn_bonus_letter(4, cx, cy); break;
+    case BrickType::B1: spawn_bonus_letter(0, cx, cy); break;
+    case BrickType::B2: spawn_bonus_letter(1, cx, cy); break;
+    case BrickType::B3: spawn_bonus_letter(2, cx, cy); break;
+    case BrickType::B4: spawn_bonus_letter(3, cx, cy); break;
+    case BrickType::B5: spawn_bonus_letter(4, cx, cy); break;
         default:
             break; // others TBD
         }
@@ -769,11 +769,11 @@ namespace game
                 // Collect this letter
                 switch (L.letter)
                 {
-                case 0: G.bonusBits |= 0x01; break; // B
-                case 1: G.bonusBits |= 0x02; break; // O
-                case 2: G.bonusBits |= 0x04; break; // N
-                case 3: G.bonusBits |= 0x08; break; // U
-                case 4: G.bonusBits |= 0x10; break; // S
+                case 0: G.score += 100; G.bonusBits |= 0x01; sound::play_sfx("bonus-step", 5, 1.0f, true); break; // B
+                case 1: G.score += 100; G.bonusBits |= 0x02; sound::play_sfx("bonus-step", 5, 1.0f, true); break; // O
+                case 2: G.score += 100; G.bonusBits |= 0x04; sound::play_sfx("bonus-step", 5, 1.0f, true); break; // N
+                case 3: G.score += 100; G.bonusBits |= 0x08; sound::play_sfx("bonus-step", 5, 1.0f, true); break; // U
+                case 4: G.score += 100; G.bonusBits |= 0x10; sound::play_sfx("bonus-step", 5, 1.0f, true); break; // S
                 case 100: // Bat smaller
                     set_bat_size(G.batSizeMode - 1);
                     // Bad pickup
@@ -848,6 +848,7 @@ namespace game
                     int levelNumber = lvl + 1; // levels are 1-based for scoring
                     G.score += 250 * levelNumber;
                     G.bonusBits = 0;
+                    sound::play_sfx("all-bonus", 5, 1.0f, true);
                     hw_log("BONUS COMPLETE (award)\n");
                 }
             }
