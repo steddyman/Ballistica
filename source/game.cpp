@@ -1636,6 +1636,7 @@ namespace game
             // Physical button mappings: START=Play, SELECT=Editor, X=Exit
             if (in.startPressed)
             {
+                sound::play_sfx("menu-click", 4, 1.0f, true);
                 levels_set_current(0);
                 levels_reset_level(0);
                 // Fresh play session: reset full game state to avoid carry-over from editor/test
@@ -1668,6 +1669,7 @@ namespace game
             }
             if (in.selectPressed)
             {
+                sound::play_sfx("menu-click", 4, 1.0f, true);
                 G.mode = Mode::Editor;
                 hw_log("editor (SELECT)\n");
                 G.prevTouching = in.touching;
@@ -1675,6 +1677,7 @@ namespace game
             }
             if (in.xPressed)
             {
+                sound::play_sfx("menu-click", 4, 1.0f, true);
                 g_exitRequested = true;
                 hw_log("exit (X)\n");
                 G.prevTouching = in.touching;
@@ -1682,6 +1685,7 @@ namespace game
             }
             if (in.selectPressed)
             {
+                sound::play_sfx("menu-click", 4, 1.0f, true);
                 G.mode = Mode::Editor;
                 hw_log("editor (SELECT)\n");
                 G.prevTouching = in.touching;
@@ -1689,6 +1693,7 @@ namespace game
             }
             if (in.xPressed)
             {
+                sound::play_sfx("menu-click", 4, 1.0f, true);
                 g_exitRequested = true;
                 hw_log("exit (X)\n");
                 G.prevTouching = in.touching;
@@ -1720,6 +1725,7 @@ namespace game
             {
                 if (sPressedBtn >= 0)
                 {
+                    sound::play_sfx("menu-click", 4, 1.0f, true);
                     // We treat release as valid regardless of final coords (optional: require inside)
                     TitleBtn &tb = kTitleButtons[sPressedBtn];
                     if (tb.next == Mode::Playing)

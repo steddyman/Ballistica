@@ -12,6 +12,7 @@
 #include "ui_button.hpp"
 // IMAGE indices include both e_* (editor) and gameplay sprites
 #include "IMAGE.h"
+#include "sound.hpp"
 
 namespace editor {
 
@@ -183,8 +184,9 @@ static void init_if_needed() {
     using namespace ui;
     g_buttons.clear();
     UIButton b;
-    b = {}; b.x=NameBtnX; b.y=NameBtnY; b.w=NameBtnW; b.h=NameBtnH; b.label="Name"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){ edit_level_name(); }; g_buttons.push_back(b);
+    b = {}; b.x=NameBtnX; b.y=NameBtnY; b.w=NameBtnW; b.h=NameBtnH; b.label="Name"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){ sound::play_sfx("menu-click", 4, 1.0f, true); edit_level_name(); }; g_buttons.push_back(b);
     b = {}; b.x=TestBtnX; b.y=TestBtnY; b.w=TestBtnW; b.h=TestBtnH; b.label="Test Level"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){
+        sound::play_sfx("menu-click", 4, 1.0f, true);
         levels_set_current(E.curLevel);
         levels_snapshot_level(E.curLevel); // capture current edits as pristine for test run
         levels_reset_level(E.curLevel);
@@ -196,12 +198,14 @@ static void init_if_needed() {
         g_lastAction = EditorAction::StartTest;
     }; g_buttons.push_back(b);
     b = {}; b.x=ClearBtnX; b.y=ClearBtnY; b.w=ClearBtnW; b.h=ClearBtnH; b.label="Clear"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){
+        sound::play_sfx("menu-click", 4, 1.0f, true);
         push_undo_clear(E.curLevel);
         int gw = levels_grid_width(); int gh = levels_grid_height();
         for (int r = 0; r < gh; ++r) for (int c = 0; c < gw; ++c) levels_edit_set_brick(E.curLevel, c, r, 0);
     }; g_buttons.push_back(b);
-    b = {}; b.x=UndoBtnX; b.y=UndoBtnY; b.w=UndoBtnW; b.h=UndoBtnH; b.label="Undo"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){ perform_undo(); }; g_buttons.push_back(b);
+    b = {}; b.x=UndoBtnX; b.y=UndoBtnY; b.w=UndoBtnW; b.h=UndoBtnH; b.label="Undo"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){ sound::play_sfx("menu-click", 4, 1.0f, true); perform_undo(); }; g_buttons.push_back(b);
     b = {}; b.x=ExitBtnX; b.y=ExitBtnY; b.w=ExitBtnW; b.h=ExitBtnH; b.label="Exit"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){
+        sound::play_sfx("menu-click", 4, 1.0f, true);
         persist_current_level();
         g_lastAction = EditorAction::SaveAndExit;
     }; g_buttons.push_back(b);
@@ -265,22 +269,22 @@ EditorAction update(const InputState &in) {
     }
     // Speed -
     if (x >= ui::SpeedMinusX && x < ui::SpeedMinusX + ui::SpeedBtnW && y >= ui::SpeedMinusY && y < ui::SpeedMinusY + ui::SpeedBtnH) {
-        if (E.speed > 1) { E.speed--; levels_set_speed(E.curLevel, E.speed); }
+        if (E.speed > 1) { E.speed--; levels_set_speed(E.curLevel, E.speed); sound::play_sfx("menu-click", 4, 1.0f, true); }
         return EditorAction::None;
     }
     // Speed +
     if (x >= ui::SpeedPlusX && x < ui::SpeedPlusX + ui::SpeedBtnW && y >= ui::SpeedPlusY && y < ui::SpeedPlusY + ui::SpeedBtnH) {
-        if (E.speed < 99) { E.speed++; levels_set_speed(E.curLevel, E.speed); }
+        if (E.speed < 99) { E.speed++; levels_set_speed(E.curLevel, E.speed); sound::play_sfx("menu-click", 4, 1.0f, true); }
         return EditorAction::None;
     }
     // Level -
     if (x >= ui::LevelMinusX && x < ui::LevelMinusX + ui::LevelBtnW && y >= ui::LevelMinusY && y < ui::LevelMinusY + ui::LevelBtnH) {
-        if (E.curLevel > 0) { E.curLevel--; levels_set_current(E.curLevel); E.speed = levels_get_speed(E.curLevel); E.name = levels_get_name(E.curLevel); g_undo.clear(); }
+        if (E.curLevel > 0) { E.curLevel--; levels_set_current(E.curLevel); E.speed = levels_get_speed(E.curLevel); E.name = levels_get_name(E.curLevel); g_undo.clear(); sound::play_sfx("menu-click", 4, 1.0f, true); }
         return EditorAction::None;
     }
     // Level +
     if (x >= ui::LevelPlusX && x < ui::LevelPlusX + ui::LevelBtnW && y >= ui::LevelPlusY && y < ui::LevelPlusY + ui::LevelBtnH) {
-        if (E.curLevel + 1 < levels_count()) { E.curLevel++; levels_set_current(E.curLevel); E.speed = levels_get_speed(E.curLevel); E.name = levels_get_name(E.curLevel); g_undo.clear(); }
+        if (E.curLevel + 1 < levels_count()) { E.curLevel++; levels_set_current(E.curLevel); E.speed = levels_get_speed(E.curLevel); E.name = levels_get_name(E.curLevel); g_undo.clear(); sound::play_sfx("menu-click", 4, 1.0f, true); }
         return EditorAction::None;
     }
     // Dispatch UIButton interactions (Name, Test, Clear, Exit) via onTap
