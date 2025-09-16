@@ -30,4 +30,7 @@ void stop_sfx_channel(int channel);
 bool play_music(const char* pathOrName, bool loop = true, float volume = 1.0f, bool relativePath = true);
 void stop_music();
 
+// Preload and cache an SFX into linear memory so the first play has no I/O or allocation cost.
+bool preload_sfx(const char* pathOrName, bool relativePath = true);
+
 }
