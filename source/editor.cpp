@@ -65,6 +65,10 @@ struct EditorState {
     bool pendingFade = false;  // active during initial Playing fade overlay
     int fadeTimer = 0;         // countdown for fade overlay
     int testGrace = 0;         // frames remaining in grace period after starting a test
+    // Drag-paint bookkeeping
+    bool wasTouching = false;  // previous frame stylus state
+    int lastPaintCol = -1;     // last painted grid column during current drag
+    int lastPaintRow = -1;     // last painted grid row during current drag
 };
 static EditorState E;
 static std::vector<UIButton> g_buttons; // cached buttons built after init
@@ -234,9 +238,8 @@ static void edit_level_name() {
 
 EditorAction update(const InputState &in) {
     init_if_needed();
-    if (!in.touchPressed)
-        return EditorAction::None;
-
+    // Support drag-paint across the grid while touching.
+    // Only trigger palette/buttons on press to avoid repeat firing while dragging.
     int x = in.stylusX, y = in.stylusY;
     // Grid region (use editor design cell size)
     int left = levels_edit_left();
@@ -245,16 +248,31 @@ EditorAction update(const InputState &in) {
     int ch = levels_edit_brick_height();
     int gw = levels_grid_width();
     int gh = levels_grid_height();
-    if (x >= left && x < left + gw * cw && y >= top && y < top + gh * ch) {
-        int col = (x - left) / cw;
-        int row = (y - top) / ch;
-        int prev = levels_edit_get_brick(E.curLevel,col,row);
-        if (prev != E.curBrick) {
-            push_undo_set(E.curLevel, col, row, (uint8_t)prev);
-            levels_edit_set_brick(E.curLevel, col, row, E.curBrick);
+    if (in.touching) {
+        if (x >= left && x < left + gw * cw && y >= top && y < top + gh * ch) {
+            int col = (x - left) / cw;
+            int row = (y - top) / ch;
+            // Paint only when entering a new cell or the cell differs from current value
+            if (col != E.lastPaintCol || row != E.lastPaintRow) {
+                int prev = levels_edit_get_brick(E.curLevel, col, row);
+                if (prev != E.curBrick) {
+                    push_undo_set(E.curLevel, col, row, (uint8_t)prev);
+                    levels_edit_set_brick(E.curLevel, col, row, E.curBrick);
+                }
+                E.lastPaintCol = col;
+                E.lastPaintRow = row;
+            }
+            // While painting, don't also trigger button/palette actions
+            // Return early so we keep painting smoothly
+            E.wasTouching = in.touching;
+            return EditorAction::None;
         }
-        return EditorAction::None;
     }
+    // On release, reset drag tracking so a new stroke can start cleanly
+    if (E.wasTouching && !in.touching) { E.lastPaintCol = E.lastPaintRow = -1; }
+
+    // If this wasn't a grid drag, only proceed on fresh press for palette/buttons
+    if (!in.touchPressed) { E.wasTouching = in.touching; return EditorAction::None; }
     // Palette (vertical columns wrapping)
     int palX = ui::PaletteX;
     int palY = ui::PaletteY;
@@ -296,6 +314,7 @@ EditorAction update(const InputState &in) {
             return act; // may be None
         }
     }
+    E.wasTouching = in.touching;
     return EditorAction::None;
 }
 
