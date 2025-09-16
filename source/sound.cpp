@@ -9,6 +9,7 @@
 #include <cstdarg>
 #include <cerrno>
 #include <cstdint>
+#include <unordered_map>
 
 #ifdef PLATFORM_3DS
 #include "hardware.hpp" // for hw_log
@@ -23,7 +24,8 @@ static constexpr int kBrickSfxChannel = 1;   // logical channel reserved for bal
 
 struct SfxState {
     ndspWaveBuf wave{};
-    void* data = nullptr;      // linear-allocated PCM16 interleaved data
+    // Channel-local view; underlying memory is owned by the global cache.
+    void* data = nullptr;      // pointer to cached PCM16 interleaved data (linear memory)
     size_t bytes = 0;
     int channels = 0;
     bool active = false;
@@ -53,6 +55,16 @@ static bool g_warnedNoInit = false;
 // Per-channel debounce timestamp (ms since boot). Prevents rapid stacking when many hits occur at once.
 static uint64_t g_lastSfxPlayMs[kMaxSfxChannels] = {0};
 static constexpr uint32_t kSfxDebounceMs = 35; // minimum gap between plays on the same logical channel
+
+// SFX cache: keep each SFX loaded once in linear memory and reuse it.
+struct Clip {
+    void* data = nullptr;   // linear-allocated PCM16 interleaved data
+    size_t bytes = 0;
+    int rate = 32000;
+    int channels = 1;       // 1 or 2
+    u32 nsamples = 0;       // per-channel frames
+};
+static std::unordered_map<std::string, Clip> g_clipCache; // key: resolved romfs path
 
 static inline uint64_t now_ms() {
 #ifdef PLATFORM_3DS
@@ -163,6 +175,9 @@ void shutdown() {
     if (!g_inited) return;
     stop_music();
     for (int i = 0; i < kMaxSfxChannels; ++i) stop_sfx_channel(i);
+    // Free cached clips
+    for (auto &kv : g_clipCache) { if (kv.second.data) linearFree(kv.second.data); }
+    g_clipCache.clear();
     ndspExit();
     g_inited = false;
     dbg_logf("sound shutdown\n");
@@ -203,8 +218,11 @@ void update() {
 static void stop_sfx_internal(int channel) {
     int ndspCh = kBaseNdspChannel + channel;
     ndspChnWaveBufClear(ndspCh);
-    if (g_sfx[channel].data) { linearFree(g_sfx[channel].data); g_sfx[channel].data = nullptr; }
-    g_sfx[channel].bytes = 0; g_sfx[channel].channels = 0; g_sfx[channel].active = false;
+    // Do not free memory; owned by cache
+    g_sfx[channel].data = nullptr;
+    g_sfx[channel].bytes = 0;
+    g_sfx[channel].channels = 0;
+    g_sfx[channel].active = false;
     dbg_logf("sfx stop ch=%d (ndsp=%d)\n", channel, ndspCh);
 }
 
@@ -217,7 +235,6 @@ bool play_sfx(const char* pathOrName, int channel, float volume, bool relativePa
     if (!g_inited) { if (!g_warnedNoInit) { dbg_logf("audio disabled (init failed); skipping sfx\n"); g_warnedNoInit = true; } return false; }
     if (channel < 0) channel = 0;
     if (channel >= kMaxSfxChannels) channel = kMaxSfxChannels-1;
-    // Debounce only for the brick SFX channel to avoid stacking in the same frame burst
     uint64_t t = now_ms();
     if (channel == kBrickSfxChannel) {
         if (t - g_lastSfxPlayMs[channel] < kSfxDebounceMs) {
@@ -227,38 +244,44 @@ bool play_sfx(const char* pathOrName, int channel, float volume, bool relativePa
     }
     std::string path;
     if (!ensure_romfs_prefix(path, pathOrName, relativePath, "audio")) { dbg_logf("sfx bad path\n"); return false; }
-    // Load PCM16 data
-    int rate=0, ch=0; long dataStart=0; size_t dataBytes=0; std::vector<int16_t> pcm;
-    if (!load_wav_pcm16(path.c_str(), pcm, rate, ch, dataStart, dataBytes)) { dbg_logf("sfx load fail: %s\n", path.c_str()); return false; }
-    // Configure channel for mono/stereo (we’ll downmix to mono if stereo)
+    // Lookup / load into cache
+    Clip* clip = nullptr;
+    auto it = g_clipCache.find(path);
+    if (it == g_clipCache.end()) {
+        int rate=0, ch=0; long dataStart=0; size_t dataBytes=0; std::vector<int16_t> pcm;
+        if (!load_wav_pcm16(path.c_str(), pcm, rate, ch, dataStart, dataBytes)) { dbg_logf("sfx load fail: %s\n", path.c_str()); return false; }
+        Clip c{}; c.bytes = pcm.size() * sizeof(int16_t); c.rate = rate; c.channels = ch; c.nsamples = (u32)(pcm.size() / (ch ? ch : 1));
+        c.data = linearAlloc(c.bytes);
+        if (!c.data) { dbg_logf("sfx linearAlloc fail (%zu)\n", c.bytes); return false; }
+        memcpy(c.data, pcm.data(), c.bytes);
+        DSP_FlushDataCache(c.data, c.bytes);
+        auto res = g_clipCache.emplace(path, c);
+        if (!res.second) { linearFree(c.data); return false; }
+        clip = &res.first->second;
+        dbg_logf("sfx cached: %s bytes=%zu rate=%d ch=%d nsamp=%u\n", path.c_str(), clip->bytes, clip->rate, clip->channels, clip->nsamples);
+    } else {
+        clip = &it->second;
+    }
     int ndspCh = kBaseNdspChannel + channel;
     ndspChnReset(ndspCh);
     ndspChnSetInterp(ndspCh, NDSP_INTERP_NONE);
-    ndspChnSetRate(ndspCh, (float)rate);
-    ndspChnSetFormat(ndspCh, ch == 2 ? NDSP_FORMAT_STEREO_PCM16 : NDSP_FORMAT_MONO_PCM16);
-    // Prepare buffer
+    ndspChnSetRate(ndspCh, (float)clip->rate);
+    ndspChnSetFormat(ndspCh, clip->channels == 2 ? NDSP_FORMAT_STEREO_PCM16 : NDSP_FORMAT_MONO_PCM16);
     stop_sfx_internal(channel);
     SfxState &S = g_sfx[channel];
-    S.channels = ch;
-    S.bytes = pcm.size() * sizeof(int16_t);
-    S.data = linearAlloc(S.bytes);
-    if (!S.data) { dbg_logf("sfx linearAlloc fail (%zu bytes)\n", S.bytes); return false; }
-    memcpy(S.data, pcm.data(), S.bytes);
+    S.channels = clip->channels;
+    S.bytes = clip->bytes;
+    S.data = clip->data;
     memset(&S.wave, 0, sizeof(S.wave));
     S.wave.data_vaddr = S.data;
-    S.wave.nsamples   = (u32)(pcm.size() / ch);
+    S.wave.nsamples   = clip->nsamples;
     S.wave.looping    = false;
-    DSP_FlushDataCache(S.wave.data_vaddr, S.bytes);
     {
-        float mix[12] = {0};
-        mix[0] = volume; // front left
-        mix[1] = volume; // front right
-        ndspChnSetMix(ndspCh, mix);
+        float mix[12] = {0}; mix[0] = volume; mix[1] = volume; ndspChnSetMix(ndspCh, mix);
     }
     ndspChnWaveBufAdd(ndspCh, &S.wave);
-    S.active = true;
-    if (channel == kBrickSfxChannel) g_lastSfxPlayMs[channel] = t;
-    dbg_logf("sfx play ch=%d ndsp=%d rate=%d ch=%d nsamp=%u vol=%.2f\n", channel, ndspCh, rate, ch, S.wave.nsamples, volume);
+    S.active = true; if (channel == kBrickSfxChannel) g_lastSfxPlayMs[channel] = t;
+    dbg_logf("sfx play ch=%d ndsp=%d rate=%d ch=%d nsamp=%u vol=%.2f (cached)\n", channel, ndspCh, clip->rate, clip->channels, S.wave.nsamples, volume);
     return true;
 }
 
@@ -319,6 +342,20 @@ bool play_music(const char* pathOrName, bool loop, float volume, bool relativePa
     }
     g_music.cur = 0; g_music.active = true;
     dbg_logf("music play: %s loop=%d\n", path.c_str(), loop?1:0);
+    return true;
+}
+
+bool preload_sfx(const char* pathOrName, bool relativePath) {
+    if (!g_inited) return false;
+    std::string path; if (!ensure_romfs_prefix(path, pathOrName, relativePath, "audio")) return false;
+    if (g_clipCache.find(path) != g_clipCache.end()) return true; // already cached
+    int rate=0, ch=0; long dataStart=0; size_t dataBytes=0; std::vector<int16_t> pcm;
+    if (!load_wav_pcm16(path.c_str(), pcm, rate, ch, dataStart, dataBytes)) return false;
+    Clip c{}; c.bytes = pcm.size() * sizeof(int16_t); c.rate = rate; c.channels = ch; c.nsamples = (u32)(pcm.size() / (ch ? ch : 1));
+    c.data = linearAlloc(c.bytes); if (!c.data) return false;
+    memcpy(c.data, pcm.data(), c.bytes); DSP_FlushDataCache(c.data, c.bytes);
+    g_clipCache.emplace(path, c);
+    dbg_logf("preloaded sfx: %s bytes=%zu rate=%d ch=%d nsamp=%u\n", path.c_str(), c.bytes, rate, ch, c.nsamples);
     return true;
 }
 
