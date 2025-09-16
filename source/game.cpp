@@ -998,6 +998,36 @@ namespace game
             }
         };
 
+    auto is_required_brick = [](BrickType bt) {
+        switch(bt) {
+            case BrickType::YB:
+            case BrickType::GB:
+            case BrickType::CB:
+            case BrickType::TB:
+            case BrickType::PB:
+            case BrickType::RB:
+            case BrickType::SS:
+                return true;
+            default:
+                return false;
+        }
+    };
+
+    auto remaining_required_bricks = [&]() -> int {
+        int cnt=0;
+        int totalCols = kBrickCols;
+        int totalRows = kBrickRows;
+        for(int r=0;r<totalRows;++r){
+            for(int c=0;c<totalCols;++c){
+                int raw = levels_brick_at(c,r);
+                if(raw<=0) continue;
+                BrickType bt=(BrickType)raw;
+                if(is_required_brick(bt)) ++cnt;
+            }
+        }
+        return cnt;
+    };
+
     auto resolve_hit = [&](int c, int r, float bx, float by, int cellW, int cellH, float stepDX, float stepDY) -> void {
             int raw = levels_brick_at(c, r);
             BrickType bt = (BrickType)raw;
@@ -1029,7 +1059,7 @@ namespace game
 
             // AB/MB: split but original continues without reflecting
             if (bt == BrickType::AB || bt == BrickType::MB) {
-                if (destroyed && levels_remaining_breakable() == 0 && levels_count() > 0) {
+                if (destroyed && remaining_required_bricks() == 0 && levels_count() > 0) {
                     if(!editor::test_return_active()) {
                         int next = (levels_current() + 1) % levels_count();
                         levels_set_current(next);
@@ -1090,7 +1120,7 @@ namespace game
                 ball.y = cy - spriteH * 0.5f;
             }
 
-            if (destroyed && levels_remaining_breakable() == 0 && levels_count() > 0) {
+            if (destroyed && remaining_required_bricks() == 0 && levels_count() > 0) {
                 if(!editor::test_return_active()) {
                     int next = (levels_current() + 1) % levels_count();
                     levels_set_current(next);
@@ -1534,13 +1564,16 @@ namespace game
             return;
         }
 #ifdef __3DS__
-        // In play mode, if we are in a test session launched from editor and level already cleared, return immediately.
-        if (G.mode == Mode::Playing && editor::test_return_active() && !editor::test_grace_active() && levels_remaining_breakable()==0) {
-            levels_reset_level(editor::current_level_index());
-            editor::on_return_from_test_full();
-            G.mode = Mode::Editor;
-            hw_log("TEST auto-return (pre-play breakables=0)\n");
-            return;
+        // In play mode, if test session launched from editor and all required bricks gone, auto-return.
+        if (G.mode == Mode::Playing && editor::test_return_active() && !editor::test_grace_active()) {
+            int req=0; for(int r=0;r<kBrickRows;++r){ for(int c=0;c<kBrickCols;++c){ int raw=levels_brick_at(c,r); if(raw<=0) continue; BrickType bt=(BrickType)raw; if(bt==BrickType::YB||bt==BrickType::GB||bt==BrickType::CB||bt==BrickType::TB||bt==BrickType::PB||bt==BrickType::RB||bt==BrickType::SS) ++req; }}
+            if(req==0) {
+                levels_reset_level(editor::current_level_index());
+                editor::on_return_from_test_full();
+                G.mode = Mode::Editor;
+                hw_log("TEST auto-return (required cleared)\n");
+                return;
+            }
         }
 #endif
         // If Game Over active, allow finalize via A/Start after hold but continue to render overlay later
@@ -2351,7 +2384,8 @@ namespace game
         // If in test mode (editor launched) and level ended (no breakables) or lives depleted, return to editor
         if (editor::test_return_active() && G.mode == Mode::Playing)
         {
-            bool levelDone = (!editor::test_grace_active() && levels_remaining_breakable() == 0);
+            bool levelDone = (!editor::test_grace_active());
+            if(levelDone){ int req=0; for(int r=0;r<kBrickRows;++r){ for(int c=0;c<kBrickCols;++c){ int raw=levels_brick_at(c,r); if(raw<=0) continue; BrickType bt=(BrickType)raw; if(bt==BrickType::YB||bt==BrickType::GB||bt==BrickType::CB||bt==BrickType::TB||bt==BrickType::PB||bt==BrickType::RB||bt==BrickType::SS) ++req; }} levelDone = (req==0); }
             if (levelDone)
             {
                 G.mode = Mode::Editor;
