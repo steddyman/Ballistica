@@ -2214,13 +2214,7 @@ namespace game
                 hw_draw_sprite(rev, (float)iconX, (float)lineY - (ih - 12.0f) * 0.5f);
                 hw_draw_text_shadow_scaled(textX, lineY, buf, valueColor, 0x000000FF, labelScale);
             }
-            // Laser ready indicator icon on top screen (to the right of HUD text, above bonus)
-            if (G.laserEnabled && G.laserReady) {
-                C2D_Image ind = hw_image(IMAGE_laser_indicator_idx);
-                float iw = (ind.subtex ? ind.subtex->width : 6.0f);
-                float cx = (float)(kTopXOffset + 320 - 8 - iw);
-                hw_draw_sprite(ind, cx, hudY + 6.0f);
-            }
+            // (Laser indicator now drawn with bat on bottom screen pass)
             // BONUS indicators: centered and moved up to appear over the blue UI background (pixel-snapped)
             {
                 const int iconIdx[5] = { IMAGE_letterb_idx, IMAGE_lettero_idx, IMAGE_lettern_idx, IMAGE_letteru_idx, IMAGE_letters_idx };
@@ -2352,7 +2346,7 @@ namespace game
 #endif
     }
         for (auto &LZ : G.lasers) if (LZ.active && LZ.y < 240.0f) {
-            C2D_DrawRectSolid(LZ.x + kTopXOffset, LZ.y, 0, 2, 6, C2D_Color32(255,255,100,255));
+            C2D_DrawRectSolid(LZ.x + kTopXOffset, LZ.y, 0, 3, 10, C2D_Color32(0,255,0,255));
         }
         // Bottom screen pass for objects with y >= 240 (subtract 240 to map to bottom viewport)
         hw_set_bottom();
@@ -2382,13 +2376,27 @@ namespace game
 #endif
     }
         for (auto &LZ : G.lasers) if (LZ.active && LZ.y >= 240.0f) {
-            C2D_DrawRectSolid(LZ.x, LZ.y - 240.0f, 0, 2, 6, C2D_Color32(255,255,100,255));
+            C2D_DrawRectSolid(LZ.x, LZ.y - 240.0f, 0, 3, 10, C2D_Color32(0,255,0,255));
         }
         // Draw bat on bottom screen only
         {
             float batAtlasLeft = (G.bat.img.subtex ? G.bat.img.subtex->left : 0.0f);
             float batDrawX = G.bat.x - batAtlasLeft;
             hw_draw_sprite(G.bat.img, batDrawX, G.bat.y - 240.0f);
+            if (G.laserEnabled && G.laserReady) {
+                C2D_Image ind = hw_image(IMAGE_laser_indicator_idx);
+                float iw = (ind.subtex ? ind.subtex->width : 6.0f);
+                float ih = (ind.subtex ? ind.subtex->height : 6.0f);
+                float scale = 2.0f; // double size
+                float centerX = G.bat.x + G.bat.width * 0.5f;
+                float scaledW = iw * scale;
+                float scaledH = ih * scale;
+                float drawX = centerX - scaledW * 0.5f;
+                float drawY = (G.bat.y - 240.0f) - scaledH - 2.0f; // keep same gap
+                if (drawX < kPlayfieldLeftWallX) drawX = kPlayfieldLeftWallX;
+                if (drawX + scaledW > kPlayfieldRightWallX) drawX = kPlayfieldRightWallX - scaledW;
+                C2D_DrawImageAt(ind, drawX, drawY, 0.0f, nullptr, scale, scale);
+            }
         }
     // Barrier line 4px high, 8px below bat. Visible for lives >= 1; hidden at 0.
     // Glow still appears even if barrier is hidden (life just dropped to 0).
