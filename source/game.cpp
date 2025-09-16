@@ -2446,6 +2446,24 @@ namespace game
                 hw_draw_text_shadow_scaled(livesLabelX, livesY, livesLabel, labelColor, 0x000000FF, labelScale);
                 hw_draw_text_shadow_scaled(livesValX, livesY, livesVal, valueColor, 0x000000FF, valueScale);
             }
+            // Reverse controls indicator (right side, second line): icon + seconds remaining
+            if (G.reverseTimer > 0) {
+                // Fetch icon and compute placement
+                C2D_Image rev = hw_image(IMAGE_reverse_indicator_idx);
+                float iw = (rev.subtex ? rev.subtex->width : 10.0f);
+                float ih = (rev.subtex ? rev.subtex->height : 10.0f);
+                int lineY = scoreY + 16; // align with Lives line
+                // Seconds remaining, clamped to at least 1 if any frames remain
+                int sec = (G.reverseTimer + 59) / 60; if (sec < 1) sec = 1;
+                char buf[16]; snprintf(buf, sizeof buf, "%d", sec);
+                int txtW = hw_text_width(buf) * labelScale;
+                // Right-align: [ ... icon][space][NNs ] flush to hud right (hudX+hudW)
+                int pad = 6;
+                int textX = hudX + hudW - txtW - 8;
+                int iconX = textX - (int)iw - pad;
+                hw_draw_sprite(rev, (float)iconX, (float)lineY - (ih - 12.0f) * 0.5f);
+                hw_draw_text_shadow_scaled(textX, lineY, buf, valueColor, 0x000000FF, labelScale);
+            }
             // Laser ready indicator icon on top screen (to the right of HUD text, above bonus)
             if (G.laserEnabled && G.laserReady) {
                 C2D_Image ind = hw_image(IMAGE_laser_indicator_idx);
