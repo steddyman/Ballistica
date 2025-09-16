@@ -931,7 +931,10 @@ namespace game
                     if (raw == (int)BrickType::BO)
                     {
                         if (!bomb_event_scheduled(nc, nr))
+                        {
                             G.bombEvents.push_back({nc, nr, delay});
+                            char dbg[96]; snprintf(dbg,sizeof dbg,"SCHED BOMB (%d,%d) delay=%d\n", nc,nr,delay); hw_log(dbg);
+                        }
                     }
                 }
     }
@@ -940,6 +943,25 @@ namespace game
         if (G.bombEvents.empty())
             return;
     const int ls = levels_left(), ts = levels_top(), cw = levels_brick_width(), ch = levels_brick_height();
+        auto destroy_brick_immediate = [&](int c, int r) {
+            int raw = levels_brick_at(c, r);
+            if (raw <= 0) return;                    // empty / OOB
+            if (raw == (int)BrickType::ID) return;    // indestructible
+            if (raw == (int)BrickType::BO) return;    // bombs handled separately
+            float cx = (float)(ls + c * cw + cw / 2);
+            float cy = (float)(ts + r * ch + ch / 2);
+            BrickType bt = (BrickType)raw;
+            // Multi‑hit brick: treat as fully destroyed (spawn dust like final hit)
+            if (bt == BrickType::T5) {
+                game::spawn_dust_effect(cx, cy);
+            }
+            // Remove first so apply_brick_effect sees cleared grid state (consistent with resolve_hit)
+            levels_remove_brick(c, r);
+            apply_brick_effect(bt, cx, cy, G.balls[0]);
+            if (bt == BrickType::F1 || bt == BrickType::F2) {
+                spawn_destroy_bat_brick(bt, cx, cy);
+            }
+        };
         for (auto &e : G.bombEvents)
             if (e.frames > 0)
                 --e.frames;
@@ -956,6 +978,14 @@ namespace game
             int raw = levels_brick_at(ev.c, ev.r);
             if (raw != (int)BrickType::BO)
                 continue;
+            // Log neighbor states before explosion to diagnose missing destruction cases
+            int rawU = levels_brick_at(ev.c,     ev.r - 1);
+            int rawR = levels_brick_at(ev.c + 1, ev.r     );
+            int rawD = levels_brick_at(ev.c,     ev.r + 1);
+            int rawL = levels_brick_at(ev.c - 1, ev.r     );
+            char dbg[96];
+            snprintf(dbg, sizeof dbg, "BOMB (%d,%d) neigh U=%d R=%d D=%d L=%d\n", ev.c, ev.r, rawU, rawR, rawD, rawL);
+            hw_log(dbg);
             levels_remove_brick(ev.c, ev.r);
             apply_brick_effect(BrickType::BO, ls + ev.c * cw + cw / 2, ts + ev.r * ch + ch / 2, G.balls[0]);
             // Play explosion SFX at the start of the particle effect (with fallback channel)
@@ -970,7 +1000,36 @@ namespace game
                 Particle p{(float)(ls + ev.c * cw + cw / 2), (float)(ts + ev.r * ch + ch / 2), std::cos(angle) * sp, std::sin(angle) * sp, 32, C2D_Color32(255, 200, 50, 255)};
                 G.particles.push_back(p);
             }
+            // Destroy orthogonal neighbors (Up=0, Right=1, Down=2, Left=3 semantics from legacy getside)
+            destroy_brick_immediate(ev.c,     ev.r - 1); // up
+            destroy_brick_immediate(ev.c + 1, ev.r    ); // right
+            destroy_brick_immediate(ev.c,     ev.r + 1); // down
+            destroy_brick_immediate(ev.c - 1, ev.r    ); // left
             schedule_neighbor_bombs(ev.c, ev.r, 15); // 15 frame delay
+
+            // After this explosion (and any immediate adjacent destruction), check for required brick completion
+            auto is_required_brick_local = [](BrickType bt) {
+                switch(bt) {
+                    case BrickType::YB: case BrickType::GB: case BrickType::CB: case BrickType::TB: case BrickType::PB: case BrickType::RB: case BrickType::SS: return true;
+                    default: return false;
+                }
+            };
+            int remainingReq = 0;
+            for (int r = 0; r < kBrickRows && remainingReq == 0; ++r) {
+                for (int c = 0; c < kBrickCols; ++c) {
+                    int braw = levels_brick_at(c, r);
+                    if (braw <= 0) continue;
+                    if (is_required_brick_local((BrickType)braw)) { remainingReq = 1; break; }
+                }
+            }
+            if (remainingReq == 0 && levels_count() > 0 && !editor::test_return_active()) {
+                int next = (levels_current() + 1) % levels_count();
+                levels_set_current(next);
+                set_bat_size(1);
+                G.laserEnabled = false;
+                G.laserReady = false;
+                hw_log("LEVEL COMPLETE\n");
+            }
         }
         G.bombEvents.erase(std::remove_if(G.bombEvents.begin(), G.bombEvents.end(), [](const BombEvent &e)
                                           { return e.frames <= 0; }),
@@ -1037,6 +1096,9 @@ namespace game
             } else if (bt == BrickType::BO) {
                 levels_remove_brick(c, r);
                 apply_brick_effect(BrickType::BO, bx + cellW * 0.5f, by + cellH * 0.5f, ball);
+                {
+                    char dbg[96]; snprintf(dbg,sizeof dbg,"HIT BOMB immediate (%d,%d) schedNow=%zu\n", c,r, G.bombEvents.size()); hw_log(dbg);
+                }
                 if (!sound::play_sfx("explosion", 6, 1.0f, true)) { sound::stop_sfx_channel(6); sound::play_sfx("explosion", 7, 1.0f, true); }
                 for (int k = 0; k < 8; k++) {
                     float angle = (float)k / 8.f * 6.28318f;
@@ -1044,6 +1106,25 @@ namespace game
                     Particle p{bx + cellW * 0.5f, by + cellH * 0.5f, std::cos(angle) * sp, std::sin(angle) * sp, 32, C2D_Color32(255, 200, 50, 255)};
                     G.particles.push_back(p);
                 }
+                // Immediate orthogonal neighbor destruction (same rules as chain explosions)
+                auto destroy_neighbor = [&](int nc, int nr) {
+                    int nraw = levels_brick_at(nc, nr);
+                    if (nraw <= 0) return; // empty/OOB
+                    if (nraw == (int)BrickType::ID) return; // indestructible
+                    if (nraw == (int)BrickType::BO) return; // bombs handled via scheduling
+                    int ls = levels_left(); int ts = levels_top(); int cw = levels_brick_width(); int ch = levels_brick_height();
+                    float cx = (float)(ls + nc * cw + cw * 0.5f);
+                    float cy = (float)(ts + nr * ch + ch * 0.5f);
+                    BrickType nbt = (BrickType)nraw;
+                    if (nbt == BrickType::T5) { game::spawn_dust_effect(cx, cy); }
+                    levels_remove_brick(nc, nr);
+                    apply_brick_effect(nbt, cx, cy, ball);
+                    if (nbt == BrickType::F1 || nbt == BrickType::F2) { spawn_destroy_bat_brick(nbt, cx, cy); }
+                };
+                destroy_neighbor(c, r-1); // up
+                destroy_neighbor(c+1, r); // right
+                destroy_neighbor(c, r+1); // down
+                destroy_neighbor(c-1, r); // left
                 schedule_neighbor_bombs(c, r, 15);
             } else if (bt == BrickType::ID) {
                 destroyed = false;
@@ -2133,13 +2214,7 @@ namespace game
                 hw_draw_sprite(rev, (float)iconX, (float)lineY - (ih - 12.0f) * 0.5f);
                 hw_draw_text_shadow_scaled(textX, lineY, buf, valueColor, 0x000000FF, labelScale);
             }
-            // Laser ready indicator icon on top screen (to the right of HUD text, above bonus)
-            if (G.laserEnabled && G.laserReady) {
-                C2D_Image ind = hw_image(IMAGE_laser_indicator_idx);
-                float iw = (ind.subtex ? ind.subtex->width : 6.0f);
-                float cx = (float)(kTopXOffset + 320 - 8 - iw);
-                hw_draw_sprite(ind, cx, hudY + 6.0f);
-            }
+            // (Laser indicator now drawn with bat on bottom screen pass)
             // BONUS indicators: centered and moved up to appear over the blue UI background (pixel-snapped)
             {
                 const int iconIdx[5] = { IMAGE_letterb_idx, IMAGE_lettero_idx, IMAGE_lettern_idx, IMAGE_letteru_idx, IMAGE_letters_idx };
@@ -2271,7 +2346,7 @@ namespace game
 #endif
     }
         for (auto &LZ : G.lasers) if (LZ.active && LZ.y < 240.0f) {
-            C2D_DrawRectSolid(LZ.x + kTopXOffset, LZ.y, 0, 2, 6, C2D_Color32(255,255,100,255));
+            C2D_DrawRectSolid(LZ.x + kTopXOffset, LZ.y, 0, 3, 10, C2D_Color32(0,255,0,255));
         }
         // Bottom screen pass for objects with y >= 240 (subtract 240 to map to bottom viewport)
         hw_set_bottom();
@@ -2301,13 +2376,27 @@ namespace game
 #endif
     }
         for (auto &LZ : G.lasers) if (LZ.active && LZ.y >= 240.0f) {
-            C2D_DrawRectSolid(LZ.x, LZ.y - 240.0f, 0, 2, 6, C2D_Color32(255,255,100,255));
+            C2D_DrawRectSolid(LZ.x, LZ.y - 240.0f, 0, 3, 10, C2D_Color32(0,255,0,255));
         }
         // Draw bat on bottom screen only
         {
             float batAtlasLeft = (G.bat.img.subtex ? G.bat.img.subtex->left : 0.0f);
             float batDrawX = G.bat.x - batAtlasLeft;
             hw_draw_sprite(G.bat.img, batDrawX, G.bat.y - 240.0f);
+            if (G.laserEnabled && G.laserReady) {
+                C2D_Image ind = hw_image(IMAGE_laser_indicator_idx);
+                float iw = (ind.subtex ? ind.subtex->width : 6.0f);
+                float ih = (ind.subtex ? ind.subtex->height : 6.0f);
+                float scale = 2.0f; // double size
+                float centerX = G.bat.x + G.bat.width * 0.5f;
+                float scaledW = iw * scale;
+                float scaledH = ih * scale;
+                float drawX = centerX - scaledW * 0.5f;
+                float drawY = (G.bat.y - 240.0f) - scaledH - 2.0f; // keep same gap
+                if (drawX < kPlayfieldLeftWallX) drawX = kPlayfieldLeftWallX;
+                if (drawX + scaledW > kPlayfieldRightWallX) drawX = kPlayfieldRightWallX - scaledW;
+                C2D_DrawImageAt(ind, drawX, drawY, 0.0f, nullptr, scale, scale);
+            }
         }
     // Barrier line 4px high, 8px below bat. Visible for lives >= 1; hidden at 0.
     // Glow still appears even if barrier is hidden (life just dropped to 0).
