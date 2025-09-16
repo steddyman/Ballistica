@@ -97,3 +97,4 @@
 #define IMAGE_lives_more_idx 93
 #define IMAGE_reverse_bar_idx 94
 #define IMAGE_laser_indicator_idx 95
+#define IMAGE_reverse_indicator_idx 96
