@@ -56,6 +56,9 @@ namespace game
     static constexpr float kInitialBallY = layout::kInitialBallY;
     static constexpr float kInitialBallHalf = layout::kInitialBallHalf;
     static constexpr int   kBarrierGlowFrames = 18; // frames to show the barrier hit glow
+    static constexpr int   kTiltAvailabilityFrames = 600; // 10 seconds at 60fps
+    static constexpr float kTiltAngleJitter = 0.25f; // radians (~14 deg)
+    static constexpr float kTiltMinSpeed = 1.2f; // ensure post-tilt velocity
     
     // UI placement for BONUS indicators: top row Y and inter-icon gap
     static constexpr int kBonusIndicatorTopY = 4;   // top row alongside HUD
@@ -202,6 +205,10 @@ namespace game
     int  gameOverPhase = 0;   // 0=fadeIn, 1=hold, (future: 2=out)
     int  gameOverTimer = 0;   // per-phase timer
     int  gameOverAlpha = 0;   // overlay alpha (0..200)
+    // Tilt feature
+    int  framesSinceBarrierHit = 0; // frames since last barrier collision
+    bool tiltAvailable = false;     // true when player can trigger tilt
+    int  tiltCooldownFrames = 0;    // small debounce after tilt use
     };
 
 
@@ -1699,6 +1706,12 @@ namespace game
 #endif
         // Process bomb chain before physics so collisions see updated board
         process_bomb_events();
+        // Update Tilt availability timing
+        if (G.mode == Mode::Playing && !G.gameOverActive) {
+            if (G.framesSinceBarrierHit < kTiltAvailabilityFrames + 1) ++G.framesSinceBarrierHit;
+            if (!G.tiltAvailable && G.framesSinceBarrierHit >= kTiltAvailabilityFrames) G.tiltAvailable = true;
+            if (G.tiltCooldownFrames > 0) --G.tiltCooldownFrames;
+        }
         // Stylus drag controls bat X (relative). Disabled during death sequence.
         if (!G.deathActive) {
             if (in.touchPressed)
@@ -1730,6 +1743,26 @@ namespace game
     // Suppress in the brief editor test grace window to avoid accidental fire from Test tap
     if (!G.deathActive && !editor::test_grace_active() && (in.dpadUpPressed || (G.prevTouching && !in.touching)))
             fire_laser();
+    // Tilt activation via D-Pad Down
+    if (G.mode == Mode::Playing && G.tiltAvailable && !G.gameOverActive && in.dpadDownPressed) {
+        for (auto &b : G.balls) if (b.active) {
+            float speed = std::sqrt(b.vx*b.vx + b.vy*b.vy);
+            if (speed < 0.01f) continue;
+            uint32_t seed = (uint32_t)((uint32_t)(b.x*23) ^ (uint32_t)(b.y*37) ^ (uint32_t)G.framesSinceBarrierHit * 2654435761u);
+            seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5;
+            float rnd = (seed & 0xFFFF) / 65535.0f;
+            float jitter = (rnd * 2.0f - 1.0f) * kTiltAngleJitter;
+            float ang = std::atan2(b.vy, b.vx) + jitter;
+            float newSpeed = std::max(speed * 1.05f, kTiltMinSpeed);
+            b.vx = std::cos(ang) * newSpeed;
+            b.vy = std::sin(ang) * newSpeed;
+        }
+        G.tiltAvailable = false;
+        G.framesSinceBarrierHit = 0;
+        G.tiltCooldownFrames = 30;
+        hw_log("TILT used\n");
+        sound::play_sfx("hit-hard", 1, 1.0f, true);
+    }
     if (!G.deathActive && !G.gameOverActive) update_lasers();
     if (G.reverseTimer > 0)
             --G.reverseTimer;
@@ -1818,6 +1851,8 @@ namespace game
                         bool crossedBarrier = (ballBottomPrev <= barrierTopY && ballBottom >= barrierTopY);
                         if (crossedBarrier)
                         {
+                            G.framesSinceBarrierHit = 0;
+                            G.tiltAvailable = false;
                             if (G.lives > 0) {
                                 // Consume life first so tint matches the new barrier state (green/orange/red)
                                 G.lives--;
@@ -2311,6 +2346,19 @@ namespace game
         if (G.mode == Mode::Playing && G.gameOverActive) {
             int a = G.gameOverAlpha; if (a > 200) a = 200; if (a < 0) a = 0;
             C2D_DrawRectSolid(0, 0, 0, 320, 240, C2D_Color32(0, 0, 0, (uint8_t)a));
+        }
+        // TILT indicator (center bottom)
+        if (G.mode == Mode::Playing && G.tiltAvailable && !G.gameOverActive) {
+            const char *label = "TILT";
+            const char *arrow = "v";
+            float scale = 2.0f;
+            int lw = hw_text_width(label) * scale;
+            int aw = hw_text_width(arrow) * scale;
+            int total = lw + 8 + aw;
+            int x = (320 - total) / 2;
+            int y = 240 - 18; // near bottom
+            hw_draw_text_shadow_scaled(x, y, label, 0xFFFFFFFF, 0x000000FF, scale);
+            hw_draw_text_shadow_scaled(x + lw + 8, y, arrow, 0xFFFFFFFF, 0x000000FF, scale);
         }
     // (Level intro moved to top-screen phase above.)
         if (G.mode == Mode::Editor)
