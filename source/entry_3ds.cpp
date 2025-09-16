@@ -9,6 +9,12 @@
 int main(int argc, char** argv) {
     if(!hw_init()) return -1;
     sound::init();
+    // Preload common SFX to prevent on-hit stutter
+    sound::preload_sfx("ball-brick");
+    sound::preload_sfx("ball-bat");
+    sound::preload_sfx("barrier-hit");
+    sound::preload_sfx("explosion");
+    sound::preload_sfx("hard-explode");
     game_init();
     u32 frame=0;
     bool showTopLogs=false;
