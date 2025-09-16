@@ -820,9 +820,17 @@ namespace game
                     sound::play_sfx("good", 5, 1.0f, true);
                     break;
                 case PK_REVERSE:
-                    G.reverseTimer = 600; // ~10s
-                    // Bad pickup
-                    sound::play_sfx("bad", 5, 1.0f, true);
+                    if (G.reverseTimer > 0) {
+                        // Reverse already active: picking another toggles back to normal (cancel effect)
+                        G.reverseTimer = 0; // stop effect and hide indicator
+                        // Good outcome (controls back to normal)
+                        sound::play_sfx("good", 5, 1.0f, true);
+                    } else {
+                        // Not active: start reverse effect
+                        G.reverseTimer = 600; // ~10s
+                        // Bad pickup (controls become reversed)
+                        sound::play_sfx("bad", 5, 1.0f, true);
+                    }
                     break;
                 case PK_BONUS1000:
                     G.score += 1000;
