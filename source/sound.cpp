@@ -348,20 +348,6 @@ bool play_music(const char* pathOrName, bool loop, float volume, bool relativePa
 bool preload_sfx(const char* pathOrName, bool relativePath) {
     if (!g_inited) return false;
     std::string path; if (!ensure_romfs_prefix(path, pathOrName, relativePath, "audio")) return false;
-    if (g_clipCache.find(path) != g_clipCache.end()) return true; // cached already
-    int rate=0, ch=0; long dataStart=0; size_t dataBytes=0; std::vector<int16_t> pcm;
-    if (!load_wav_pcm16(path.c_str(), pcm, rate, ch, dataStart, dataBytes)) return false;
-    Clip c{}; c.bytes = pcm.size() * sizeof(int16_t); c.rate = rate; c.channels = ch; c.nsamples = (u32)(pcm.size() / (ch ? ch : 1));
-    c.data = linearAlloc(c.bytes); if (!c.data) return false;
-    memcpy(c.data, pcm.data(), c.bytes); DSP_FlushDataCache(c.data, c.bytes);
-    g_clipCache.emplace(path, c);
-    dbg_logf("preloaded sfx: %s bytes=%zu rate=%d ch=%d nsamp=%u\n", path.c_str(), c.bytes, rate, ch, c.nsamples);
-    return true;
-}
-
-bool preload_sfx(const char* pathOrName, bool relativePath) {
-    if (!g_inited) return false;
-    std::string path; if (!ensure_romfs_prefix(path, pathOrName, relativePath, "audio")) return false;
     if (g_clipCache.find(path) != g_clipCache.end()) return true; // already cached
     int rate=0, ch=0; long dataStart=0; size_t dataBytes=0; std::vector<int16_t> pcm;
     if (!load_wav_pcm16(path.c_str(), pcm, rate, ch, dataStart, dataBytes)) return false;
