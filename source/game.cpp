@@ -61,6 +61,9 @@ namespace game
     static constexpr float kTiltMinSpeed = 1.2f; // ensure post-tilt velocity
     static constexpr int   kTiltShakeFrames = 30; // duration of screen shake after tilt
     static constexpr float kTiltShakeStartMag = 8.0f; // initial pixel magnitude of shake (increased for visibility)
+    // Manual tuning constants for TILT arrow (bottom screen HUD). Adjust freely without touching logic.
+    static constexpr float kTiltArrowScale = 1.0f;     // uniform scale applied to down_arrow.png
+    static constexpr float kTiltArrowYOffset = -3.0f;   // vertical offset relative to text baseline (negative = move up)
     
     // UI placement for BONUS indicators: top row Y and inter-icon gap
     static constexpr int kBonusIndicatorTopY = 4;   // top row alongside HUD
@@ -2397,18 +2400,22 @@ namespace game
             int a = G.gameOverAlpha; if (a > 200) a = 200; if (a < 0) a = 0;
             C2D_DrawRectSolid(0, 0, 0, 320, 240, C2D_Color32(0, 0, 0, (uint8_t)a));
         }
-        // TILT indicator (center bottom)
+        // TILT indicator (always draws text + arrow image; image guaranteed present)
         if (G.mode == Mode::Playing && G.tiltAvailable && !G.gameOverActive) {
-            const char *label = "TILT";
-            const char *arrow = "v";
-            float scale = 2.0f;
-            int lw = hw_text_width(label) * scale;
-            int aw = hw_text_width(arrow) * scale;
-            int total = lw + 8 + aw;
-            int x = (320 - total) / 2;
-            int y = 240 - 18; // near bottom
-            hw_draw_text_shadow_scaled(x, y, label, 0xFFFFFFFF, 0x000000FF, scale);
-            hw_draw_text_shadow_scaled(x + lw + 8, y, arrow, 0xFFFFFFFF, 0x000000FF, scale);
+            const char* label = "TILT";
+            const float textScale = 2.0f;
+            int textW = hw_text_width(label) * textScale;
+            C2D_Image arrow = hw_image(IMAGE_down_arrow_idx);
+            const float arrowScale = kTiltArrowScale;
+            float arrowW = (arrow.subtex ? arrow.subtex->width : 0.f) * arrowScale;
+            const int gap = 6;
+            int totalW = textW + gap + (int)arrowW;
+            int baseX = (320 - totalW) / 2;
+            int baseY = 240 - 20; // anchor
+            hw_draw_text_shadow_scaled(baseX, baseY, label, 0xFFFFFFFF, 0x000000FF, textScale);
+            float arrowX = (float)(baseX + textW + gap);
+            float arrowY = (float)(baseY + kTiltArrowYOffset);
+            C2D_DrawImageAt(arrow, arrowX, arrowY, 0.0f, nullptr, arrowScale, arrowScale);
         }
     // (Level intro moved to top-screen phase above.)
         if (G.mode == Mode::Editor)
