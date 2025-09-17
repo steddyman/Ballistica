@@ -15,6 +15,8 @@ int main(int argc, char** argv) {
     sound::preload_sfx("barrier-hit");
     sound::preload_sfx("explosion");
     sound::preload_sfx("hard-explode");
+    // Start background music (romfs:/audio/music.wav), looped at 80% volume
+    sound::play_music("music", /*loop=*/true, /*volume=*/0.8f, /*relativePath=*/true);
     game_init();
     u32 frame=0;
     bool showTopLogs=false;
