@@ -19,7 +19,7 @@ namespace sound {
 
 static constexpr int kMaxSfxChannels = 16; // logical channels
 static constexpr int kBaseNdspChannel = 0; // starting NDSP channel index for SFX
-static constexpr int kMusicNdspChannel = 31; // reserve a high channel for music
+static constexpr int kMusicNdspChannel = 23; // highest valid NDSP channel for music (0..23)
 static constexpr int kBrickSfxChannel = 1;   // logical channel reserved for ball-brick/wall hits
 
 struct SfxState {
@@ -299,6 +299,7 @@ bool play_music(const char* pathOrName, bool loop, float volume, bool relativePa
     if (!g_inited) { if (!g_warnedNoInit) { dbg_logf("audio disabled (init failed); skipping music\n"); g_warnedNoInit = true; } return false; }
     stop_music();
     std::string path; if (!ensure_romfs_prefix(path, pathOrName, relativePath, "audio")) return false;
+    dbg_logf("music request: %s loop=%d vol=%.2f rel=%d\n", path.c_str(), loop?1:0, volume, relativePath?1:0);
     // Parse WAV header but do streaming (don’t load full file)
     std::vector<int16_t> tmp; int rate=0, ch=0; long dataStart=0; size_t dataBytes=0;
     if (!load_wav_pcm16(path.c_str(), tmp, rate, ch, dataStart, dataBytes)) { dbg_logf("music load fail: %s\n", path.c_str()); return false; }
@@ -337,7 +338,7 @@ bool play_music(const char* pathOrName, bool loop, float volume, bool relativePa
         g_music.wave[i].data_vaddr = g_music.buf[i];
         g_music.wave[i].nsamples = (u32)(g_music.framesPerBuf);
         DSP_FlushDataCache(g_music.wave[i].data_vaddr, toRead);
-        ndspChnWaveBufAdd(kMusicNdspChannel, &g_music.wave[i]);
+    ndspChnWaveBufAdd(kMusicNdspChannel, &g_music.wave[i]);
         dbg_logf("music prime buf=%d bytes=%zu nsamples=%u rate=%d ch=%d vol=%.2f chn=%d\n", i, toRead, g_music.wave[i].nsamples, rate, ch, volume, kMusicNdspChannel);
     }
     g_music.cur = 0; g_music.active = true;
