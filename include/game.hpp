@@ -21,3 +21,6 @@ GameMode game_mode();
 void levels_load();
 void levels_render();
 bool exit_requested();
+
+// Public game version for UI
+namespace game { constexpr float kGameVersion = 1.0f; }

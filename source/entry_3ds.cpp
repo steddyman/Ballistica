@@ -1,4 +1,5 @@
 #include <3ds.h>
+#include <cstdio>
 #include "hardware.hpp"
 #include "IMAGE.h"
 #include "IMAGE_t3x.h"
@@ -82,6 +83,10 @@ int main(int argc, char** argv) {
                     hw_draw_sprite(under, 0, 0, 0, 1.0f, 1.0f);
                 }
                 hw_draw_text(10, 6, "START=Play  SELECT=Editor  X=Exit", 0xFFFFFFFF);
+                // Version label at bottom-left
+                char vbuf[32];
+                std::snprintf(vbuf, sizeof vbuf, "Version %.1f", game::kGameVersion);
+                hw_draw_text(10, 230, vbuf, 0xFFFF00FF); // yellow, scale 1.0 via hw_draw_text
                 game_render_title_buttons(in);
                 if(in.touching) {
                     // small crosshair to visualize touch
