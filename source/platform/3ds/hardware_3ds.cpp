@@ -30,6 +30,9 @@
 
 #include "BACKGROUND_t3x.h"
 #include "BACKGROUND.h"
+// Dedicated title bottom underlay
+#include "MENUBOTTOM_t3x.h"
+#include "MENUBOTTOM.h"
 
 #include "sprite_indexes/image_indices.h"
 
@@ -46,6 +49,7 @@ namespace {
     C2D_SpriteSheet g_sheetTouch = nullptr;
     C2D_SpriteSheet g_sheetOptions = nullptr;
     C2D_SpriteSheet g_sheetBackground = nullptr;
+    C2D_SpriteSheet g_sheetMenuBottom = nullptr;
     // Tiny log ring buffer
     std::vector<std::string> g_logs;
     const size_t kMaxLogLines = 64;
@@ -150,6 +154,7 @@ bool hw_init() {
     g_sheetTouch = C2D_SpriteSheetLoadFromMem(TOUCH_t3x, TOUCH_t3x_size);
     g_sheetOptions = C2D_SpriteSheetLoadFromMem(OPTIONS_t3x, OPTIONS_t3x_size);
     g_sheetBackground = C2D_SpriteSheetLoadFromMem(BACKGROUND_t3x, BACKGROUND_t3x_size);
+    g_sheetMenuBottom = C2D_SpriteSheetLoadFromMem(MENUBOTTOM_t3x, MENUBOTTOM_t3x_size);
     if(!g_sheetImage) hw_log("Failed IMAGE\n"); else hw_log("Loaded IMAGE\n");
     if(!g_sheetBreak) hw_log("Failed BREAK\n");
     if(!g_sheetTitle) hw_log("Failed TITLE\n");
@@ -159,6 +164,7 @@ bool hw_init() {
     if(!g_sheetTouch) hw_log("Failed TOUCH\n");
     if(!g_sheetOptions) hw_log("Failed OPTIONS\n");
     if(!g_sheetBackground) hw_log("Failed BACKGROUND\n");
+    if(!g_sheetMenuBottom) hw_log("Failed MENUBOTTOM\n");
     return g_sheetImage != nullptr;
 }
 
@@ -173,6 +179,7 @@ void hw_shutdown() {
     if(g_sheetBreak) { C2D_SpriteSheetFree(g_sheetBreak); g_sheetBreak=nullptr; }
     if(g_sheetImage) { C2D_SpriteSheetFree(g_sheetImage); g_sheetImage=nullptr; }
     if(g_sheetBackground) { C2D_SpriteSheetFree(g_sheetBackground); g_sheetBackground=nullptr; }
+    if(g_sheetMenuBottom) { C2D_SpriteSheetFree(g_sheetMenuBottom); g_sheetMenuBottom=nullptr; }
     // Screen target is owned by citro2d; no explicit delete needed for default screen
     C2D_Fini();
     C3D_Fini();
@@ -328,6 +335,7 @@ bool hw_sheet_loaded(HwSheet sheet) {
     case HwSheet::Touch: return g_sheetTouch;
     case HwSheet::Options: return g_sheetOptions;
     case HwSheet::Background: return g_sheetBackground;
+    case HwSheet::MenuBottom: return g_sheetMenuBottom;
     }
     return false;
 }
@@ -344,6 +352,7 @@ C2D_Image hw_image_from(HwSheet sheet, int index) {
     case HwSheet::Touch: s = g_sheetTouch; break;
     case HwSheet::Options: s = g_sheetOptions; break;
     case HwSheet::Background: s = g_sheetBackground; break;
+    case HwSheet::MenuBottom: s = g_sheetMenuBottom; break;
     }
     if(!s) return C2D_Image{};
     return C2D_SpriteSheetGetImage(s, index);

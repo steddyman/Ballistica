@@ -129,6 +129,8 @@ hardware_3ds.o: \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/OPTIONS.h \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/BACKGROUND_t3x.h \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/BACKGROUND.h \
+ /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/MENUBOTTOM_t3x.h \
+ /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/MENUBOTTOM.h \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/sprite_indexes/image_indices.h
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/hardware.hpp:
 /opt/devkitpro/libctru/include/citro2d.h:
@@ -259,4 +261,6 @@ hardware_3ds.o: \
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/OPTIONS.h:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/BACKGROUND_t3x.h:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/BACKGROUND.h:
+/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/MENUBOTTOM_t3x.h:
+/Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/MENUBOTTOM.h:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/sprite_indexes/image_indices.h:
