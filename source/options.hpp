@@ -1,3 +1,12 @@
+#pragma once
+
+namespace options {
+// Returns whether music should play (default true). Implemented in options.cpp
+bool is_music_enabled();
+// Load/save persistent options from/to SD card.
+void load_settings();
+void save_settings();
+}
 // options.hpp - Options menu module
 #pragma once
 #include "hardware.hpp"

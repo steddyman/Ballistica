@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <cstring>
+#include <sys/stat.h>
 #include "levels.hpp"
 #include "hardware.hpp"
 #include "OPTIONS.h"
@@ -22,6 +23,12 @@ namespace ui {
     constexpr int SAVE_X=200, SAVE_Y=190;                     // width/height same as CANCEL
     constexpr int ITEM_H=16;
     constexpr int MAX_VISIBLE=8;
+    // Music checkbox placement (label on the left of the box)
+    constexpr int MUSIC_LABEL_X = 40;
+    constexpr int MUSIC_LABEL_Y = 140;   // label baseline (top of our 6px font)
+    constexpr int MUSIC_SZ      = 16;    // checkbox square size
+    constexpr int MUSIC_GAP     = 8;     // horizontal gap from label to checkbox
+    constexpr int MUSIC_VOFFSET = 0;    // vertical adjust of checkbox relative to label baseline
 }
 
 static int selectedIndex = 0; // mirrors dropdown.selectedIndex
@@ -29,6 +36,31 @@ static std::string pendingFile; // highlight choice not yet saved
 static char duplicateName[9] = {0};
 static UIDropdown dropdown; // widget instance
 static std::vector<UIButton> buttons; // NAME, DUPLICATE, CANCEL, SAVE
+static bool musicEnabled = true; // default to playing music
+
+bool is_music_enabled() { return musicEnabled; }
+
+void load_settings() {
+    FILE* f = fopen("sdmc:/ballistica/options.cfg", "rb");
+    if (!f) return;
+    char key[32]; char val[32];
+    while (fscanf(f, "%31[^=]=%31s\n", key, val) == 2) {
+        if (strcmp(key, "music") == 0) {
+            if (strcmp(val, "0") == 0 || strcasecmp(val, "false") == 0 || strcasecmp(val, "off") == 0) musicEnabled = false;
+            else musicEnabled = true;
+        }
+    }
+    fclose(f);
+}
+
+void save_settings() {
+    // Ensure directory exists; on 3DS fopen won’t create dirs
+    mkdir("sdmc:/ballistica", 0777);
+    FILE* f = fopen("sdmc:/ballistica/options.cfg", "wb");
+    if (!f) return;
+    fprintf(f, "music=%s\n", musicEnabled ? "1" : "0");
+    fclose(f);
+}
 
 static void show_name_keyboard() {
     SwkbdState swkbd; swkbdInit(&swkbd, SWKBD_TYPE_NORMAL, 2, 8);
@@ -47,6 +79,8 @@ static void show_name_keyboard() {
 static void duplicate_file(); // fwd
 
 void begin() {
+    // Refresh from disk when entering Options (in case toggled earlier or file changed)
+    load_settings();
     levels_refresh_files();
     selectedIndex=0; pendingFile.clear();
     auto &files = const_cast<std::vector<std::string>&>(levels_available_files()); // we promise not to modify
@@ -111,13 +145,38 @@ Action update(const InputState &in) {
 
     if (in.touchPressed) {
         int x=in.stylusX, y=in.stylusY;
+        // Handle Music checkbox toggle (label on left)
+        {
+            const char* label = "Music Enabled";
+            int labelW = hw_text_width(label);
+            int bx = ui::MUSIC_LABEL_X + labelW + ui::MUSIC_GAP; // checkbox X to the right of label
+            int by = ui::MUSIC_LABEL_Y - (ui::MUSIC_SZ - 6)/2 + ui::MUSIC_VOFFSET; // align box center to 6px text height
+            int bw = ui::MUSIC_SZ;
+            int bh = ui::MUSIC_SZ;
+            // Clickable region: from start of label to end of checkbox, union of label height and box height
+            int rx0 = ui::MUSIC_LABEL_X;
+            int rx1 = bx + bw;
+            int ry0 = std::min(ui::MUSIC_LABEL_Y, by);
+            int ry1 = std::max(ui::MUSIC_LABEL_Y + 6, by + bh);
+            if (x >= rx0 && x < rx1 && y >= ry0 && y < ry1) {
+                musicEnabled = !musicEnabled;
+                sound::play_sfx("menu-click", 4, 1.0f, true);
+                if (!musicEnabled) {
+                    sound::stop_music();
+                } else {
+                    // Resume background track at 80% volume, looped
+                    sound::play_music("music", true, 0.8f, true);
+                }
+                return Action::None;
+            }
+        }
         for(size_t i=0;i<buttons.size();++i) {
             if (buttons[i].contains(x,y)) {
                 // Determine button semantics before trigger (in case of cancel/save we return action)
                 // Play click SFX for any options button
                 sound::play_sfx("menu-click", 4, 1.0f, true);
                 if (buttons[i].label && std::string(buttons[i].label)=="CANCEL") return Action::ExitToTitle;
-                if (buttons[i].label && std::string(buttons[i].label)=="SAVE") { apply_save(); return Action::SaveAndExit; }
+                if (buttons[i].label && std::string(buttons[i].label)=="SAVE") { apply_save(); save_settings(); return Action::SaveAndExit; }
                 buttons[i].trigger();
                 return Action::None;
             }
@@ -142,6 +201,24 @@ void render() {
         ui_draw_button(b, false);
         if (b.x == ui::NAME_X && b.y == ui::NAME_Y) {
             hw_draw_text(ui::NAME_X+8, ui::NAME_Y+6, duplicateName[0]?duplicateName:"TAP", 0xFFFFFFFF);
+        }
+    }
+    // Music label (left) and checkbox (right)
+    {
+        const char* label = "Music Enabled";
+        int labelW = hw_text_width(label);
+        hw_draw_text(ui::MUSIC_LABEL_X, ui::MUSIC_LABEL_Y, label, 0xFFFFFFFF);
+        int bx = ui::MUSIC_LABEL_X + labelW + ui::MUSIC_GAP;
+        int by = ui::MUSIC_LABEL_Y - (ui::MUSIC_SZ - 6)/2 + ui::MUSIC_VOFFSET;
+        uint32_t boxCol = C2D_Color32(80,80,110,255);
+        uint32_t fillCol = C2D_Color32(200,200,255,255);
+        // Outline box
+        C2D_DrawRectSolid(bx-1, by-1, 0, ui::MUSIC_SZ+2, 1, boxCol); // top
+        C2D_DrawRectSolid(bx-1, by+ui::MUSIC_SZ, 0, ui::MUSIC_SZ+2, 1, boxCol); // bottom
+        C2D_DrawRectSolid(bx-1, by-1, 0, 1, ui::MUSIC_SZ+2, boxCol); // left
+        C2D_DrawRectSolid(bx+ui::MUSIC_SZ, by-1, 0, 1, ui::MUSIC_SZ+2, boxCol); // right
+        if (musicEnabled) {
+            C2D_DrawRectSolid(bx+3, by+3, 0, ui::MUSIC_SZ-6, ui::MUSIC_SZ-6, fillCol);
         }
     }
     // Render dropdown last to guarantee its expanded list overlays buttons beneath.
