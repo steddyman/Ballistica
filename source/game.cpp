@@ -1955,6 +1955,9 @@ namespace game
                             continue;
                         }
                         // Normal ball hits the bat: play SFX (exclude Murderball)
+                        // Reset Tilt availability timer on bat hit
+                        G.framesSinceBarrierHit = 0;
+                        G.tiltAvailable = false;
                         sound::play_sfx("ball-bat", 0, 1.0f, true);
                         // Place ball just above logical top using full rendered sprite alignment
                         float adjust = (ballBottom - batTop);
