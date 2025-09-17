@@ -59,6 +59,8 @@ namespace game
     static constexpr int   kTiltAvailabilityFrames = 600; // 10 seconds at 60fps
     static constexpr float kTiltAngleJitter = 0.25f; // radians (~14 deg)
     static constexpr float kTiltMinSpeed = 1.2f; // ensure post-tilt velocity
+    static constexpr int   kTiltShakeFrames = 30; // duration of screen shake after tilt
+    static constexpr float kTiltShakeStartMag = 8.0f; // initial pixel magnitude of shake (increased for visibility)
     
     // UI placement for BONUS indicators: top row Y and inter-icon gap
     static constexpr int kBonusIndicatorTopY = 4;   // top row alongside HUD
@@ -209,6 +211,7 @@ namespace game
     int  framesSinceBarrierHit = 0; // frames since last barrier collision
     bool tiltAvailable = false;     // true when player can trigger tilt
     int  tiltCooldownFrames = 0;    // small debounce after tilt use
+    int  tiltShakeTimer = 0;        // frames remaining of tilt shake effect
     };
 
 
@@ -1751,15 +1754,16 @@ namespace game
             uint32_t seed = (uint32_t)((uint32_t)(b.x*23) ^ (uint32_t)(b.y*37) ^ (uint32_t)G.framesSinceBarrierHit * 2654435761u);
             seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5;
             float rnd = (seed & 0xFFFF) / 65535.0f;
-            float jitter = (rnd * 2.0f - 1.0f) * kTiltAngleJitter;
+            float jitter = (rnd * 2.0f - 1.0f) * (kTiltAngleJitter * 1.5f); // stronger angle change for feedback
             float ang = std::atan2(b.vy, b.vx) + jitter;
-            float newSpeed = std::max(speed * 1.05f, kTiltMinSpeed);
+            float newSpeed = std::max(speed * 1.15f, kTiltMinSpeed); // stronger speed boost
             b.vx = std::cos(ang) * newSpeed;
             b.vy = std::sin(ang) * newSpeed;
         }
         G.tiltAvailable = false;
         G.framesSinceBarrierHit = 0;
         G.tiltCooldownFrames = 30;
+        G.tiltShakeTimer = kTiltShakeFrames;
         hw_log("TILT used\n");
         sound::play_sfx("hit-hard", 1, 1.0f, true);
     }
@@ -2030,9 +2034,42 @@ namespace game
 
     void render()
     {
+    // --- Tilt screen shake offsets (applied to bricks & gameplay objects) ---
+    int shakeX = 0, shakeY = 0;
+    if (G.tiltShakeTimer > 0) {
+        float t = (float)G.tiltShakeTimer / (float)kTiltShakeFrames; // 1..0
+        float mag = kTiltShakeStartMag * t;
+        uint32_t s = (uint32_t)G.tiltShakeTimer * 2246822519u + 3266489917u;
+        s ^= s >> 13; s ^= s << 17; s ^= s >> 5;
+        float rx = ((s & 0xFFFF) / 65535.0f) * 2.f - 1.f;
+        float ry = (((s >> 16) & 0xFFFF) / 65535.0f) * 2.f - 1.f;
+        shakeX = (int)std::round(rx * mag);
+        shakeY = (int)std::round(ry * mag * 0.6f); // less vertical movement
+        --G.tiltShakeTimer;
+    }
     // Ensure correct brick horizontal offset per mode (no background-aligned shift anymore)
     int desiredOffset = 0; // gameplay and editor both use base left now
     if (levels_get_draw_offset() != desiredOffset) levels_set_draw_offset(desiredOffset);
+    // Apply screen shake (tilt) before any world-space rendering (affects bricks & top HUD world elements)
+    if (G.tiltShakeTimer > 0) {
+        float t = (float)G.tiltShakeTimer / (float)kTiltShakeFrames; // 1..0
+        float mag = kTiltShakeStartMag * t;
+        // Simple deterministic pseudo-random each frame based on remaining timer
+        uint32_t s = (uint32_t)G.tiltShakeTimer * 2246822519u + 3266489917u;
+        s ^= s >> 13; s ^= s << 17; s ^= s >> 5;
+        float rx = ((s & 0xFFFF) / 65535.0f) * 2.f - 1.f;
+        float ry = (((s >> 16) & 0xFFFF) / 65535.0f) * 2.f - 1.f;
+        int shakeX = (int)std::round(rx * mag);
+        int shakeY = (int)std::round(ry * mag * 0.6f); // reduced vertical motion
+        levels_set_draw_offset(desiredOffset + shakeX);
+        levels_set_draw_offset_y(shakeY);
+        --G.tiltShakeTimer;
+        if (G.tiltShakeTimer == 0) {
+            // restore defaults after finishing
+            levels_set_draw_offset(desiredOffset);
+            levels_set_draw_offset_y(0);
+        }
+    }
         if (G.mode == Mode::Title)
         {
             // Draw current sequence image (skip if not loaded, fallback attempts)
@@ -2084,9 +2121,9 @@ namespace game
                     hw_draw_sprite(sf, (float)layout::BG_TOP_X, (float)layout::BG_TOP_Y);
                 }
             }
-            // Top-screen bricks pass: center horizontally via +40px X; Y is defined by layout (no extra gap)
-            levels_set_draw_offset(kTopXOffset);
-            levels_set_draw_offset_y(0);
+            // Top-screen bricks pass with shake
+            levels_set_draw_offset(kTopXOffset + shakeX);
+            levels_set_draw_offset_y(shakeY);
             // Fill only side borders outside the brick field (background now covers top)
             {
                 int cols = levels_grid_width();
@@ -2375,16 +2412,16 @@ namespace game
         // Top screen pass for objects with y < 240
         hw_set_top();
     for (auto &p : G.particles) if (p.life > 0 && p.y < 240.0f) {
-            C2D_DrawRectSolid(p.x + kTopXOffset, p.y, 0, 2, 2, p.color);
+            C2D_DrawRectSolid(p.x + kTopXOffset + shakeX, p.y + shakeY, 0, 2, 2, p.color);
         }
         for (auto &L : G.letters) if (L.active && L.y < 240.0f) {
-            hw_draw_sprite(L.img, L.x + kTopXOffset, L.y);
+            hw_draw_sprite(L.img, L.x + kTopXOffset + shakeX, L.y + shakeY);
         }
         for (auto &H : G.hazards) if (H.active && H.y < 240.0f) {
-            hw_draw_sprite(H.img, H.x + kTopXOffset, H.y);
+            hw_draw_sprite(H.img, H.x + kTopXOffset + shakeX, H.y + shakeY);
         }
     for (auto &b : G.balls) if (b.active && b.y < 240.0f) {
-        hw_draw_sprite(b.img, b.x + kTopXOffset, b.y);
+        hw_draw_sprite(b.img, b.x + kTopXOffset + shakeX, b.y + shakeY);
 #if defined(DEBUG) && DEBUG
         // Draw ball collider on top screen alongside sprite
         float spriteW = (b.img.subtex ? b.img.subtex->width : 8.f);
@@ -2393,11 +2430,11 @@ namespace game
         float cy = b.y + spriteH * 0.5f;
         float lx = cx - kBallW * 0.5f;
         float ly = cy - kBallH * 0.5f;
-        C2D_DrawRectSolid(lx + kTopXOffset, ly, 0, kBallW, kBallH, C2D_Color32(0, 255, 0, 90));
+        C2D_DrawRectSolid(lx + kTopXOffset + shakeX, ly + shakeY, 0, kBallW, kBallH, C2D_Color32(0, 255, 0, 90));
 #endif
     }
         for (auto &LZ : G.lasers) if (LZ.active && LZ.y < 240.0f) {
-            C2D_DrawRectSolid(LZ.x + kTopXOffset, LZ.y, 0, 3, 10, C2D_Color32(0,255,0,255));
+            C2D_DrawRectSolid(LZ.x + kTopXOffset + shakeX, LZ.y + shakeY, 0, 3, 10, C2D_Color32(0,255,0,255));
         }
         // Bottom screen pass for objects with y >= 240 (subtract 240 to map to bottom viewport)
         hw_set_bottom();
@@ -2405,16 +2442,16 @@ namespace game
             C2D_DrawRectSolid(0, 0, 0, 320, 240, C2D_Color32(0, 0, 0, 140));
         }
         for (auto &p : G.particles) if (p.life > 0 && p.y >= 240.0f) {
-            C2D_DrawRectSolid(p.x, p.y - 240.0f, 0, 2, 2, p.color);
+            C2D_DrawRectSolid(p.x + shakeX, p.y - 240.0f + shakeY, 0, 2, 2, p.color);
         }
         for (auto &L : G.letters) if (L.active && L.y >= 240.0f) {
-            hw_draw_sprite(L.img, L.x, L.y - 240.0f);
+            hw_draw_sprite(L.img, L.x + shakeX, L.y - 240.0f + shakeY);
         }
         for (auto &H : G.hazards) if (H.active && H.y >= 240.0f) {
-            hw_draw_sprite(H.img, H.x, H.y - 240.0f);
+            hw_draw_sprite(H.img, H.x + shakeX, H.y - 240.0f + shakeY);
         }
     for (auto &b : G.balls) if (b.active && b.y >= 240.0f) {
-        hw_draw_sprite(b.img, b.x, b.y - 240.0f);
+        hw_draw_sprite(b.img, b.x + shakeX, b.y - 240.0f + shakeY);
 #if defined(DEBUG) && DEBUG
         // Draw ball collider on bottom screen alongside sprite
         float spriteW = (b.img.subtex ? b.img.subtex->width : 8.f);
@@ -2423,17 +2460,17 @@ namespace game
         float cy = b.y + spriteH * 0.5f;
         float lx = cx - kBallW * 0.5f;
         float ly = cy - kBallH * 0.5f;
-        C2D_DrawRectSolid(lx, ly - 240.0f, 0, kBallW, kBallH, C2D_Color32(0, 255, 0, 90));
+        C2D_DrawRectSolid(lx + shakeX, ly - 240.0f + shakeY, 0, kBallW, kBallH, C2D_Color32(0, 255, 0, 90));
 #endif
     }
         for (auto &LZ : G.lasers) if (LZ.active && LZ.y >= 240.0f) {
-            C2D_DrawRectSolid(LZ.x, LZ.y - 240.0f, 0, 3, 10, C2D_Color32(0,255,0,255));
+            C2D_DrawRectSolid(LZ.x + shakeX, LZ.y - 240.0f + shakeY, 0, 3, 10, C2D_Color32(0,255,0,255));
         }
         // Draw bat on bottom screen only
         {
             float batAtlasLeft = (G.bat.img.subtex ? G.bat.img.subtex->left : 0.0f);
             float batDrawX = G.bat.x - batAtlasLeft;
-            hw_draw_sprite(G.bat.img, batDrawX, G.bat.y - 240.0f);
+            hw_draw_sprite(G.bat.img, batDrawX + shakeX, G.bat.y - 240.0f + shakeY);
             if (G.laserEnabled && G.laserReady) {
                 C2D_Image ind = hw_image(IMAGE_laser_indicator_idx);
                 float iw = (ind.subtex ? ind.subtex->width : 6.0f);
@@ -2446,7 +2483,7 @@ namespace game
                 float drawY = (G.bat.y - 240.0f) - scaledH - 2.0f; // keep same gap
                 if (drawX < kPlayfieldLeftWallX) drawX = kPlayfieldLeftWallX;
                 if (drawX + scaledW > kPlayfieldRightWallX) drawX = kPlayfieldRightWallX - scaledW;
-                C2D_DrawImageAt(ind, drawX, drawY, 0.0f, nullptr, scale, scale);
+                C2D_DrawImageAt(ind, drawX + shakeX, drawY + shakeY, 0.0f, nullptr, scale, scale);
             }
         }
     // Barrier line 4px high, 8px below bat. Visible for lives >= 1; hidden at 0.
@@ -2462,7 +2499,7 @@ namespace game
             uint32_t col = (G.lives >= 3) ? C2D_Color32(0, 200, 0, 200)
                              : (G.lives == 2) ? C2D_Color32(255, 165, 0, 220)
                              : C2D_Color32(220, 0, 0, 220);
-            C2D_DrawRectSolid(leftX, barrierYBottomView, 0, width, 4.0f, col);
+            C2D_DrawRectSolid(leftX + shakeX, barrierYBottomView + shakeY, 0, width, 4.0f, col);
         }
         // Draw a momentary semi-transparent glow above the barrier if recently hit (even if barrier is now hidden at 0 lives)
         if (G.barrierGlowTimer > 0)
@@ -2476,12 +2513,12 @@ namespace game
             uint8_t a2 = (uint8_t)(40  * ease);
             // Always white glow: 3px feathered band above the barrier top
             float glowBaseY = barrierYBottomView - layout::BARRIER_GLOW_OFFSET_ABOVE;
-            C2D_DrawRectSolid(leftX, glowBaseY - 2.0f, 0, width, 1.0f, C2D_Color32(255,255,255,a0));
-            C2D_DrawRectSolid(leftX, glowBaseY - 1.0f, 0, width, 1.0f, C2D_Color32(255,255,255,a1));
-            C2D_DrawRectSolid(leftX, glowBaseY,        0, width, 1.0f, C2D_Color32(255,255,255,a2));
+            C2D_DrawRectSolid(leftX + shakeX, glowBaseY - 2.0f + shakeY, 0, width, 1.0f, C2D_Color32(255,255,255,a0));
+            C2D_DrawRectSolid(leftX + shakeX, glowBaseY - 1.0f + shakeY, 0, width, 1.0f, C2D_Color32(255,255,255,a1));
+            C2D_DrawRectSolid(leftX + shakeX, glowBaseY + shakeY,        0, width, 1.0f, C2D_Color32(255,255,255,a2));
             // Optional tiny specular line right at the edge to sell the glow
             uint8_t spec = (uint8_t)(70 * ease);
-            C2D_DrawRectSolid(leftX, glowBaseY - 3.0f,            0, width, 1.0f, C2D_Color32(255,255,255,spec));
+            C2D_DrawRectSolid(leftX + shakeX, glowBaseY - 3.0f + shakeY, 0, width, 1.0f, C2D_Color32(255,255,255,spec));
             --G.barrierGlowTimer;
         }
     }
