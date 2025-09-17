@@ -1,13 +1,17 @@
 #include <3ds.h>
+#include <cstdio>
 #include "hardware.hpp"
 #include "IMAGE.h"
 #include "IMAGE_t3x.h"
 #include "sprite_indexes/image_indices.h"
 #include "game.hpp"
 #include "sound.hpp"
+#include "options.hpp"
 
 int main(int argc, char** argv) {
     if(!hw_init()) return -1;
+    // Load persisted options before audio starts
+    options::load_settings();
     sound::init();
     // Preload common SFX to prevent on-hit stutter
     sound::preload_sfx("ball-brick");
@@ -15,6 +19,10 @@ int main(int argc, char** argv) {
     sound::preload_sfx("barrier-hit");
     sound::preload_sfx("explosion");
     sound::preload_sfx("hard-explode");
+    // Start background music (romfs:/audio/music.wav) if enabled, looped at 80% volume
+    if (options::is_music_enabled()) {
+        sound::play_music("music", /*loop=*/true, /*volume=*/0.8f, /*relativePath=*/true);
+    }
     game_init();
     u32 frame=0;
     bool showTopLogs=false;
@@ -69,7 +77,16 @@ int main(int argc, char** argv) {
             if(gm == GameMode::Title) {
                 // Bottom: simple title UI
                 // Screen already cleared at frame-begin; draw buttons + hint
+                // Underlay: MENUBOTTOM sheet (single image at index 0) behind the buttons if available
+                if (hw_sheet_loaded(HwSheet::MenuBottom)) {
+                    C2D_Image under = hw_image_from(HwSheet::MenuBottom, 0);
+                    hw_draw_sprite(under, 0, 0, 0, 1.0f, 1.0f);
+                }
                 hw_draw_text(10, 6, "START=Play  SELECT=Editor  X=Exit", 0xFFFFFFFF);
+                // Version label at bottom-left
+                char vbuf[32];
+                std::snprintf(vbuf, sizeof vbuf, "Version %.1f", game::kGameVersion);
+                hw_draw_text(10, 230, vbuf, 0xFFFF00FF); // yellow, scale 1.0 via hw_draw_text
                 game_render_title_buttons(in);
                 if(in.touching) {
                     // small crosshair to visualize touch
