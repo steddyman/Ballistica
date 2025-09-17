@@ -6,6 +6,14 @@
 void ui_draw_button(const UIButton &btn, bool pressed) {
     uint32_t base = btn.color ? btn.color : C2D_Color32(50,50,80,255);
     uint8_t r = base>>24, g=base>>16, b=base>>8, a=base & 0xFF;
+    // Make buttons 20% more opaque by reducing transparency by 20%
+    // newAlpha = a + 0.2 * (255 - a)
+    {
+        int delta = (int)((255 - (int)a) * 0.2f + 0.5f);
+        int na = (int)a + delta;
+        if (na > 255) na = 255;
+        a = (uint8_t)na;
+    }
     if (pressed) { // darken slightly
         r = (uint8_t)(r*0.7f); g=(uint8_t)(g*0.7f); b=(uint8_t)(b*0.7f);
     }
