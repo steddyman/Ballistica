@@ -98,3 +98,4 @@
 #define IMAGE_reverse_bar_idx 94
 #define IMAGE_laser_indicator_idx 95
 #define IMAGE_reverse_indicator_idx 96
+#define IMAGE_down_arrow_idx 97

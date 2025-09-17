@@ -56,6 +56,14 @@ namespace game
     static constexpr float kInitialBallY = layout::kInitialBallY;
     static constexpr float kInitialBallHalf = layout::kInitialBallHalf;
     static constexpr int   kBarrierGlowFrames = 18; // frames to show the barrier hit glow
+    static constexpr int   kTiltAvailabilityFrames = 600; // 10 seconds at 60fps
+    static constexpr float kTiltAngleJitter = 0.25f; // radians (~14 deg)
+    static constexpr float kTiltMinSpeed = 1.2f; // ensure post-tilt velocity
+    static constexpr int   kTiltShakeFrames = 30; // duration of screen shake after tilt
+    static constexpr float kTiltShakeStartMag = 8.0f; // initial pixel magnitude of shake (increased for visibility)
+    // Manual tuning constants for TILT arrow (bottom screen HUD). Adjust freely without touching logic.
+    static constexpr float kTiltArrowScale = 1.0f;     // uniform scale applied to down_arrow.png
+    static constexpr float kTiltArrowYOffset = -3.0f;   // vertical offset relative to text baseline (negative = move up)
     
     // UI placement for BONUS indicators: top row Y and inter-icon gap
     static constexpr int kBonusIndicatorTopY = 4;   // top row alongside HUD
@@ -202,6 +210,11 @@ namespace game
     int  gameOverPhase = 0;   // 0=fadeIn, 1=hold, (future: 2=out)
     int  gameOverTimer = 0;   // per-phase timer
     int  gameOverAlpha = 0;   // overlay alpha (0..200)
+    // Tilt feature
+    int  framesSinceBarrierHit = 0; // frames since last barrier collision
+    bool tiltAvailable = false;     // true when player can trigger tilt
+    int  tiltCooldownFrames = 0;    // small debounce after tilt use
+    int  tiltShakeTimer = 0;        // frames remaining of tilt shake effect
     };
 
 
@@ -1484,6 +1497,11 @@ namespace game
                 G.fireCooldown = 0;
                 G.letters.clear();
                 G.hazards.clear();
+                // Reset Tilt state so it can't appear instantly on new test
+                G.framesSinceBarrierHit = 0;
+                G.tiltAvailable = false;
+                G.tiltCooldownFrames = 0;
+                G.tiltShakeTimer = 0;
                 // Reinitialize moving bricks data for current layout
                 {
                     int totalCells = levels_grid_width() * levels_grid_height();
@@ -1632,6 +1650,11 @@ namespace game
                 G.fireCooldown = 0;
                 G.letters.clear();
                 G.hazards.clear();
+                // Reset Tilt state (new level from title/debug)
+                G.framesSinceBarrierHit = 0;
+                G.tiltAvailable = false;
+                G.tiltCooldownFrames = 0;
+                G.tiltShakeTimer = 0;
                 // Reinitialize moving bricks data for current layout
                 int totalCells = levels_grid_width() * levels_grid_height();
                 G.moving.assign(totalCells, {-1.f, 1.f, 0.f, 0.f});
@@ -1699,6 +1722,12 @@ namespace game
 #endif
         // Process bomb chain before physics so collisions see updated board
         process_bomb_events();
+        // Update Tilt availability timing
+        if (G.mode == Mode::Playing && !G.gameOverActive) {
+            if (G.framesSinceBarrierHit < kTiltAvailabilityFrames + 1) ++G.framesSinceBarrierHit;
+            if (!G.tiltAvailable && G.framesSinceBarrierHit >= kTiltAvailabilityFrames) G.tiltAvailable = true;
+            if (G.tiltCooldownFrames > 0) --G.tiltCooldownFrames;
+        }
         // Stylus drag controls bat X (relative). Disabled during death sequence.
         if (!G.deathActive) {
             if (in.touchPressed)
@@ -1730,6 +1759,27 @@ namespace game
     // Suppress in the brief editor test grace window to avoid accidental fire from Test tap
     if (!G.deathActive && !editor::test_grace_active() && (in.dpadUpPressed || (G.prevTouching && !in.touching)))
             fire_laser();
+    // Tilt activation via D-Pad Down
+    if (G.mode == Mode::Playing && G.tiltAvailable && !G.gameOverActive && in.dpadDownPressed) {
+        for (auto &b : G.balls) if (b.active) {
+            float speed = std::sqrt(b.vx*b.vx + b.vy*b.vy);
+            if (speed < 0.01f) continue;
+            uint32_t seed = (uint32_t)((uint32_t)(b.x*23) ^ (uint32_t)(b.y*37) ^ (uint32_t)G.framesSinceBarrierHit * 2654435761u);
+            seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5;
+            float rnd = (seed & 0xFFFF) / 65535.0f;
+            float jitter = (rnd * 2.0f - 1.0f) * (kTiltAngleJitter * 1.5f); // stronger angle change for feedback
+            float ang = std::atan2(b.vy, b.vx) + jitter;
+            float newSpeed = std::max(speed * 1.15f, kTiltMinSpeed); // stronger speed boost
+            b.vx = std::cos(ang) * newSpeed;
+            b.vy = std::sin(ang) * newSpeed;
+        }
+        G.tiltAvailable = false;
+        G.framesSinceBarrierHit = 0;
+        G.tiltCooldownFrames = 30;
+        G.tiltShakeTimer = kTiltShakeFrames;
+        hw_log("TILT used\n");
+        sound::play_sfx("hit-hard", 1, 1.0f, true);
+    }
     if (!G.deathActive && !G.gameOverActive) update_lasers();
     if (G.reverseTimer > 0)
             --G.reverseTimer;
@@ -1818,6 +1868,8 @@ namespace game
                         bool crossedBarrier = (ballBottomPrev <= barrierTopY && ballBottom >= barrierTopY);
                         if (crossedBarrier)
                         {
+                            G.framesSinceBarrierHit = 0;
+                            G.tiltAvailable = false;
                             if (G.lives > 0) {
                                 // Consume life first so tint matches the new barrier state (green/orange/red)
                                 G.lives--;
@@ -1920,6 +1972,9 @@ namespace game
                             continue;
                         }
                         // Normal ball hits the bat: play SFX (exclude Murderball)
+                        // Reset Tilt availability timer on bat hit
+                        G.framesSinceBarrierHit = 0;
+                        G.tiltAvailable = false;
                         sound::play_sfx("ball-bat", 0, 1.0f, true);
                         // Place ball just above logical top using full rendered sprite alignment
                         float adjust = (ballBottom - batTop);
@@ -1992,9 +2047,42 @@ namespace game
 
     void render()
     {
+    // --- Tilt screen shake offsets (applied to bricks & gameplay objects) ---
+    int shakeX = 0, shakeY = 0;
+    if (G.tiltShakeTimer > 0) {
+        float t = (float)G.tiltShakeTimer / (float)kTiltShakeFrames; // 1..0
+        float mag = kTiltShakeStartMag * t;
+        uint32_t s = (uint32_t)G.tiltShakeTimer * 2246822519u + 3266489917u;
+        s ^= s >> 13; s ^= s << 17; s ^= s >> 5;
+        float rx = ((s & 0xFFFF) / 65535.0f) * 2.f - 1.f;
+        float ry = (((s >> 16) & 0xFFFF) / 65535.0f) * 2.f - 1.f;
+        shakeX = (int)std::round(rx * mag);
+        shakeY = (int)std::round(ry * mag * 0.6f); // less vertical movement
+        --G.tiltShakeTimer;
+    }
     // Ensure correct brick horizontal offset per mode (no background-aligned shift anymore)
     int desiredOffset = 0; // gameplay and editor both use base left now
     if (levels_get_draw_offset() != desiredOffset) levels_set_draw_offset(desiredOffset);
+    // Apply screen shake (tilt) before any world-space rendering (affects bricks & top HUD world elements)
+    if (G.tiltShakeTimer > 0) {
+        float t = (float)G.tiltShakeTimer / (float)kTiltShakeFrames; // 1..0
+        float mag = kTiltShakeStartMag * t;
+        // Simple deterministic pseudo-random each frame based on remaining timer
+        uint32_t s = (uint32_t)G.tiltShakeTimer * 2246822519u + 3266489917u;
+        s ^= s >> 13; s ^= s << 17; s ^= s >> 5;
+        float rx = ((s & 0xFFFF) / 65535.0f) * 2.f - 1.f;
+        float ry = (((s >> 16) & 0xFFFF) / 65535.0f) * 2.f - 1.f;
+        int shakeX = (int)std::round(rx * mag);
+        int shakeY = (int)std::round(ry * mag * 0.6f); // reduced vertical motion
+        levels_set_draw_offset(desiredOffset + shakeX);
+        levels_set_draw_offset_y(shakeY);
+        --G.tiltShakeTimer;
+        if (G.tiltShakeTimer == 0) {
+            // restore defaults after finishing
+            levels_set_draw_offset(desiredOffset);
+            levels_set_draw_offset_y(0);
+        }
+    }
         if (G.mode == Mode::Title)
         {
             // Draw current sequence image (skip if not loaded, fallback attempts)
@@ -2046,9 +2134,9 @@ namespace game
                     hw_draw_sprite(sf, (float)layout::BG_TOP_X, (float)layout::BG_TOP_Y);
                 }
             }
-            // Top-screen bricks pass: center horizontally via +40px X; Y is defined by layout (no extra gap)
-            levels_set_draw_offset(kTopXOffset);
-            levels_set_draw_offset_y(0);
+            // Top-screen bricks pass with shake
+            levels_set_draw_offset(kTopXOffset + shakeX);
+            levels_set_draw_offset_y(shakeY);
             // Fill only side borders outside the brick field (background now covers top)
             {
                 int cols = levels_grid_width();
@@ -2312,6 +2400,23 @@ namespace game
             int a = G.gameOverAlpha; if (a > 200) a = 200; if (a < 0) a = 0;
             C2D_DrawRectSolid(0, 0, 0, 320, 240, C2D_Color32(0, 0, 0, (uint8_t)a));
         }
+        // TILT indicator (always draws text + arrow image; image guaranteed present)
+        if (G.mode == Mode::Playing && G.tiltAvailable && !G.gameOverActive) {
+            const char* label = "TILT";
+            const float textScale = 2.0f;
+            int textW = hw_text_width(label) * textScale;
+            C2D_Image arrow = hw_image(IMAGE_down_arrow_idx);
+            const float arrowScale = kTiltArrowScale;
+            float arrowW = (arrow.subtex ? arrow.subtex->width : 0.f) * arrowScale;
+            const int gap = 6;
+            int totalW = textW + gap + (int)arrowW;
+            int baseX = (320 - totalW) / 2;
+            int baseY = 240 - 20; // anchor
+            hw_draw_text_shadow_scaled(baseX, baseY, label, 0xFFFFFFFF, 0x000000FF, textScale);
+            float arrowX = (float)(baseX + textW + gap);
+            float arrowY = (float)(baseY + kTiltArrowYOffset);
+            C2D_DrawImageAt(arrow, arrowX, arrowY, 0.0f, nullptr, arrowScale, arrowScale);
+        }
     // (Level intro moved to top-screen phase above.)
         if (G.mode == Mode::Editor)
         {
@@ -2324,16 +2429,16 @@ namespace game
         // Top screen pass for objects with y < 240
         hw_set_top();
     for (auto &p : G.particles) if (p.life > 0 && p.y < 240.0f) {
-            C2D_DrawRectSolid(p.x + kTopXOffset, p.y, 0, 2, 2, p.color);
+            C2D_DrawRectSolid(p.x + kTopXOffset + shakeX, p.y + shakeY, 0, 2, 2, p.color);
         }
         for (auto &L : G.letters) if (L.active && L.y < 240.0f) {
-            hw_draw_sprite(L.img, L.x + kTopXOffset, L.y);
+            hw_draw_sprite(L.img, L.x + kTopXOffset + shakeX, L.y + shakeY);
         }
         for (auto &H : G.hazards) if (H.active && H.y < 240.0f) {
-            hw_draw_sprite(H.img, H.x + kTopXOffset, H.y);
+            hw_draw_sprite(H.img, H.x + kTopXOffset + shakeX, H.y + shakeY);
         }
     for (auto &b : G.balls) if (b.active && b.y < 240.0f) {
-        hw_draw_sprite(b.img, b.x + kTopXOffset, b.y);
+        hw_draw_sprite(b.img, b.x + kTopXOffset + shakeX, b.y + shakeY);
 #if defined(DEBUG) && DEBUG
         // Draw ball collider on top screen alongside sprite
         float spriteW = (b.img.subtex ? b.img.subtex->width : 8.f);
@@ -2342,11 +2447,11 @@ namespace game
         float cy = b.y + spriteH * 0.5f;
         float lx = cx - kBallW * 0.5f;
         float ly = cy - kBallH * 0.5f;
-        C2D_DrawRectSolid(lx + kTopXOffset, ly, 0, kBallW, kBallH, C2D_Color32(0, 255, 0, 90));
+        C2D_DrawRectSolid(lx + kTopXOffset + shakeX, ly + shakeY, 0, kBallW, kBallH, C2D_Color32(0, 255, 0, 90));
 #endif
     }
         for (auto &LZ : G.lasers) if (LZ.active && LZ.y < 240.0f) {
-            C2D_DrawRectSolid(LZ.x + kTopXOffset, LZ.y, 0, 3, 10, C2D_Color32(0,255,0,255));
+            C2D_DrawRectSolid(LZ.x + kTopXOffset + shakeX, LZ.y + shakeY, 0, 3, 10, C2D_Color32(0,255,0,255));
         }
         // Bottom screen pass for objects with y >= 240 (subtract 240 to map to bottom viewport)
         hw_set_bottom();
@@ -2354,16 +2459,16 @@ namespace game
             C2D_DrawRectSolid(0, 0, 0, 320, 240, C2D_Color32(0, 0, 0, 140));
         }
         for (auto &p : G.particles) if (p.life > 0 && p.y >= 240.0f) {
-            C2D_DrawRectSolid(p.x, p.y - 240.0f, 0, 2, 2, p.color);
+            C2D_DrawRectSolid(p.x + shakeX, p.y - 240.0f + shakeY, 0, 2, 2, p.color);
         }
         for (auto &L : G.letters) if (L.active && L.y >= 240.0f) {
-            hw_draw_sprite(L.img, L.x, L.y - 240.0f);
+            hw_draw_sprite(L.img, L.x + shakeX, L.y - 240.0f + shakeY);
         }
         for (auto &H : G.hazards) if (H.active && H.y >= 240.0f) {
-            hw_draw_sprite(H.img, H.x, H.y - 240.0f);
+            hw_draw_sprite(H.img, H.x + shakeX, H.y - 240.0f + shakeY);
         }
     for (auto &b : G.balls) if (b.active && b.y >= 240.0f) {
-        hw_draw_sprite(b.img, b.x, b.y - 240.0f);
+        hw_draw_sprite(b.img, b.x + shakeX, b.y - 240.0f + shakeY);
 #if defined(DEBUG) && DEBUG
         // Draw ball collider on bottom screen alongside sprite
         float spriteW = (b.img.subtex ? b.img.subtex->width : 8.f);
@@ -2372,17 +2477,17 @@ namespace game
         float cy = b.y + spriteH * 0.5f;
         float lx = cx - kBallW * 0.5f;
         float ly = cy - kBallH * 0.5f;
-        C2D_DrawRectSolid(lx, ly - 240.0f, 0, kBallW, kBallH, C2D_Color32(0, 255, 0, 90));
+        C2D_DrawRectSolid(lx + shakeX, ly - 240.0f + shakeY, 0, kBallW, kBallH, C2D_Color32(0, 255, 0, 90));
 #endif
     }
         for (auto &LZ : G.lasers) if (LZ.active && LZ.y >= 240.0f) {
-            C2D_DrawRectSolid(LZ.x, LZ.y - 240.0f, 0, 3, 10, C2D_Color32(0,255,0,255));
+            C2D_DrawRectSolid(LZ.x + shakeX, LZ.y - 240.0f + shakeY, 0, 3, 10, C2D_Color32(0,255,0,255));
         }
         // Draw bat on bottom screen only
         {
             float batAtlasLeft = (G.bat.img.subtex ? G.bat.img.subtex->left : 0.0f);
             float batDrawX = G.bat.x - batAtlasLeft;
-            hw_draw_sprite(G.bat.img, batDrawX, G.bat.y - 240.0f);
+            hw_draw_sprite(G.bat.img, batDrawX + shakeX, G.bat.y - 240.0f + shakeY);
             if (G.laserEnabled && G.laserReady) {
                 C2D_Image ind = hw_image(IMAGE_laser_indicator_idx);
                 float iw = (ind.subtex ? ind.subtex->width : 6.0f);
@@ -2395,7 +2500,7 @@ namespace game
                 float drawY = (G.bat.y - 240.0f) - scaledH - 2.0f; // keep same gap
                 if (drawX < kPlayfieldLeftWallX) drawX = kPlayfieldLeftWallX;
                 if (drawX + scaledW > kPlayfieldRightWallX) drawX = kPlayfieldRightWallX - scaledW;
-                C2D_DrawImageAt(ind, drawX, drawY, 0.0f, nullptr, scale, scale);
+                C2D_DrawImageAt(ind, drawX + shakeX, drawY + shakeY, 0.0f, nullptr, scale, scale);
             }
         }
     // Barrier line 4px high, 8px below bat. Visible for lives >= 1; hidden at 0.
@@ -2411,7 +2516,7 @@ namespace game
             uint32_t col = (G.lives >= 3) ? C2D_Color32(0, 200, 0, 200)
                              : (G.lives == 2) ? C2D_Color32(255, 165, 0, 220)
                              : C2D_Color32(220, 0, 0, 220);
-            C2D_DrawRectSolid(leftX, barrierYBottomView, 0, width, 4.0f, col);
+            C2D_DrawRectSolid(leftX + shakeX, barrierYBottomView + shakeY, 0, width, 4.0f, col);
         }
         // Draw a momentary semi-transparent glow above the barrier if recently hit (even if barrier is now hidden at 0 lives)
         if (G.barrierGlowTimer > 0)
@@ -2425,12 +2530,12 @@ namespace game
             uint8_t a2 = (uint8_t)(40  * ease);
             // Always white glow: 3px feathered band above the barrier top
             float glowBaseY = barrierYBottomView - layout::BARRIER_GLOW_OFFSET_ABOVE;
-            C2D_DrawRectSolid(leftX, glowBaseY - 2.0f, 0, width, 1.0f, C2D_Color32(255,255,255,a0));
-            C2D_DrawRectSolid(leftX, glowBaseY - 1.0f, 0, width, 1.0f, C2D_Color32(255,255,255,a1));
-            C2D_DrawRectSolid(leftX, glowBaseY,        0, width, 1.0f, C2D_Color32(255,255,255,a2));
+            C2D_DrawRectSolid(leftX + shakeX, glowBaseY - 2.0f + shakeY, 0, width, 1.0f, C2D_Color32(255,255,255,a0));
+            C2D_DrawRectSolid(leftX + shakeX, glowBaseY - 1.0f + shakeY, 0, width, 1.0f, C2D_Color32(255,255,255,a1));
+            C2D_DrawRectSolid(leftX + shakeX, glowBaseY + shakeY,        0, width, 1.0f, C2D_Color32(255,255,255,a2));
             // Optional tiny specular line right at the edge to sell the glow
             uint8_t spec = (uint8_t)(70 * ease);
-            C2D_DrawRectSolid(leftX, glowBaseY - 3.0f,            0, width, 1.0f, C2D_Color32(255,255,255,spec));
+            C2D_DrawRectSolid(leftX + shakeX, glowBaseY - 3.0f + shakeY, 0, width, 1.0f, C2D_Color32(255,255,255,spec));
             --G.barrierGlowTimer;
         }
     }
