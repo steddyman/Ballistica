@@ -1494,6 +1494,11 @@ namespace game
                 G.fireCooldown = 0;
                 G.letters.clear();
                 G.hazards.clear();
+                // Reset Tilt state so it can't appear instantly on new test
+                G.framesSinceBarrierHit = 0;
+                G.tiltAvailable = false;
+                G.tiltCooldownFrames = 0;
+                G.tiltShakeTimer = 0;
                 // Reinitialize moving bricks data for current layout
                 {
                     int totalCells = levels_grid_width() * levels_grid_height();
@@ -1642,6 +1647,11 @@ namespace game
                 G.fireCooldown = 0;
                 G.letters.clear();
                 G.hazards.clear();
+                // Reset Tilt state (new level from title/debug)
+                G.framesSinceBarrierHit = 0;
+                G.tiltAvailable = false;
+                G.tiltCooldownFrames = 0;
+                G.tiltShakeTimer = 0;
                 // Reinitialize moving bricks data for current layout
                 int totalCells = levels_grid_width() * levels_grid_height();
                 G.moving.assign(totalCells, {-1.f, 1.f, 0.f, 0.f});
