@@ -133,8 +133,8 @@ namespace game
     }
 
     // Title buttons
-    struct TitleBtn { UIButton btn; Mode next; };
-    static TitleBtn kTitleButtons[3];
+    struct TitleBtn { UIButton btn; Mode next; bool isExit=false; };
+    static TitleBtn kTitleButtons[4];
 
     struct MovingBrickData
     {
@@ -459,9 +459,11 @@ namespace game
         levels_load();
         // Initialize title buttons
     // Title buttons sized for 320x240 bottom screen (w/h in pixels)
-    kTitleButtons[0].btn.x=60; kTitleButtons[0].btn.y=60; kTitleButtons[0].btn.w=200; kTitleButtons[0].btn.h=24; kTitleButtons[0].btn.label="PLAY"; kTitleButtons[0].btn.color=C2D_Color32(50,50,70,255); kTitleButtons[0].next=Mode::Playing;
-    kTitleButtons[1].btn.x=60; kTitleButtons[1].btn.y=100; kTitleButtons[1].btn.w=200; kTitleButtons[1].btn.h=24; kTitleButtons[1].btn.label="EDITOR"; kTitleButtons[1].btn.color=C2D_Color32(50,50,70,255); kTitleButtons[1].next=Mode::Editor;
-    kTitleButtons[2].btn.x=60; kTitleButtons[2].btn.y=140; kTitleButtons[2].btn.w=200; kTitleButtons[2].btn.h=24; kTitleButtons[2].btn.label="OPTIONS"; kTitleButtons[2].btn.color=C2D_Color32(50,50,70,255); kTitleButtons[2].next=Mode::Options;
+    kTitleButtons[0].btn.x=60; kTitleButtons[0].btn.y=60;  kTitleButtons[0].btn.w=200; kTitleButtons[0].btn.h=24; kTitleButtons[0].btn.label="PLAY";    kTitleButtons[0].btn.color=C2D_Color32(50,50,70,255); kTitleButtons[0].next=Mode::Playing; kTitleButtons[0].isExit=false;
+    kTitleButtons[1].btn.x=60; kTitleButtons[1].btn.y=100; kTitleButtons[1].btn.w=200; kTitleButtons[1].btn.h=24; kTitleButtons[1].btn.label="EDITOR";  kTitleButtons[1].btn.color=C2D_Color32(50,50,70,255); kTitleButtons[1].next=Mode::Editor;  kTitleButtons[1].isExit=false;
+    kTitleButtons[2].btn.x=60; kTitleButtons[2].btn.y=140; kTitleButtons[2].btn.w=200; kTitleButtons[2].btn.h=24; kTitleButtons[2].btn.label="OPTIONS"; kTitleButtons[2].btn.color=C2D_Color32(50,50,70,255); kTitleButtons[2].next=Mode::Options; kTitleButtons[2].isExit=false;
+    // Exit button at the bottom
+    kTitleButtons[3].btn.x=60; kTitleButtons[3].btn.y=200; kTitleButtons[3].btn.w=200; kTitleButtons[3].btn.h=24; kTitleButtons[3].btn.label="EXIT";    kTitleButtons[3].btn.color=C2D_Color32(60,40,40,255); kTitleButtons[3].next=Mode::Title;   kTitleButtons[3].isExit=true;
         hw_log("assets loaded\n");
         // Initialize moving brick buffers
         int total = levels_grid_width() * levels_grid_height();
@@ -1550,7 +1552,7 @@ namespace game
             {
                 sPressedBtn = -1;
                 int tx = in.stylusX, ty = in.stylusY;
-                for (int i = 0; i < 3; ++i)
+                for (int i = 0; i < 4; ++i)
                 {
                     if (kTitleButtons[i].btn.contains(tx, ty))
                     {
@@ -1574,6 +1576,13 @@ namespace game
                     sound::play_sfx("menu-click", 4, 1.0f, true);
                     // We treat release as valid regardless of final coords (optional: require inside)
                     TitleBtn &tb = kTitleButtons[sPressedBtn];
+                    if (tb.isExit)
+                    {
+                        g_exitRequested = true;
+                        hw_log("exit (button)\n");
+                        G.prevTouching = in.touching;
+                        return;
+                    }
                     if (tb.next == Mode::Playing)
                     {
                         levels_set_current(0);
@@ -2600,8 +2609,9 @@ void game_render() { game::render(); }
 void game_render_title_buttons(const InputState &in) {
     using namespace game;
     if (G.mode != Mode::Title) return;
-    // Draw the three title buttons (PLAY/EDITOR/OPTIONS) using bottom-screen coordinate system.
-    for (auto &tb : kTitleButtons) {
+    // Draw the title buttons using bottom-screen coordinate system.
+    for (int i = 0; i < 4; ++i) {
+        auto &tb = kTitleButtons[i];
         bool pressed = in.touching && tb.btn.contains(in.stylusX, in.stylusY);
         ui_draw_button(tb.btn, pressed);
     }

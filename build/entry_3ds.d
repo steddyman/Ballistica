@@ -115,7 +115,8 @@ entry_3ds.o: \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/build/IMAGE_t3x.h \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/sprite_indexes/image_indices.h \
  /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/game.hpp \
- /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/sound.hpp
+ /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/sound.hpp \
+ /Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/options.hpp
 /opt/devkitpro/libctru/include/3ds.h:
 /opt/devkitpro/libctru/include/3ds/types.h:
 /opt/devkitpro/libctru/include/3ds/result.h:
@@ -232,3 +233,4 @@ entry_3ds.o: \
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/sprite_indexes/image_indices.h:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/game.hpp:
 /Users/stepheneddy/Dropbox/Dev/3ds_murderball/include/sound.hpp:
+/Users/stepheneddy/Dropbox/Dev/3ds_murderball/source/options.hpp:
