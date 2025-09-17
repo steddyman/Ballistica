@@ -1095,113 +1095,113 @@
 001ba654 R HIGH_t3x
 001d0fe5 R HIGH_t3x_end
 001d0fe8 R IMAGE_t3x
-001d549d R IMAGE_t3x_end
-001d54a0 R INSTRUCT_t3x
-00207611 R INSTRUCT_t3x_end
-00207614 R OPTIONS_t3x
-00229599 R OPTIONS_t3x_end
-0022959c R TITLE_t3x
-0024ba75 R TITLE_t3x_end
-0024ba78 R TOUCH_t3x
-00285019 R TOUCH_t3x_end
-00285890 r .LC1
-00285944 r .LC41
-00285f74 r .LC2
-002860f4 00000008 r s_defaultTint.0
-002860fc R render2d_shbin
-00286288 R render2d_shbin_end
-00286288 R render2d_shbin_size
-0028628c 00000004 r depthFmtSizes
-00286290 00000005 r colorFmtSizes
-00286298 00000010 r CSWTCH.11
-002862a8 00000038 r CSWTCH.19
-002862e0 00000080 r romFS_devoptab
-0028636c 00000011 r dsp_filename.0
-0028639c 00000008 r morton_y.2
-002863a4 00000008 r morton_x.3
-002863ac 00000008 r s_sleepWakeEvents.4
-002863b4 0000000c r serviceNameTable.5
-002863e4 00000030 r error_table
-00286414 00000080 r archive_devoptab
-00286494 00000027 V typeinfo name for __gnu_cxx::__concurrence_lock_error
-002864bc 0000000c V typeinfo for __gnu_cxx::__concurrence_lock_error
-002864c8 00000029 V typeinfo name for __gnu_cxx::__concurrence_unlock_error
-002864f4 0000000c V typeinfo for __gnu_cxx::__concurrence_unlock_error
-00286500 0000002c V typeinfo name for __gnu_cxx::__concurrence_broadcast_error
-0028652c 0000000c V typeinfo for __gnu_cxx::__concurrence_broadcast_error
-00286538 00000027 V typeinfo name for __gnu_cxx::__concurrence_wait_error
-00286560 0000000c V typeinfo for __gnu_cxx::__concurrence_wait_error
-0028656c 00000014 V vtable for __gnu_cxx::__concurrence_lock_error
-00286580 00000014 V vtable for __gnu_cxx::__concurrence_unlock_error
-00286594 00000014 V vtable for __gnu_cxx::__concurrence_broadcast_error
-002865a8 00000014 V vtable for __gnu_cxx::__concurrence_wait_error
-002865bc 00000023 R typeinfo name for __gnu_cxx::recursive_init_error
-002865e0 0000000c R typeinfo for __gnu_cxx::recursive_init_error
-002865ec 00000014 R vtable for __gnu_cxx::recursive_init_error
-00286600 00000025 R typeinfo name for __cxxabiv1::__si_class_type_info
-00286628 0000000c R typeinfo for __cxxabiv1::__si_class_type_info
-00286634 0000002c R vtable for __cxxabiv1::__si_class_type_info
-00286660 0000000d R typeinfo name for std::type_info
-00286670 00000008 R typeinfo for std::type_info
-00286678 0000000e r std::__detail::_Prime_rehash_policy::_M_next_bkt(unsigned int) const::__fast_bkt
-00286688 00000404 R std::__detail::__prime_list
-00286a8c 0000000d R typeinfo name for std::bad_alloc
-00286a9c 0000000c R typeinfo for std::bad_alloc
-00286aa8 00000014 R vtable for std::bad_alloc
-00286abc 00000019 R typeinfo name for std::bad_array_new_length
-00286ad8 0000000c R typeinfo for std::bad_array_new_length
-00286ae4 00000014 R vtable for std::bad_array_new_length
-00286af8 00000022 R typeinfo name for __cxxabiv1::__class_type_info
-00286b1c 0000000c R typeinfo for __cxxabiv1::__class_type_info
-00286b28 0000002c R vtable for __cxxabiv1::__class_type_info
-00286b54 0000000d R typeinfo name for std::exception
-00286b64 00000008 R typeinfo for std::exception
-00286b6c 00000012 R typeinfo name for std::bad_exception
-00286b80 0000000c R typeinfo for std::bad_exception
-00286b8c 00000020 R typeinfo name for __cxxabiv1::__forced_unwind
-00286bac 00000008 R typeinfo for __cxxabiv1::__forced_unwind
-00286bb4 00000024 R typeinfo name for __cxxabiv1::__foreign_exception
-00286bd8 00000008 R typeinfo for __cxxabiv1::__foreign_exception
-00286be0 00000014 R vtable for std::bad_exception
-00286c08 00000010 R typeinfo name for std::logic_error
-00286c18 0000000c R typeinfo for std::logic_error
-00286c24 00000011 R typeinfo name for std::length_error
-00286c38 0000000c R typeinfo for std::length_error
-00286c44 00000011 R typeinfo name for std::out_of_range
-00286c58 0000000c R typeinfo for std::out_of_range
-00286c64 00000014 R vtable for std::logic_error
-00286c78 00000014 R vtable for std::length_error
-00286c8c 00000014 R vtable for std::out_of_range
-00286ca0 00000060 R __inv_pio4
-00286d00 000000e0 R __sincosf_table
-00286de0 0000000c r CSWTCH.7
-00286dec 0000000c r CSWTCH.6
-00286df8 00000010 r atanlo
-00286e08 00000010 r atanhi
-00286f5c 00000010 r zeroes.0
-00286f6c 00000010 r blanks.1
-00287070 00000010 r zeroes.0
-00287080 00000010 r blanks.1
-00287090 00000101 R _ctype_
-002872a8 00000022 r basefix.0
-002872cc 0000006c R __action_table
-00287338 0000006c R __state_table
-002873a4 00000100 R __chclass
-002874a4 0000000c r p05.0
-002874b0 00000028 R __mprec_bigtens
-002874d8 000000c8 R __mprec_tens
-00287604 00000014 r fpinan.0
-00287618 00000014 r fpi.1
-00287630 00000028 r tinytens
-00287658 00000100 R __hexdig
-00287844 00000010 r zeroes.0
-00287854 00000010 r blanks.1
-00287864 000035dc r categories
-0028ae40 00000080 R dotab_stdnull
-0028aec0 R __tdata_align
-0028aec4 r __EH_FRAME_BEGIN__
-0028aff0 R __exidx_start
-0028b268 R __exidx_end
+001d5499 R IMAGE_t3x_end
+001d549c R INSTRUCT_t3x
+00207505 R INSTRUCT_t3x_end
+00207508 R OPTIONS_t3x
+0022948d R OPTIONS_t3x_end
+00229490 R TITLE_t3x
+0024b969 R TITLE_t3x_end
+0024b96c R TOUCH_t3x
+00284f0d R TOUCH_t3x_end
+00285784 r .LC1
+00285838 r .LC41
+00285e68 r .LC2
+00285fe8 00000008 r s_defaultTint.0
+00285ff0 R render2d_shbin
+0028617c R render2d_shbin_end
+0028617c R render2d_shbin_size
+00286180 00000004 r depthFmtSizes
+00286184 00000005 r colorFmtSizes
+0028618c 00000010 r CSWTCH.11
+0028619c 00000038 r CSWTCH.19
+002861d4 00000080 r romFS_devoptab
+00286260 00000011 r dsp_filename.0
+00286290 00000008 r morton_y.2
+00286298 00000008 r morton_x.3
+002862a0 00000008 r s_sleepWakeEvents.4
+002862a8 0000000c r serviceNameTable.5
+002862d8 00000030 r error_table
+00286308 00000080 r archive_devoptab
+00286388 00000027 V typeinfo name for __gnu_cxx::__concurrence_lock_error
+002863b0 0000000c V typeinfo for __gnu_cxx::__concurrence_lock_error
+002863bc 00000029 V typeinfo name for __gnu_cxx::__concurrence_unlock_error
+002863e8 0000000c V typeinfo for __gnu_cxx::__concurrence_unlock_error
+002863f4 0000002c V typeinfo name for __gnu_cxx::__concurrence_broadcast_error
+00286420 0000000c V typeinfo for __gnu_cxx::__concurrence_broadcast_error
+0028642c 00000027 V typeinfo name for __gnu_cxx::__concurrence_wait_error
+00286454 0000000c V typeinfo for __gnu_cxx::__concurrence_wait_error
+00286460 00000014 V vtable for __gnu_cxx::__concurrence_lock_error
+00286474 00000014 V vtable for __gnu_cxx::__concurrence_unlock_error
+00286488 00000014 V vtable for __gnu_cxx::__concurrence_broadcast_error
+0028649c 00000014 V vtable for __gnu_cxx::__concurrence_wait_error
+002864b0 00000023 R typeinfo name for __gnu_cxx::recursive_init_error
+002864d4 0000000c R typeinfo for __gnu_cxx::recursive_init_error
+002864e0 00000014 R vtable for __gnu_cxx::recursive_init_error
+002864f4 00000025 R typeinfo name for __cxxabiv1::__si_class_type_info
+0028651c 0000000c R typeinfo for __cxxabiv1::__si_class_type_info
+00286528 0000002c R vtable for __cxxabiv1::__si_class_type_info
+00286554 0000000d R typeinfo name for std::type_info
+00286564 00000008 R typeinfo for std::type_info
+0028656c 0000000e r std::__detail::_Prime_rehash_policy::_M_next_bkt(unsigned int) const::__fast_bkt
+0028657c 00000404 R std::__detail::__prime_list
+00286980 0000000d R typeinfo name for std::bad_alloc
+00286990 0000000c R typeinfo for std::bad_alloc
+0028699c 00000014 R vtable for std::bad_alloc
+002869b0 00000019 R typeinfo name for std::bad_array_new_length
+002869cc 0000000c R typeinfo for std::bad_array_new_length
+002869d8 00000014 R vtable for std::bad_array_new_length
+002869ec 00000022 R typeinfo name for __cxxabiv1::__class_type_info
+00286a10 0000000c R typeinfo for __cxxabiv1::__class_type_info
+00286a1c 0000002c R vtable for __cxxabiv1::__class_type_info
+00286a48 0000000d R typeinfo name for std::exception
+00286a58 00000008 R typeinfo for std::exception
+00286a60 00000012 R typeinfo name for std::bad_exception
+00286a74 0000000c R typeinfo for std::bad_exception
+00286a80 00000020 R typeinfo name for __cxxabiv1::__forced_unwind
+00286aa0 00000008 R typeinfo for __cxxabiv1::__forced_unwind
+00286aa8 00000024 R typeinfo name for __cxxabiv1::__foreign_exception
+00286acc 00000008 R typeinfo for __cxxabiv1::__foreign_exception
+00286ad4 00000014 R vtable for std::bad_exception
+00286afc 00000010 R typeinfo name for std::logic_error
+00286b0c 0000000c R typeinfo for std::logic_error
+00286b18 00000011 R typeinfo name for std::length_error
+00286b2c 0000000c R typeinfo for std::length_error
+00286b38 00000011 R typeinfo name for std::out_of_range
+00286b4c 0000000c R typeinfo for std::out_of_range
+00286b58 00000014 R vtable for std::logic_error
+00286b6c 00000014 R vtable for std::length_error
+00286b80 00000014 R vtable for std::out_of_range
+00286b94 00000060 R __inv_pio4
+00286bf8 000000e0 R __sincosf_table
+00286cd8 0000000c r CSWTCH.7
+00286ce4 0000000c r CSWTCH.6
+00286cf0 00000010 r atanlo
+00286d00 00000010 r atanhi
+00286e54 00000010 r zeroes.0
+00286e64 00000010 r blanks.1
+00286f68 00000010 r zeroes.0
+00286f78 00000010 r blanks.1
+00286f88 00000101 R _ctype_
+002871a0 00000022 r basefix.0
+002871c4 0000006c R __action_table
+00287230 0000006c R __state_table
+0028729c 00000100 R __chclass
+0028739c 0000000c r p05.0
+002873a8 00000028 R __mprec_bigtens
+002873d0 000000c8 R __mprec_tens
+002874fc 00000014 r fpinan.0
+00287510 00000014 r fpi.1
+00287528 00000028 r tinytens
+00287550 00000100 R __hexdig
+0028773c 00000010 r zeroes.0
+0028774c 00000010 r blanks.1
+0028775c 000035dc r categories
+0028ad38 00000080 R dotab_stdnull
+0028adb8 R __tdata_align
+0028adbc r __EH_FRAME_BEGIN__
+0028aee8 R __exidx_start
+0028b160 R __exidx_end
 0028c000 00000004 d game::update(InputState const&)::sPressedBtn
 0028c004 00000004 d highscores::g_guard
 0028c008 00000040 d options::dropdown
