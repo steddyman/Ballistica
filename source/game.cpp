@@ -149,6 +149,10 @@ namespace game
         int life;
         uint32_t color;
     };
+    struct BallSpawnRequest {
+        float x, y, vx, vy;
+        bool isMurder;
+    };
     struct BombEvent
     {
         int c;
@@ -203,6 +207,7 @@ namespace game
         // Particles (bomb / generic)
         std::vector<Particle> particles;
         std::vector<BombEvent> bombEvents; // pending delayed explosions
+    std::vector<BallSpawnRequest> spawnQueue; // deferred ball spawns (processed post-update)
     // Barrier hit glow (temporary highlight on top edge when a life is consumed by the barrier)
     int barrierGlowTimer = 0;      // frames remaining for glow (0=off)
     // Game Over sequence (fade to message on top screen)
@@ -505,16 +510,32 @@ namespace game
 
     static void spawn_extra_ball(float x, float y, float vx, float vy)
     {
-        if (G.balls.size() >= 8)
-            return;
-    G.balls.push_back(Ball{x, y, vx, vy, x, y, true, false, G.imgBall});
+        // Nudge spawn position slightly perpendicular to velocity to avoid perfect overlap
+        float nx = x, ny = y;
+        float spd = std::sqrt(vx * vx + vy * vy);
+        if (spd > 1e-3f) {
+            float ox = -vy / spd; // perpendicular unit vector
+            float oy =  vx / spd;
+            nx += ox; ny += oy; // 1px nudge
+        } else {
+            nx += 1.0f; // fallback nudge
+        }
+        G.spawnQueue.push_back({nx, ny, vx, vy, false});
     }
 
     static void spawn_murder_ball(float x, float y, float vx, float vy)
     {
-        if (G.balls.size() >= 8)
-            return;
-    G.balls.push_back(Ball{x, y, vx, vy, x, y, true, true, G.imgMurderBall});
+        // Same nudge so murder ball also separates visually on spawn
+        float nx = x, ny = y;
+        float spd = std::sqrt(vx * vx + vy * vy);
+        if (spd > 1e-3f) {
+            float ox = -vy / spd;
+            float oy =  vx / spd;
+            nx += ox; ny += oy;
+        } else {
+            nx += 1.0f;
+        }
+        G.spawnQueue.push_back({nx, ny, vx, vy, true});
     }
 
     // Choose an alternate diagonal for a split ball. Guarantees both components non-zero.
@@ -1835,8 +1856,9 @@ namespace game
                                              { return p.life <= 0; }),
                               G.particles.end());
         }
-        // Update ball(s)
-        for (auto &b : G.balls)
+        // Update ball(s) - use index-based loop to avoid iterator invalidation when spawning new balls mid-frame
+        for (size_t bi = 0; bi < G.balls.size(); ++bi) {
+            Ball &b = G.balls[bi];
             if (b.active)
             {
                 // If primary ball is locked, keep it attached to bat and skip physics
@@ -2029,6 +2051,26 @@ namespace game
                 }
                 handle_ball_bricks(b);
             }
+        }
+        // Process deferred ball spawns now (reuse inactive slots first)
+        if (!G.spawnQueue.empty()) {
+            for (const auto &req : G.spawnQueue) {
+                bool reused = false;
+                for (auto &bb : G.balls) {
+                    if (!bb.active) {
+                        bb.x = req.x; bb.y = req.y; bb.px = req.x; bb.py = req.y;
+                        bb.vx = req.vx; bb.vy = req.vy; bb.active = true;
+                        bb.isMurder = req.isMurder; bb.img = req.isMurder ? G.imgMurderBall : G.imgBall;
+                        reused = true;
+                        break;
+                    }
+                }
+                if (!reused) {
+                    G.balls.push_back(Ball{req.x, req.y, req.vx, req.vy, req.x, req.y, true, req.isMurder, req.isMurder ? G.imgMurderBall : G.imgBall});
+                }
+            }
+            G.spawnQueue.clear();
+        }
         // Fire (D-Pad Up) could spawn extra balls later
         if (in.fireHeld && G.balls.size() < 3)
         {
