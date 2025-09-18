@@ -242,6 +242,7 @@ namespace game
 
     // Forward declare helpers defined later
     static void set_bat_size(int mode);
+    static void reset_positions_for_new_level();
 
     void init_assets()
     {
@@ -266,6 +267,21 @@ namespace game
         char buf[96];
         snprintf(buf, sizeof buf, "bat sprite w=%.1f h=%.1f\n", bw, bh);
         hw_log(buf);
+    }
+
+    // Reset bat and ball to the standard starting positions for a fresh level
+    static void reset_positions_for_new_level()
+    {
+        // Center bat horizontally, reset vertical position
+        float batCenterX = kScreenWidth * 0.5f;
+        G.bat.x = batCenterX - G.bat.width * 0.5f;
+        G.bat.y = kInitialBatY;
+        G.prevBatX = G.bat.x;
+        // Reset to a single parked ball locked above the bat
+        G.balls.clear();
+        float ballStartX = kScreenWidth * 0.5f + kPlayfieldOffsetX - kInitialBallHalf;
+        G.balls.push_back({ballStartX, kInitialBallY, 0.0f, 0.f, ballStartX, kInitialBallY, true, false, G.imgBall});
+        G.ballLocked = true;
     }
 
     // Begin the life-loss sequence (non-gameover): bat sinks, fade out/in, respawn with parked ball
@@ -1041,6 +1057,7 @@ namespace game
                 int next = (levels_current() + 1) % levels_count();
                 levels_set_current(next);
                 set_bat_size(1);
+                reset_positions_for_new_level();
                 G.laserEnabled = false;
                 G.laserReady = false;
                 hw_log("LEVEL COMPLETE\n");
@@ -1160,6 +1177,7 @@ namespace game
                         int next = (levels_current() + 1) % levels_count();
                         levels_set_current(next);
                         set_bat_size(1);
+                        reset_positions_for_new_level();
                         G.laserEnabled = false;
                         G.laserReady = false;
                         hw_log("LEVEL COMPLETE\n");
@@ -1221,6 +1239,7 @@ namespace game
                     int next = (levels_current() + 1) % levels_count();
                     levels_set_current(next);
                     set_bat_size(1);
+                    reset_positions_for_new_level();
                     G.laserEnabled = false;
                     G.laserReady = false;
                     hw_log("LEVEL COMPLETE\n");
