@@ -37,8 +37,10 @@ static char duplicateName[9] = {0};
 static UIDropdown dropdown; // widget instance
 static std::vector<UIButton> buttons; // NAME, DUPLICATE, CANCEL, SAVE
 static bool musicEnabled = true; // default to playing music
+static bool emulatorMode = false; // default: off (simulate physical screen gap)
 
 bool is_music_enabled() { return musicEnabled; }
+bool is_emulator_mode_enabled() { return emulatorMode; }
 
 void load_settings() {
     FILE* f = fopen("sdmc:/ballistica/options.cfg", "rb");
@@ -48,6 +50,9 @@ void load_settings() {
         if (strcmp(key, "music") == 0) {
             if (strcmp(val, "0") == 0 || strcasecmp(val, "false") == 0 || strcasecmp(val, "off") == 0) musicEnabled = false;
             else musicEnabled = true;
+        } else if (strcmp(key, "emulator") == 0) {
+            if (strcmp(val, "1") == 0 || strcasecmp(val, "true") == 0 || strcasecmp(val, "on") == 0) emulatorMode = true;
+            else emulatorMode = false;
         }
     }
     fclose(f);
@@ -59,6 +64,7 @@ void save_settings() {
     FILE* f = fopen("sdmc:/ballistica/options.cfg", "wb");
     if (!f) return;
     fprintf(f, "music=%s\n", musicEnabled ? "1" : "0");
+    fprintf(f, "emulator=%s\n", emulatorMode ? "1" : "0");
     fclose(f);
 }
 
@@ -170,6 +176,26 @@ Action update(const InputState &in) {
                 return Action::None;
             }
         }
+        // Handle Emulator Mode checkbox toggle
+        {
+            const char* label = "Emulator Mode";
+            int labelX = ui::MUSIC_LABEL_X;
+            int labelY = ui::MUSIC_LABEL_Y + 24; // place below Music
+            int labelW = hw_text_width(label);
+            int bx = labelX + labelW + ui::MUSIC_GAP;
+            int by = labelY - (ui::MUSIC_SZ - 6)/2 + ui::MUSIC_VOFFSET;
+            int bw = ui::MUSIC_SZ;
+            int bh = ui::MUSIC_SZ;
+            int rx0 = labelX;
+            int rx1 = bx + bw;
+            int ry0 = std::min(labelY, by);
+            int ry1 = std::max(labelY + 6, by + bh);
+            if (x >= rx0 && x < rx1 && y >= ry0 && y < ry1) {
+                emulatorMode = !emulatorMode;
+                sound::play_sfx("menu-click", 4, 1.0f, true);
+                return Action::None;
+            }
+        }
         for(size_t i=0;i<buttons.size();++i) {
             if (buttons[i].contains(x,y)) {
                 // Determine button semantics before trigger (in case of cancel/save we return action)
@@ -218,6 +244,25 @@ void render() {
         C2D_DrawRectSolid(bx-1, by-1, 0, 1, ui::MUSIC_SZ+2, boxCol); // left
         C2D_DrawRectSolid(bx+ui::MUSIC_SZ, by-1, 0, 1, ui::MUSIC_SZ+2, boxCol); // right
         if (musicEnabled) {
+            C2D_DrawRectSolid(bx+3, by+3, 0, ui::MUSIC_SZ-6, ui::MUSIC_SZ-6, fillCol);
+        }
+    }
+    // Emulator Mode label and checkbox
+    {
+        const char* label = "Emulator Mode";
+        int labelX = ui::MUSIC_LABEL_X;
+        int labelY = ui::MUSIC_LABEL_Y + 24;
+        int labelW = hw_text_width(label);
+        hw_draw_text(labelX, labelY, label, 0xFFFFFFFF);
+        int bx = labelX + labelW + ui::MUSIC_GAP;
+        int by = labelY - (ui::MUSIC_SZ - 6)/2 + ui::MUSIC_VOFFSET;
+        uint32_t boxCol = C2D_Color32(80,80,110,255);
+        uint32_t fillCol = C2D_Color32(200,200,255,255);
+        C2D_DrawRectSolid(bx-1, by-1, 0, ui::MUSIC_SZ+2, 1, boxCol);
+        C2D_DrawRectSolid(bx-1, by+ui::MUSIC_SZ, 0, ui::MUSIC_SZ+2, 1, boxCol);
+        C2D_DrawRectSolid(bx-1, by-1, 0, 1, ui::MUSIC_SZ+2, boxCol);
+        C2D_DrawRectSolid(bx+ui::MUSIC_SZ, by-1, 0, 1, ui::MUSIC_SZ+2, boxCol);
+        if (emulatorMode) {
             C2D_DrawRectSolid(bx+3, by+3, 0, ui::MUSIC_SZ-6, ui::MUSIC_SZ-6, fillCol);
         }
     }

@@ -60,6 +60,10 @@ namespace game
     static constexpr float kTiltAngleJitter = 0.25f; // radians (~14 deg)
     static constexpr float kTiltMinSpeed = 1.2f; // ensure post-tilt velocity
     static constexpr int   kTiltShakeFrames = 30; // duration of screen shake after tilt
+    // When Emulator Mode is OFF (default), we simulate the physical hinge gap between the
+    // top and bottom screens by drawing a black band on the bottom screen and letting
+    // balls continue moving (and bouncing off side walls) while occluded.
+    static constexpr int   kHingeGapPx = 55; // height of the gap occluder on bottom screen
     static constexpr float kTiltShakeStartMag = 8.0f; // initial pixel magnitude of shake (increased for visibility)
     // Manual tuning constants for TILT arrow (bottom screen HUD). Adjust freely without touching logic.
     static constexpr float kTiltArrowScale = 1.0f;     // uniform scale applied to down_arrow.png
@@ -1908,7 +1912,7 @@ namespace game
                     {
                         // Compute barrier top Y using layout-configured offset
                         float effBatH = (G.bat.img.subtex ? G.bat.img.subtex->height : G.bat.height);
-                        float barrierTopY = G.bat.y + effBatH + layout::BARRIER_OFFSET_BELOW_BAT;
+                        float barrierTopY = (G.bat.y + effBatH + layout::BARRIER_OFFSET_BELOW_BAT);
                         // Compute logical ball bottom previous and current positions (account for sprite vs collider size)
                         float spriteH = (b.img.subtex ? b.img.subtex->height : (float)kBallH);
                         float ballTopPrev = b.py + (spriteH - (float)kBallH) * 0.5f;
@@ -1938,7 +1942,7 @@ namespace game
                     }
                 }
                 // bottom: lose life (only applies when no barrier is active or ball skipped it)
-                if (b.y > 480)
+                if (b.y > 480.0f)
                 {
                     // Only lose a life if this was the last active ball.
                     int activeCount = 0;
@@ -2002,7 +2006,7 @@ namespace game
                     float batPadY = (G.bat.height - effBatH) * 0.5f;
                     if (batPadY < 0)
                         batPadY = 0;
-                    float batTop = G.bat.y + batPadY; // logical top surface
+                    float batTop = (G.bat.y + batPadY); // logical top surface (no gap offset)
                     float batLeft = G.bat.x + batPadX;
                     // Full sprite bounds for broad-phase (avoid off-by-one visual mismatch)
                     float atlasLeft = (G.bat.img.subtex ? G.bat.img.subtex->left : 0.0f);
@@ -2470,6 +2474,7 @@ namespace game
             int a = G.gameOverAlpha; if (a > 200) a = 200; if (a < 0) a = 0;
             C2D_DrawRectSolid(0, 0, 0, 320, 240, C2D_Color32(0, 0, 0, (uint8_t)a));
         }
+        // No explicit occlusion band; instead we hide objects crossing the hinge range [240, 240+kHingeGapPx).
         // TILT indicator (always draws text + arrow image; image guaranteed present)
         if (G.mode == Mode::Playing && G.tiltAvailable && !G.gameOverActive) {
             const char* label = "TILT";
@@ -2523,22 +2528,25 @@ namespace game
         for (auto &LZ : G.lasers) if (LZ.active && LZ.y < 240.0f) {
             C2D_DrawRectSolid(LZ.x + kTopXOffset + shakeX, LZ.y + shakeY, 0, 3, 10, C2D_Color32(0,255,0,255));
         }
-        // Bottom screen pass for objects with y >= 240 (subtract 240 to map to bottom viewport)
+        // Bottom screen pass for objects with y >= 240. When Emulator Mode is OFF, we simulate the hinge gap
+        // by hiding objects whose world Y is in [240, 240 + kHingeGapPx). We do NOT shift any bottom content.
         hw_set_bottom();
+        const bool emulatorMode = options::is_emulator_mode_enabled();
+        const int gapPx = emulatorMode ? 0 : kHingeGapPx;
         if (G.lightsOffTimer > 0) {
             C2D_DrawRectSolid(0, 0, 0, 320, 240, C2D_Color32(0, 0, 0, 140));
         }
-        for (auto &p : G.particles) if (p.life > 0 && p.y >= 240.0f) {
+        for (auto &p : G.particles) if (p.life > 0 && p.y >= 240.0f && (emulatorMode || p.y >= 240.0f + gapPx)) {
             C2D_DrawRectSolid(p.x + shakeX, p.y - 240.0f + shakeY, 0, 2, 2, p.color);
         }
-        for (auto &L : G.letters) if (L.active && L.y >= 240.0f) {
+        for (auto &L : G.letters) if (L.active && L.y >= 240.0f && (emulatorMode || L.y >= 240.0f + gapPx)) {
             hw_draw_sprite(L.img, L.x + shakeX, L.y - 240.0f + shakeY);
         }
-        for (auto &H : G.hazards) if (H.active && H.y >= 240.0f) {
+        for (auto &H : G.hazards) if (H.active && H.y >= 240.0f && (emulatorMode || H.y >= 240.0f + gapPx)) {
             hw_draw_sprite(H.img, H.x + shakeX, H.y - 240.0f + shakeY);
         }
-    for (auto &b : G.balls) if (b.active && b.y >= 240.0f) {
-        hw_draw_sprite(b.img, b.x + shakeX, b.y - 240.0f + shakeY);
+        for (auto &b : G.balls) if (b.active && b.y >= 240.0f && (emulatorMode || b.y >= 240.0f + gapPx)) {
+            hw_draw_sprite(b.img, b.x + shakeX, b.y - 240.0f + shakeY);
 #if defined(DEBUG) && DEBUG
         // Draw ball collider on bottom screen alongside sprite
         float spriteW = (b.img.subtex ? b.img.subtex->width : 8.f);
@@ -2547,17 +2555,17 @@ namespace game
         float cy = b.y + spriteH * 0.5f;
         float lx = cx - kBallW * 0.5f;
         float ly = cy - kBallH * 0.5f;
-        C2D_DrawRectSolid(lx + shakeX, ly - 240.0f + shakeY, 0, kBallW, kBallH, C2D_Color32(0, 255, 0, 90));
+            C2D_DrawRectSolid(lx + shakeX, ly - 240.0f + shakeY, 0, kBallW, kBallH, C2D_Color32(0, 255, 0, 90));
 #endif
     }
-        for (auto &LZ : G.lasers) if (LZ.active && LZ.y >= 240.0f) {
+        for (auto &LZ : G.lasers) if (LZ.active && LZ.y >= 240.0f && (emulatorMode || LZ.y >= 240.0f + gapPx)) {
             C2D_DrawRectSolid(LZ.x + shakeX, LZ.y - 240.0f + shakeY, 0, 3, 10, C2D_Color32(0,255,0,255));
         }
         // Draw bat on bottom screen only
         {
             float batAtlasLeft = (G.bat.img.subtex ? G.bat.img.subtex->left : 0.0f);
             float batDrawX = G.bat.x - batAtlasLeft;
-            hw_draw_sprite(G.bat.img, batDrawX + shakeX, G.bat.y - 240.0f + shakeY);
+            hw_draw_sprite(G.bat.img, batDrawX + shakeX, (G.bat.y - 240.0f) + shakeY);
             if (G.laserEnabled && G.laserReady) {
                 C2D_Image ind = hw_image(IMAGE_laser_indicator_idx);
                 float iw = (ind.subtex ? ind.subtex->width : 6.0f);
@@ -2577,8 +2585,8 @@ namespace game
     // Glow still appears even if barrier is hidden (life just dropped to 0).
     {
         float effBatH = (G.bat.img.subtex ? G.bat.img.subtex->height : G.bat.height);
-    float barrierTopY = G.bat.y + effBatH + layout::BARRIER_OFFSET_BELOW_BAT;
-        float barrierYBottomView = barrierTopY - 240.0f; // bottom screen coords
+    float barrierTopY = (G.bat.y + effBatH + layout::BARRIER_OFFSET_BELOW_BAT);
+        float barrierYBottomView = barrierTopY - 240.0f; // bottom screen coords; no gap shift
         float leftX = (float)kPlayfieldLeftWallX;
         float width = (float)(kPlayfieldRightWallX - kPlayfieldLeftWallX);
         if (barrier_visible())
