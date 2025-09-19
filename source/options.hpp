@@ -3,8 +3,13 @@
 namespace options {
 // Returns whether music should play (default true). Implemented in options.cpp
 bool is_music_enabled();
-// Returns whether Emulator Mode is enabled (default false): when true, the two screens are treated as continuous.
-bool is_emulator_mode_enabled();
+
+// Device selection controls the simulated hinge gap in pixels.
+enum class DeviceType { Emulator = 0, ThreeDS = 1, ThreeDSXL = 2 };
+// Current device type (default ThreeDS)
+DeviceType device_type();
+// Returns the hinge gap in pixels derived from the current device type: Emulator=0, 3DS=52, 3DS XL=68
+int hinge_gap_px();
 // Load/save persistent options from/to SD card.
 void load_settings();
 void save_settings();
