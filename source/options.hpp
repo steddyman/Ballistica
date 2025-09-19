@@ -3,6 +3,8 @@
 namespace options {
 // Returns whether music should play (default true). Implemented in options.cpp
 bool is_music_enabled();
+// Returns whether Emulator Mode is enabled (default false): when true, the two screens are treated as continuous.
+bool is_emulator_mode_enabled();
 // Load/save persistent options from/to SD card.
 void load_settings();
 void save_settings();
