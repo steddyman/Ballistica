@@ -22,32 +22,32 @@ namespace ui {
     // Button heights increased from 9->11 to add 1px extra padding top & bottom around text
     constexpr int NameBtnX=28,   NameBtnY=7,   NameBtnW=22, NameBtnH=11;
     constexpr int TestBtnX=106,  TestBtnY=220, TestBtnW=40, TestBtnH=11;
-    constexpr int ClearBtnX=106, ClearBtnY=177, ClearBtnW=21, ClearBtnH=11;
-    constexpr int UndoBtnX=202,  UndoBtnY=146,  UndoBtnW=21, UndoBtnH=11; // new Undo button
-    constexpr int ExitBtnX=106,   ExitBtnY=193, ExitBtnW=18, ExitBtnH=11;
-    constexpr int LevelMinusX=201, LevelMinusY=180; constexpr int LevelPlusX=229, LevelPlusY=180; constexpr int LevelBtnW=10, LevelBtnH=9;
-    constexpr int SpeedMinusX=201, SpeedMinusY=196; constexpr int SpeedPlusX=229, SpeedPlusY=196; constexpr int SpeedBtnW=10, SpeedBtnH=9;
+    constexpr int ClearBtnX=106, ClearBtnY=184, ClearBtnW=21, ClearBtnH=11;
+    constexpr int UndoBtnX=202,  UndoBtnY=153,  UndoBtnW=21, UndoBtnH=11; // new Undo button
+    constexpr int ExitBtnX=106,   ExitBtnY=200, ExitBtnW=18, ExitBtnH=11;
+    constexpr int LevelMinusX=201, LevelMinusY=187; constexpr int LevelPlusX=229, LevelPlusY=187; constexpr int LevelBtnW=10, LevelBtnH=9;
+    constexpr int SpeedMinusX=201, SpeedMinusY=203; constexpr int SpeedPlusX=229, SpeedPlusY=203; constexpr int SpeedBtnW=10, SpeedBtnH=9;
     // Palette origin
     constexpr int PaletteX=260, PaletteY=52;
     // Labels
     constexpr int LabelNameX=70, LabelNameY=10;
     constexpr int LabelTestX=TestBtnX, LabelTestY=TestBtnY;
-    constexpr int LabelClearX=28, LabelClearY=180;
-    constexpr int LabelExitX=28, LabelExitY=196;
+    constexpr int LabelClearX=28, LabelClearY=187;
+    constexpr int LabelExitX=28, LabelExitY=203;
     constexpr int LabelLevelMinusX=146, LabelLevelMinusY=LevelMinusY+1;
     constexpr int LabelLevelPlusX=LevelPlusX+1, LabelLevelPlusY=LevelPlusY+1;
     constexpr int LabelSpeedMinusX=146, LabelSpeedMinusY=SpeedMinusY+1;
     constexpr int LabelSpeedPlusX=SpeedPlusX+1, LabelSpeedPlusY=SpeedPlusY+1;
     // HUD text/value positions (previously hard-coded literals in render())
-    constexpr int LabelLevelTextX=161, LabelLevelTextY=180;
-    constexpr int LabelSpeedTextX=161, LabelSpeedTextY=196;
-    constexpr int ValueLevelX=213, ValueLevelY=180;
-    constexpr int ValueSpeedX=213, ValueSpeedY=196;
+    constexpr int LabelLevelTextX=161, LabelLevelTextY=187;
+    constexpr int LabelSpeedTextX=161, LabelSpeedTextY=203;
+    constexpr int ValueLevelX=213, ValueLevelY=187;
+    constexpr int ValueSpeedX=213, ValueSpeedY=203;
     // Current brick/effect info
-    constexpr int CurrentBrickSpriteX=116, CurrentBrickSpriteY=146;
-    constexpr int LabelCurrentBrickX=28, LabelCurrentBrickY=148;
-    constexpr int LabelEffectX=28, LabelEffectY=164;
-    constexpr int ValueEffectX=82, ValueEffectY=164;
+    constexpr int CurrentBrickSpriteX=66, CurrentBrickSpriteY=153;
+    constexpr int LabelCurrentBrickX=28, LabelCurrentBrickY=155;
+    constexpr int LabelEffectX=28, LabelEffectY=171;
+    constexpr int ValueEffectX=82, ValueEffectY=171;
     // Exit hint footer
     // constexpr int ExitHintX=10, ExitHintY=230;
     // Fade overlay level name
@@ -138,7 +138,7 @@ static void push_undo_clear(int levelIndex) {
     // Capture full layout
     int gw = levels_grid_width(); int gh = levels_grid_height();
     UndoEntry ue; ue.type = UndoEntry::Type::Clear; ue.levelIndex = levelIndex; ue.bricks.reserve(gw*gh);
-    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) ue.bricks.push_back((uint8_t)levels_edit_get_brick(levelIndex,c,r));
+    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) { ue.bricks.push_back((uint8_t)levels_edit_get_brick(levelIndex,c,r)); }
     g_undo.push_back(std::move(ue));
     if (g_undo.size() > kMaxUndo) g_undo.erase(g_undo.begin());
 }
@@ -159,6 +159,72 @@ static void perform_undo() {
                 levels_edit_set_brick(ue.levelIndex,c,r, ue.bricks[idx]);
             }
         }
+    }
+}
+
+// Grid shift helpers (wrap-around)
+static void shift_grid_left(int levelIndex) {
+    int gw = levels_grid_width();
+    int gh = levels_grid_height();
+    if (gw <= 0 || gh <= 0) return;
+    push_undo_clear(levelIndex);
+    std::vector<uint8_t> old(gw*gh, 0);
+    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) {
+        int idx=r*gw+c;
+        old[idx] = (uint8_t)levels_edit_get_brick(levelIndex,c,r);
+    }
+    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) {
+        int srcC = (c + 1) % gw; // left shift: new[c] = old[c+1]
+        int v = old[r*gw + srcC];
+        levels_edit_set_brick(levelIndex, c, r, v);
+    }
+}
+static void shift_grid_right(int levelIndex) {
+    int gw = levels_grid_width();
+    int gh = levels_grid_height();
+    if (gw <= 0 || gh <= 0) return;
+    push_undo_clear(levelIndex);
+    std::vector<uint8_t> old(gw*gh, 0);
+    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) {
+        int idx=r*gw+c;
+        old[idx] = (uint8_t)levels_edit_get_brick(levelIndex,c,r);
+    }
+    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) {
+        int srcC = (c - 1 + gw) % gw; // right shift: new[c] = old[c-1]
+        int v = old[r*gw + srcC];
+        levels_edit_set_brick(levelIndex, c, r, v);
+    }
+}
+static void shift_grid_up(int levelIndex) {
+    int gw = levels_grid_width();
+    int gh = levels_grid_height();
+    if (gw <= 0 || gh <= 0) return;
+    push_undo_clear(levelIndex);
+    std::vector<uint8_t> old(gw*gh, 0);
+    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) {
+        int idx=r*gw+c;
+        old[idx] = (uint8_t)levels_edit_get_brick(levelIndex,c,r);
+    }
+    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) {
+        int srcR = (r + 1) % gh; // up shift: new[r] = old[r+1]
+        int v = old[srcR*gw + c];
+        levels_edit_set_brick(levelIndex, c, r, v);
+    }
+}
+static void shift_grid_down(int levelIndex) {
+    int gw = levels_grid_width();
+    int gh = levels_grid_height();
+    if (gw <= 0 || gh <= 0) return;
+    push_undo_clear(levelIndex);
+    std::vector<uint8_t> old(gw*gh, 0);
+    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) {
+        int idx=r*gw+c;
+        old[idx] = (uint8_t)levels_edit_get_brick(levelIndex,c,r);
+    }
+    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) {
+        int srcR = (r - 1 + gh) % gh; // down shift: new[r] = old[r-1]
+        int v = old[srcR*gw + c];
+        levels_edit_set_brick(levelIndex, c, r, v);
     }
 }
 
@@ -273,6 +339,65 @@ EditorAction update(const InputState &in) {
 
     // If this wasn't a grid drag, only proceed on fresh press for palette/buttons
     if (!in.touchPressed) { E.wasTouching = in.touching; return EditorAction::None; }
+    // Arrow hitboxes around grid (mirror render positions)
+    {
+        int ls = levels_edit_left();
+        int ts = levels_edit_top();
+        int cw2 = levels_edit_brick_width();
+        int ch2 = levels_edit_brick_height();
+        int gw2 = levels_grid_width();
+        int gh2 = levels_grid_height();
+        int gridLeft = ls;
+        int gridTop = ts;
+        int gridRight = ls + gw2 * cw2;
+        int gridBottom = ts + gh2 * ch2;
+        int midColX = ls + (gw2 / 2) * cw2 + cw2 / 2;
+        int midRowY = ts + (gh2 / 2) * ch2 + ch2 / 2;
+        // Left arrow rect
+        {
+            C2D_Image im = hw_image(IMAGE_e_left_arrow_idx);
+            if (im.tex && im.subtex) {
+                int w = (int)im.subtex->width;
+                int h = (int)im.subtex->height;
+                int rx = gridLeft - 1 - w;
+                int ry = midRowY - h / 2;
+                if (x >= rx && x < rx + w && y >= ry && y < ry + h) { sound::play_sfx("menu-click", 4, 1.0f, true); shift_grid_left(E.curLevel); return EditorAction::None; }
+            }
+        }
+        // Right arrow rect
+        {
+            C2D_Image im = hw_image(IMAGE_e_right_arrow_idx);
+            if (im.tex && im.subtex) {
+                int w = (int)im.subtex->width;
+                int h = (int)im.subtex->height;
+                int rx = gridRight + 1;
+                int ry = midRowY - h / 2;
+                if (x >= rx && x < rx + w && y >= ry && y < ry + h) { sound::play_sfx("menu-click", 4, 1.0f, true); shift_grid_right(E.curLevel); return EditorAction::None; }
+            }
+        }
+        // Up arrow rect
+        {
+            C2D_Image im = hw_image(IMAGE_e_up_arrow_idx);
+            if (im.tex && im.subtex) {
+                int w = (int)im.subtex->width;
+                int h = (int)im.subtex->height;
+                int rx = midColX - w / 2;
+                int ry = gridTop - 1 - h;
+                if (x >= rx && x < rx + w && y >= ry && y < ry + h) { sound::play_sfx("menu-click", 4, 1.0f, true); shift_grid_up(E.curLevel); return EditorAction::None; }
+            }
+        }
+        // Down arrow rect
+        {
+            C2D_Image im = hw_image(IMAGE_e_down_arrow_idx);
+            if (im.tex && im.subtex) {
+                int w = (int)im.subtex->width;
+                int h = (int)im.subtex->height;
+                int rx = midColX - w / 2;
+                int ry = gridBottom + 1;
+                if (x >= rx && x < rx + w && y >= ry && y < ry + h) { sound::play_sfx("menu-click", 4, 1.0f, true); shift_grid_down(E.curLevel); return EditorAction::None; }
+            }
+        }
+    }
     // Palette (vertical columns wrapping)
     int palX = ui::PaletteX;
     int palY = ui::PaletteY;
@@ -345,6 +470,66 @@ void render() {
                 hw_draw_sprite(hw_image(atlas), (float)(ls + c * cw), (float)(ts + r * ch));
             }
         }
+
+        // Draw directional arrows around the grid with a 1px gap, aligned to middle row/column
+        // Compute grid bounds and midpoints
+        float gridLeft = (float)ls;
+        float gridTop = (float)ts;
+        float gridRight = (float)(ls + gw * cw);
+        float gridBottom = (float)(ts + gh * ch);
+        float midColX = (float)(ls + (gw / 2) * cw + cw / 2);
+        float midRowY = (float)(ts + (gh / 2) * ch + ch / 2);
+
+        // Left arrow: right edge is 1px left of gridLeft
+        {
+            C2D_Image im = hw_image(IMAGE_e_left_arrow_idx);
+            if (im.tex && im.subtex) {
+                float w = (float)im.subtex->width;
+                float h = (float)im.subtex->height;
+                float xf = gridLeft - 1.0f - w;
+                float yf = midRowY - h * 0.5f;
+                int xi = (int)(xf + 0.5f);
+                int yi = (int)(yf + 0.5f);
+                hw_draw_sprite(im, (float)xi, (float)yi);
+            }
+        }
+        // Right arrow: left edge is 1px right of gridRight
+        {
+            C2D_Image im = hw_image(IMAGE_e_right_arrow_idx);
+            if (im.tex && im.subtex) {
+                float h = (float)im.subtex->height;
+                float xf = gridRight + 1.0f;
+                float yf = midRowY - h * 0.5f;
+                int xi = (int)(xf + 0.5f);
+                int yi = (int)(yf + 0.5f);
+                hw_draw_sprite(im, (float)xi, (float)yi);
+            }
+        }
+        // Up arrow: bottom edge is 1px above gridTop
+        {
+            C2D_Image im = hw_image(IMAGE_e_up_arrow_idx);
+            if (im.tex && im.subtex) {
+                float w = (float)im.subtex->width;
+                float h = (float)im.subtex->height;
+                float xf = midColX - w * 0.5f;
+                float yf = gridTop - 1.0f - h;
+                int xi = (int)(xf + 0.5f);
+                int yi = (int)(yf + 0.5f);
+                hw_draw_sprite(im, (float)xi, (float)yi);
+            }
+        }
+        // Down arrow: top edge is 1px below gridBottom
+        {
+            C2D_Image im = hw_image(IMAGE_e_down_arrow_idx);
+            if (im.tex && im.subtex) {
+                float w = (float)im.subtex->width;
+                float xf = midColX - w * 0.5f;
+                float yf = gridBottom + 1.0f;
+                int xi = (int)(xf + 0.5f);
+                int yi = (int)(yf + 0.5f);
+                hw_draw_sprite(im, (float)xi, (float)yi);
+            }
+        }
     }
     // Palette
     int cw = levels_edit_brick_width();
@@ -395,7 +580,7 @@ void render() {
     label_bg(SpeedPlusX, SpeedPlusY, "+", true);  hw_draw_text(SpeedPlusX, SpeedPlusY, "+", 0xFFFFFFFF);
     int atlas = editor_atlas_index(E.curBrick);
     if (atlas >= 0) hw_draw_sprite(hw_image(atlas), ui::CurrentBrickSpriteX, ui::CurrentBrickSpriteY);
-    hw_draw_text(ui::LabelCurrentBrickX, ui::LabelCurrentBrickY, "Current Brick:", 0xFFFFFFFF);
+    hw_draw_text(ui::LabelCurrentBrickX, ui::LabelCurrentBrickY, "Brick:", 0xFFFFFFFF);
     hw_draw_text(ui::LabelEffectX, ui::LabelEffectY, "Effect:", 0xFFFFFFFF);
     hw_draw_text(ui::LabelClearX, ui::LabelClearY, "Clear Level:", 0xFFFFFFFF);
     hw_draw_text(ui::LabelExitX, ui::LabelExitY, "Save / Exit:", 0xFFFFFFFF);
