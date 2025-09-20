@@ -1,0 +1,39 @@
+# Build artifacts
+build/
+*.3dsx
+*.elf
+*.smdh
+*.t3x
+*.bcfnt
+*.o
+*.a
+*.d
+*.map
+*.lst
+
+# Generated/intermediate assets
+*.gmo
+*.bin
+*.img
+*.tga
+*.dds
+
+# DevkitPro/Citra logs and caches
+*.log
+*.tmp
+*.cache
+
+# macOS cruft
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor backups
+*~
+*.swp
+*.swo
+
+# Node/python artifacts (if scripts generate assets)
+node_modules/
+__pycache__/
+*.pyc

@@ -66,6 +66,24 @@
 			"type": "shell",
 			"command": "make -s",
 			"group": "build"
+		},
+		{
+			"label": "Build 3ds_murderball",
+			"type": "shell",
+			"command": "make -s",
+			"group": "build"
+		},
+		{
+			"label": "Build 3ds_murderball",
+			"type": "shell",
+			"command": "make -s",
+			"group": "build"
+		},
+		{
+			"label": "Show Git Status",
+			"type": "shell",
+			"command": "git status --porcelain=v1",
+			"group": "build"
 		}
 	]
 }
