@@ -138,7 +138,7 @@ static void push_undo_clear(int levelIndex) {
     // Capture full layout
     int gw = levels_grid_width(); int gh = levels_grid_height();
     UndoEntry ue; ue.type = UndoEntry::Type::Clear; ue.levelIndex = levelIndex; ue.bricks.reserve(gw*gh);
-    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) ue.bricks.push_back((uint8_t)levels_edit_get_brick(levelIndex,c,r));
+    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) { ue.bricks.push_back((uint8_t)levels_edit_get_brick(levelIndex,c,r)); }
     g_undo.push_back(std::move(ue));
     if (g_undo.size() > kMaxUndo) g_undo.erase(g_undo.begin());
 }
@@ -159,6 +159,72 @@ static void perform_undo() {
                 levels_edit_set_brick(ue.levelIndex,c,r, ue.bricks[idx]);
             }
         }
+    }
+}
+
+// Grid shift helpers (wrap-around)
+static void shift_grid_left(int levelIndex) {
+    int gw = levels_grid_width();
+    int gh = levels_grid_height();
+    if (gw <= 0 || gh <= 0) return;
+    push_undo_clear(levelIndex);
+    std::vector<uint8_t> old(gw*gh, 0);
+    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) {
+        int idx=r*gw+c;
+        old[idx] = (uint8_t)levels_edit_get_brick(levelIndex,c,r);
+    }
+    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) {
+        int srcC = (c + 1) % gw; // left shift: new[c] = old[c+1]
+        int v = old[r*gw + srcC];
+        levels_edit_set_brick(levelIndex, c, r, v);
+    }
+}
+static void shift_grid_right(int levelIndex) {
+    int gw = levels_grid_width();
+    int gh = levels_grid_height();
+    if (gw <= 0 || gh <= 0) return;
+    push_undo_clear(levelIndex);
+    std::vector<uint8_t> old(gw*gh, 0);
+    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) {
+        int idx=r*gw+c;
+        old[idx] = (uint8_t)levels_edit_get_brick(levelIndex,c,r);
+    }
+    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) {
+        int srcC = (c - 1 + gw) % gw; // right shift: new[c] = old[c-1]
+        int v = old[r*gw + srcC];
+        levels_edit_set_brick(levelIndex, c, r, v);
+    }
+}
+static void shift_grid_up(int levelIndex) {
+    int gw = levels_grid_width();
+    int gh = levels_grid_height();
+    if (gw <= 0 || gh <= 0) return;
+    push_undo_clear(levelIndex);
+    std::vector<uint8_t> old(gw*gh, 0);
+    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) {
+        int idx=r*gw+c;
+        old[idx] = (uint8_t)levels_edit_get_brick(levelIndex,c,r);
+    }
+    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) {
+        int srcR = (r + 1) % gh; // up shift: new[r] = old[r+1]
+        int v = old[srcR*gw + c];
+        levels_edit_set_brick(levelIndex, c, r, v);
+    }
+}
+static void shift_grid_down(int levelIndex) {
+    int gw = levels_grid_width();
+    int gh = levels_grid_height();
+    if (gw <= 0 || gh <= 0) return;
+    push_undo_clear(levelIndex);
+    std::vector<uint8_t> old(gw*gh, 0);
+    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) {
+        int idx=r*gw+c;
+        old[idx] = (uint8_t)levels_edit_get_brick(levelIndex,c,r);
+    }
+    for (int r=0;r<gh;++r) for(int c=0;c<gw;++c) {
+        int srcR = (r - 1 + gh) % gh; // down shift: new[r] = old[r-1]
+        int v = old[srcR*gw + c];
+        levels_edit_set_brick(levelIndex, c, r, v);
     }
 }
 
@@ -273,6 +339,65 @@ EditorAction update(const InputState &in) {
 
     // If this wasn't a grid drag, only proceed on fresh press for palette/buttons
     if (!in.touchPressed) { E.wasTouching = in.touching; return EditorAction::None; }
+    // Arrow hitboxes around grid (mirror render positions)
+    {
+        int ls = levels_edit_left();
+        int ts = levels_edit_top();
+        int cw2 = levels_edit_brick_width();
+        int ch2 = levels_edit_brick_height();
+        int gw2 = levels_grid_width();
+        int gh2 = levels_grid_height();
+        int gridLeft = ls;
+        int gridTop = ts;
+        int gridRight = ls + gw2 * cw2;
+        int gridBottom = ts + gh2 * ch2;
+        int midColX = ls + (gw2 / 2) * cw2 + cw2 / 2;
+        int midRowY = ts + (gh2 / 2) * ch2 + ch2 / 2;
+        // Left arrow rect
+        {
+            C2D_Image im = hw_image(IMAGE_e_left_arrow_idx);
+            if (im.tex && im.subtex) {
+                int w = (int)im.subtex->width;
+                int h = (int)im.subtex->height;
+                int rx = gridLeft - 1 - w;
+                int ry = midRowY - h / 2;
+                if (x >= rx && x < rx + w && y >= ry && y < ry + h) { sound::play_sfx("menu-click", 4, 1.0f, true); shift_grid_left(E.curLevel); return EditorAction::None; }
+            }
+        }
+        // Right arrow rect
+        {
+            C2D_Image im = hw_image(IMAGE_e_right_arrow_idx);
+            if (im.tex && im.subtex) {
+                int w = (int)im.subtex->width;
+                int h = (int)im.subtex->height;
+                int rx = gridRight + 1;
+                int ry = midRowY - h / 2;
+                if (x >= rx && x < rx + w && y >= ry && y < ry + h) { sound::play_sfx("menu-click", 4, 1.0f, true); shift_grid_right(E.curLevel); return EditorAction::None; }
+            }
+        }
+        // Up arrow rect
+        {
+            C2D_Image im = hw_image(IMAGE_e_up_arrow_idx);
+            if (im.tex && im.subtex) {
+                int w = (int)im.subtex->width;
+                int h = (int)im.subtex->height;
+                int rx = midColX - w / 2;
+                int ry = gridTop - 1 - h;
+                if (x >= rx && x < rx + w && y >= ry && y < ry + h) { sound::play_sfx("menu-click", 4, 1.0f, true); shift_grid_up(E.curLevel); return EditorAction::None; }
+            }
+        }
+        // Down arrow rect
+        {
+            C2D_Image im = hw_image(IMAGE_e_down_arrow_idx);
+            if (im.tex && im.subtex) {
+                int w = (int)im.subtex->width;
+                int h = (int)im.subtex->height;
+                int rx = midColX - w / 2;
+                int ry = gridBottom + 1;
+                if (x >= rx && x < rx + w && y >= ry && y < ry + h) { sound::play_sfx("menu-click", 4, 1.0f, true); shift_grid_down(E.curLevel); return EditorAction::None; }
+            }
+        }
+    }
     // Palette (vertical columns wrapping)
     int palX = ui::PaletteX;
     int palY = ui::PaletteY;
