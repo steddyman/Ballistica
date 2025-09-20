@@ -2390,8 +2390,11 @@ namespace game
             // Lives (left, second line below score)
             {
                 char livesLabel[] = "Lives:";
-                char livesVal[8];
-                snprintf(livesVal, sizeof livesVal, "%02d", G.lives);
+                char livesVal[16];
+                int livesDisp = G.lives;
+                if (livesDisp < 0) livesDisp = 0;
+                if (livesDisp > 99) livesDisp = 99;
+                snprintf(livesVal, sizeof livesVal, "%02d", livesDisp);
                 int livesLabelX = scoreLabelX;
                 int livesValX = livesLabelX + hw_text_width(livesLabel) * labelScale + 12;
                 int livesY = scoreY + 16; // one line below score
