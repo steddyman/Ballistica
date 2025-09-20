@@ -293,6 +293,8 @@ namespace levels {
         if(L.bricks.size()!=NumBricks) return;
         for(int i=0;i<NumBricks;i++) {
             uint8_t v = L.bricks[i]; if(v==0) continue; if(v >= (int)(sizeof(brickMap)/sizeof(brickMap[0]))) continue;
+            // Skip moving bricks here; they are rendered dynamically in game.cpp
+            if (v == (uint8_t)BrickType::SS || v == (uint8_t)BrickType::SF) continue;
             int col = i % BricksX; int row = i / BricksX;
             float x = (float)(LEFTSTART + g_renderOffsetX) + col * CellW;
             float y = (float)(TOPSTART + g_renderOffsetY) + row * CellH;
