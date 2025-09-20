@@ -44,7 +44,7 @@ namespace ui {
     constexpr int ValueLevelX=213, ValueLevelY=187;
     constexpr int ValueSpeedX=213, ValueSpeedY=203;
     // Current brick/effect info
-    constexpr int CurrentBrickSpriteX=116, CurrentBrickSpriteY=153;
+    constexpr int CurrentBrickSpriteX=66, CurrentBrickSpriteY=153;
     constexpr int LabelCurrentBrickX=28, LabelCurrentBrickY=155;
     constexpr int LabelEffectX=28, LabelEffectY=171;
     constexpr int ValueEffectX=82, ValueEffectY=171;
@@ -580,7 +580,7 @@ void render() {
     label_bg(SpeedPlusX, SpeedPlusY, "+", true);  hw_draw_text(SpeedPlusX, SpeedPlusY, "+", 0xFFFFFFFF);
     int atlas = editor_atlas_index(E.curBrick);
     if (atlas >= 0) hw_draw_sprite(hw_image(atlas), ui::CurrentBrickSpriteX, ui::CurrentBrickSpriteY);
-    hw_draw_text(ui::LabelCurrentBrickX, ui::LabelCurrentBrickY, "Current Brick:", 0xFFFFFFFF);
+    hw_draw_text(ui::LabelCurrentBrickX, ui::LabelCurrentBrickY, "Brick:", 0xFFFFFFFF);
     hw_draw_text(ui::LabelEffectX, ui::LabelEffectY, "Effect:", 0xFFFFFFFF);
     hw_draw_text(ui::LabelClearX, ui::LabelClearY, "Clear Level:", 0xFFFFFFFF);
     hw_draw_text(ui::LabelExitX, ui::LabelExitY, "Save / Exit:", 0xFFFFFFFF);
