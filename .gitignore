@@ -18,6 +18,9 @@ build/
 *.tga
 *.dds
 
+# Generated audio (converted from sounds/*.wav)
+romfs/audio/*.wav
+
 # DevkitPro/Citra logs and caches
 *.log
 *.tmp
