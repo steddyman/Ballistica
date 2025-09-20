@@ -66,6 +66,18 @@
 			"type": "shell",
 			"command": "make -s",
 			"group": "build"
+		},
+		{
+			"label": "Build 3ds_murderball",
+			"type": "shell",
+			"command": "make -s",
+			"group": "build"
+		},
+		{
+			"label": "Build 3ds_murderball",
+			"type": "shell",
+			"command": "make -s",
+			"group": "build"
 		}
 	]
 }
