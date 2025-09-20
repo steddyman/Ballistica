@@ -84,6 +84,12 @@
 			"type": "shell",
 			"command": "git status --porcelain=v1",
 			"group": "build"
+		},
+		{
+			"label": "Build (make)",
+			"type": "shell",
+			"command": "make -s",
+			"group": "build"
 		}
 	]
 }

@@ -345,6 +345,68 @@ void render() {
                 hw_draw_sprite(hw_image(atlas), (float)(ls + c * cw), (float)(ts + r * ch));
             }
         }
+
+        // Draw directional arrows around the grid with a 1px gap, aligned to middle row/column
+        // Compute grid bounds and midpoints
+        float gridLeft = (float)ls;
+        float gridTop = (float)ts;
+        float gridRight = (float)(ls + gw * cw);
+        float gridBottom = (float)(ts + gh * ch);
+        float midColX = (float)(ls + (gw / 2) * cw + cw / 2);
+        float midRowY = (float)(ts + (gh / 2) * ch + ch / 2);
+
+        auto drawCentered = [](int imageIndex, float centerX, float centerY) {
+            C2D_Image im = hw_image(imageIndex);
+            if (!im.tex || !im.subtex) return;
+            float w = (float)im.subtex->width;
+            float h = (float)im.subtex->height;
+            hw_draw_sprite(im, centerX - w * 0.5f, centerY - h * 0.5f);
+        };
+
+        // Left arrow: right edge is 1px left of gridLeft
+        {
+            C2D_Image im = hw_image(IMAGE_e_left_arrow_idx);
+            if (im.tex && im.subtex) {
+                float w = (float)im.subtex->width;
+                float h = (float)im.subtex->height;
+                float x = gridLeft - 1.0f - w;
+                float y = midRowY - h * 0.5f;
+                hw_draw_sprite(im, x, y);
+            }
+        }
+        // Right arrow: left edge is 1px right of gridRight
+        {
+            C2D_Image im = hw_image(IMAGE_e_right_arrow_idx);
+            if (im.tex && im.subtex) {
+                float w = (float)im.subtex->width;
+                float h = (float)im.subtex->height;
+                float x = gridRight + 1.0f;
+                float y = midRowY - h * 0.5f;
+                hw_draw_sprite(im, x, y);
+            }
+        }
+        // Up arrow: bottom edge is 1px above gridTop
+        {
+            C2D_Image im = hw_image(IMAGE_e_up_arrow_idx);
+            if (im.tex && im.subtex) {
+                float w = (float)im.subtex->width;
+                float h = (float)im.subtex->height;
+                float x = midColX - w * 0.5f;
+                float y = gridTop - 1.0f - h;
+                hw_draw_sprite(im, x, y);
+            }
+        }
+        // Down arrow: top edge is 1px below gridBottom
+        {
+            C2D_Image im = hw_image(IMAGE_e_down_arrow_idx);
+            if (im.tex && im.subtex) {
+                float w = (float)im.subtex->width;
+                float h = (float)im.subtex->height;
+                float x = midColX - w * 0.5f;
+                float y = gridBottom + 1.0f;
+                hw_draw_sprite(im, x, y);
+            }
+        }
     }
     // Palette
     int cw = levels_edit_brick_width();
