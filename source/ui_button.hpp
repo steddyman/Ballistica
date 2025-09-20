@@ -10,9 +10,10 @@ struct UIButton {
     uint32_t color = 0;           // base fill color (RGBA)
     std::function<void()> onTap;  // invoked on touchPressed inside rect
     bool highlighted=false;       // could be used for hover/focus states (future)
+    bool enabled=true;            // disabled buttons draw dim and ignore taps
 
     bool contains(int px,int py) const { return px>=x && px<x+w && py>=y && py<y+h; }
-    void trigger() { if(onTap) onTap(); }
+    void trigger() { if(enabled && onTap) onTap(); }
 };
 
 // Utility draw routine (implemented in ui_button.cpp)
