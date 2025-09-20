@@ -3,6 +3,8 @@
 #include <citro2d.h>
 #include <cstring>
 #include <string>
+#include <cstdio>
+#include <sys/stat.h>
 #include "hardware.hpp"
 #include "levels.hpp"
 #include "brick.hpp"
@@ -23,7 +25,13 @@ namespace ui {
     constexpr int NameBtnX=28,   NameBtnY=7,   NameBtnW=22, NameBtnH=11;
     constexpr int TestBtnX=106,  TestBtnY=220, TestBtnW=40, TestBtnH=11;
     constexpr int ClearBtnX=106, ClearBtnY=184, ClearBtnW=21, ClearBtnH=11;
-    constexpr int UndoBtnX=202,  UndoBtnY=153,  UndoBtnW=21, UndoBtnH=11; // new Undo button
+    constexpr int UndoBtnX=202,  UndoBtnY=153,  UndoBtnW=21, UndoBtnH=11; // Undo
+    // New: Copy/Paste buttons placed to the left of Undo at same Y (computed at init)
+    constexpr int PasteBtnW=28, PasteBtnH=11;
+    constexpr int CopyBtnW=24,  CopyBtnH=11;
+    constexpr int CopyPasteGap = 10; // desired gap in pixels between adjacent buttons
+    constexpr int PasteBtnY = UndoBtnY;
+    constexpr int CopyBtnY  = UndoBtnY;
     constexpr int ExitBtnX=106,   ExitBtnY=200, ExitBtnW=18, ExitBtnH=11;
     constexpr int LevelMinusX=201, LevelMinusY=187; constexpr int LevelPlusX=229, LevelPlusY=187; constexpr int LevelBtnW=10, LevelBtnH=9;
     constexpr int SpeedMinusX=201, SpeedMinusY=203; constexpr int SpeedPlusX=229, SpeedPlusY=203; constexpr int SpeedBtnW=10, SpeedBtnH=9;
@@ -73,6 +81,7 @@ struct EditorState {
 static EditorState E;
 static std::vector<UIButton> g_buttons; // cached buttons built after init
 static EditorAction g_lastAction = EditorAction::None; // set by button lambdas needing a return
+static size_t g_pasteIndex = (size_t)-1; // index into g_buttons for disabled state toggling
 
 // Map BrickType id (0..COUNT-1) to editor atlas index (e_*). Falls back to normal if missing.
 static int editor_atlas_index(int brickId) {
@@ -238,6 +247,55 @@ static void ui_autosize_button(UIButton &btn, int padding = 12) {
 
 // Forward decl for name edit (used in button lambda)
 static void edit_level_name();
+// Copy/Paste helpers
+static bool editor_copy_exists();
+static bool editor_do_copy();
+static bool editor_do_paste();
+static const char* editor_copy_path() { return "sdmc:/ballistica/editor_copy.bin"; }
+
+// ---------- Copy/Paste implementation --------------------------------------
+static bool file_exists(const char* path) {
+    struct stat st{}; return stat(path, &st) == 0;
+}
+static bool editor_copy_exists() {
+    return file_exists(editor_copy_path());
+}
+static bool editor_do_copy() {
+    // Write a minimal binary blob with header and bricks only
+    const char* path = editor_copy_path();
+    FILE* f = fopen(path, "wb");
+    if(!f) { hw_log("copy: open fail\n"); return false; }
+    uint32_t magic = 0x43505931; // 'CPY1'
+    uint32_t w = (uint32_t)levels_grid_width();
+    uint32_t h = (uint32_t)levels_grid_height();
+    fwrite(&magic,1,4,f); fwrite(&w,1,4,f); fwrite(&h,1,4,f);
+    for(int r=0;r<(int)h;++r) for(int c=0;c<(int)w;++c) {
+        uint8_t b = (uint8_t)levels_edit_get_brick(E.curLevel,c,r);
+        fwrite(&b,1,1,f);
+    }
+    fclose(f);
+    // Ensure Paste button becomes enabled immediately
+    if (g_pasteIndex != (size_t)-1 && g_pasteIndex < g_buttons.size()) g_buttons[g_pasteIndex].enabled = true;
+    return true;
+}
+static bool editor_do_paste() {
+    const char* path = editor_copy_path();
+    FILE* f = fopen(path, "rb");
+    if(!f) { hw_log("paste: open fail\n"); return false; }
+    uint32_t magic=0,w=0,h=0; if(fread(&magic,1,4,f)!=4||fread(&w,1,4,f)!=4||fread(&h,1,4,f)!=4) { fclose(f); hw_log("paste: header read fail\n"); return false; }
+    if(magic != 0x43505931) { fclose(f); hw_log("paste: bad magic\n"); return false; }
+    int gw = levels_grid_width(); int gh = levels_grid_height();
+    if((int)w != gw || (int)h != gh) { fclose(f); hw_log("paste: size mismatch\n"); return false; }
+    // Push undo snapshot of current layout
+    push_undo_clear(E.curLevel);
+    // Read bricks and apply
+    for(int r=0;r<gh;++r) for(int c=0;c<gw;++c) {
+        uint8_t b=0; if(fread(&b,1,1,f)!=1) { fclose(f); hw_log("paste: data short\n"); return false; }
+        levels_edit_set_brick(E.curLevel,c,r,(int)b);
+    }
+    fclose(f);
+    return true;
+}
 
 // Forward helpers -------------------------------------------------------------
 static void init_if_needed() {
@@ -273,7 +331,22 @@ static void init_if_needed() {
         int gw = levels_grid_width(); int gh = levels_grid_height();
         for (int r = 0; r < gh; ++r) for (int c = 0; c < gw; ++c) levels_edit_set_brick(E.curLevel, c, r, 0);
     }; g_buttons.push_back(b);
+    // Undo button (placed first so we can compute relative positions for Paste/Copy)
     b = {}; b.x=UndoBtnX; b.y=UndoBtnY; b.w=UndoBtnW; b.h=UndoBtnH; b.label="Undo"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){ sound::play_sfx("menu-click", 4, 1.0f, true); perform_undo(); }; g_buttons.push_back(b);
+    int nextX = g_buttons.back().x - CopyPasteGap; // start gap to the left of Undo
+    // Place Paste to the left of Undo
+    b = {}; b.w=PasteBtnW; b.h=PasteBtnH; b.label="Paste"; b.color=C2D_Color32(95,75,135,180); ui_autosize_button(b);
+    b.y = PasteBtnY; b.x = nextX - b.w; // align to the left of the gap
+    b.enabled = editor_copy_exists();
+    b.onTap=[](){ if(editor_copy_exists()) { if(editor_do_paste()) { sound::play_sfx("menu-click", 4, 1.0f, true); } } };
+    g_buttons.push_back(b);
+    g_pasteIndex = g_buttons.size() - 1;
+    // Place Copy to the left of Paste
+    nextX = g_buttons.back().x - CopyPasteGap;
+    b = {}; b.w=CopyBtnW; b.h=CopyBtnH; b.label="Copy"; b.color=C2D_Color32(95,75,135,180); ui_autosize_button(b);
+    b.y = CopyBtnY; b.x = nextX - b.w;
+    b.onTap=[](){ if(editor_do_copy()) { sound::play_sfx("menu-click", 4, 1.0f, true); } };
+    g_buttons.push_back(b);
     b = {}; b.x=ExitBtnX; b.y=ExitBtnY; b.w=ExitBtnW; b.h=ExitBtnH; b.label="Exit"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){
         sound::play_sfx("menu-click", 4, 1.0f, true);
         persist_current_level();
@@ -304,6 +377,8 @@ static void edit_level_name() {
 
 EditorAction update(const InputState &in) {
     init_if_needed();
+    // Keep Paste button enabled state synced to presence of copy file
+    if (g_pasteIndex != (size_t)-1 && g_pasteIndex < g_buttons.size()) g_buttons[g_pasteIndex].enabled = editor_copy_exists();
     // Support drag-paint across the grid while touching.
     // Only trigger palette/buttons on press to avoid repeat firing while dragging.
     int x = in.stylusX, y = in.stylusY;
@@ -446,6 +521,8 @@ EditorAction update(const InputState &in) {
 // Rendering -------------------------------------------------------------------
 void render() {
     init_if_needed();
+    // Sync Paste button enabled state every frame (in case copy file added/removed externally)
+    if (g_pasteIndex != (size_t)-1 && g_pasteIndex < g_buttons.size()) g_buttons[g_pasteIndex].enabled = editor_copy_exists();
     // Background (reuse DESIGNER sheet if present, fallback in caller earlier if needed)
     C2D_Image img = hw_image_from(HwSheet::Designer, DESIGNER_idx);
     if (img.tex) hw_draw_sprite(img, 0, 0);
