@@ -35,10 +35,23 @@ static int selectedIndex = 0; // mirrors dropdown.selectedIndex
 static std::string pendingFile; // highlight choice not yet saved
 static char duplicateName[9] = {0};
 static UIDropdown dropdown; // widget instance
+static UIDropdown deviceDD; // device type dropdown
+static std::vector<std::string> deviceItems = {"Emulator", "3DS", "3DS XL"};
 static std::vector<UIButton> buttons; // NAME, DUPLICATE, CANCEL, SAVE
 static bool musicEnabled = true; // default to playing music
+// Device selection controls hinge gap. Default: 3DS
+static DeviceType currentDevice = DeviceType::ThreeDS;
 
 bool is_music_enabled() { return musicEnabled; }
+DeviceType device_type() { return currentDevice; }
+int hinge_gap_px() {
+    switch (currentDevice) {
+        case DeviceType::Emulator: return 0;
+        case DeviceType::ThreeDS: return 52;
+        case DeviceType::ThreeDSXL: return 68;
+    }
+    return 52;
+}
 
 void load_settings() {
     FILE* f = fopen("sdmc:/ballistica/options.cfg", "rb");
@@ -48,6 +61,10 @@ void load_settings() {
         if (strcmp(key, "music") == 0) {
             if (strcmp(val, "0") == 0 || strcasecmp(val, "false") == 0 || strcasecmp(val, "off") == 0) musicEnabled = false;
             else musicEnabled = true;
+        } else if (strcmp(key, "device") == 0) {
+            if (strcasecmp(val, "emulator") == 0) currentDevice = DeviceType::Emulator;
+            else if (strcasecmp(val, "3dsxl") == 0 || strcasecmp(val, "3ds_xl") == 0 || strcasecmp(val, "3ds-xl") == 0) currentDevice = DeviceType::ThreeDSXL;
+            else currentDevice = DeviceType::ThreeDS; // default
         }
     }
     fclose(f);
@@ -59,6 +76,10 @@ void save_settings() {
     FILE* f = fopen("sdmc:/ballistica/options.cfg", "wb");
     if (!f) return;
     fprintf(f, "music=%s\n", musicEnabled ? "1" : "0");
+    const char* devStr = (currentDevice == DeviceType::Emulator) ? "emulator"
+                        : (currentDevice == DeviceType::ThreeDSXL) ? "3dsxl"
+                        : "3ds";
+    fprintf(f, "device=%s\n", devStr);
     fclose(f);
 }
 
@@ -106,6 +127,36 @@ void begin() {
     b={}; b.x=ui::DUP_X; b.y=ui::DUP_Y; b.w=ui::DUP_W; b.h=ui::DUP_H; b.label="DUPLICATE"; b.color=C2D_Color32(60,40,40,255); b.onTap=[](){ duplicate_file(); }; buttons.push_back(b);
     b={}; b.x=ui::CANCEL_X; b.y=ui::CANCEL_Y; b.w=ui::BTN_W; b.h=ui::BTN_H; b.label="CANCEL"; b.color=C2D_Color32(50,30,30,255); buttons.push_back(b);
     b={}; b.x=ui::SAVE_X; b.y=ui::SAVE_Y; b.w=ui::BTN_W; b.h=ui::BTN_H; b.label="SAVE"; b.color=C2D_Color32(30,50,30,255); buttons.push_back(b);
+    // Initialize Device Type dropdown to the right of the label
+    {
+        const char* label = "Device Type:";
+        int labelX = ui::MUSIC_LABEL_X;
+        int labelY = ui::MUSIC_LABEL_Y + 24;
+        int labelW = hw_text_width(label);
+        deviceDD = {};
+        deviceDD.x = labelX + labelW + 8; // right of label
+        deviceDD.y = labelY - 6;          // align header vertically with text
+        deviceDD.w = 120;
+        deviceDD.h = ui::DD_H;
+        deviceDD.itemHeight = ui::ITEM_H;
+        deviceDD.maxVisible = 3;
+        deviceDD.headerColor = C2D_Color32(40,40,60,255);
+        deviceDD.arrowColor  = C2D_Color32(55,55,85,255);
+        deviceDD.listBgColor = C2D_Color32(30,30,50,255);
+        deviceDD.itemColor   = C2D_Color32(50,50,80,255);
+        deviceDD.itemSelColor= C2D_Color32(70,70,110,255);
+        ui_dropdown_set_items(deviceDD, deviceItems);
+        // Map currentDevice to index
+        int idx = 1; // default 3DS
+        if (currentDevice == DeviceType::Emulator) idx = 0;
+        else if (currentDevice == DeviceType::ThreeDSXL) idx = 2;
+        deviceDD.selectedIndex = idx;
+        deviceDD.onSelect = [](int sel){
+            if (sel <= 0) currentDevice = DeviceType::Emulator;
+            else if (sel == 1) currentDevice = DeviceType::ThreeDS;
+            else currentDevice = DeviceType::ThreeDSXL;
+        };
+    }
 }
 
 static void duplicate_file() {
@@ -141,7 +192,9 @@ Action update(const InputState &in) {
 
     bool consumed=false;
     ui_dropdown_update(dropdown, in, consumed);
-    if (consumed) return Action::None; // dropdown handled tap
+    if (consumed) return Action::None; // level file dropdown handled tap
+    ui_dropdown_update(deviceDD, in, consumed);
+    if (consumed) return Action::None; // device dropdown handled tap
 
     if (in.touchPressed) {
         int x=in.stylusX, y=in.stylusY;
@@ -170,6 +223,7 @@ Action update(const InputState &in) {
                 return Action::None;
             }
         }
+        // Device Type selection is handled by device dropdown; no tap-to-cycle region needed now.
         for(size_t i=0;i<buttons.size();++i) {
             if (buttons[i].contains(x,y)) {
                 // Determine button semantics before trigger (in case of cancel/save we return action)
@@ -221,8 +275,26 @@ void render() {
             C2D_DrawRectSolid(bx+3, by+3, 0, ui::MUSIC_SZ-6, ui::MUSIC_SZ-6, fillCol);
         }
     }
+    // Device Type selector row: label + dropdown to the right
+    {
+        const char* label = "Device Type:";
+        int labelX = ui::MUSIC_LABEL_X;
+        int labelY = ui::MUSIC_LABEL_Y + 24;
+        hw_draw_text(labelX, labelY, label, 0xFFFFFFFF);
+        // Draw the dropdown header/list
+        ui_dropdown_render(deviceDD);
+    }
     // Render dropdown last to guarantee its expanded list overlays buttons beneath.
-    ui_dropdown_render(dropdown);
+    // Prefer to render the dropdown that is currently open last.
+    if (dropdown.open && !deviceDD.open) {
+        ui_dropdown_render(dropdown);
+    } else if (deviceDD.open && !dropdown.open) {
+        ui_dropdown_render(dropdown);
+        ui_dropdown_render(deviceDD);
+    } else {
+        ui_dropdown_render(dropdown);
+        ui_dropdown_render(deviceDD);
+    }
 }
 
 } // namespace options
