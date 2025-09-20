@@ -23,7 +23,7 @@ PLATFORM_UPPER := $(shell echo $(PLATFORM) | tr a-z A-Z)
 # GRAPHICS is a list of directories containing graphics files
 # GFXBUILD is the directory where converted graphics files will be placed
 #---------------------------------------------------------------------------------
-TARGET		:=	$(notdir $(CURDIR))
+TARGET		:=	Ballistica
 BUILD		:=	build
 SOURCES		:=	source \
 				source/platform/$(PLATFORM)   # pick exactly one platform dir
@@ -35,8 +35,16 @@ ROMFS		:=	romfs
 FFMPEG ?= ffmpeg
 #GFXBUILD	:=	$(ROMFS)/gfx
 
+# SMDH metadata (used by Homebrew Launcher)
+APP_TITLE       := Ballistica
+APP_DESCRIPTION := Arcade brick-breaker
+APP_AUTHOR      := Steddy
+
+# Icon for SMDH (48x48 PNG)
+APP_ICON        := $(TOPDIR)/icon.png
+
 # --- Audio auto-conversion (48kHz -> 32kHz PCM16 into ROMFS) ---
-AUDIO48_DIR    := 48khz
+AUDIO48_DIR    := sounds
 AUDIOROMFS_DIR := $(ROMFS)/audio
 AUDIO48_WAVS   = $(wildcard $(AUDIO48_DIR)/*.wav)
 AUDIO32_WAVS   = $(patsubst $(AUDIO48_DIR)/%.wav,$(AUDIOROMFS_DIR)/%.wav,$(AUDIO48_WAVS))
