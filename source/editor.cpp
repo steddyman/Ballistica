@@ -340,8 +340,7 @@ void render() {
         for (int r = 0; r < gh; ++r) {
             for (int c = 0; c < gw; ++c) {
                 int raw = levels_edit_get_brick(E.curLevel, c, r);
-                if (raw <= 0) continue;
-                int atlas = editor_atlas_index(raw);
+                int atlas = editor_atlas_index(raw <= 0 ? (int)BrickType::NB : raw);
                 if (atlas < 0) continue;
                 hw_draw_sprite(hw_image(atlas), (float)(ls + c * cw), (float)(ts + r * ch));
             }
