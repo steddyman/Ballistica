@@ -74,7 +74,7 @@ namespace game
     // (Editor UI constants moved to editor.cpp)
     // Fixed geometry (design guarantees these never change now)
     static constexpr int kBrickCols = 13;
-    static constexpr int kBrickRows = 11;
+    static constexpr int kBrickRows = 13;
     // Brick cell size is sourced from levels.cpp getters; keep constants only as defaults.
     static constexpr int kBrickW = 16;
     static constexpr int kBrickH = 9;
