@@ -37,7 +37,7 @@ namespace levels {
     static const int EditCellH = 9;
     // Editor grid origin (independent from gameplay). Default to horizontal centering for 16x9 cells.
     static constexpr int EDIT_LEFTSTART = 28; // Based on background art grid
-    static const int EDIT_TOPSTART = 18; // align with background art baseline
+    static const int EDIT_TOPSTART = 25; // align with background art baseline
 
     static const char* kSdDir = "sdmc:/ballistica";
     static const char* kLevelsSubDir = "sdmc:/ballistica/levels";
@@ -93,7 +93,7 @@ namespace levels {
         {IMAGE_laser_brick_idx},
         {IMAGE_murderball_brick_idx},
         {IMAGE_bonus_brick_idx},
-    {IMAGE_fivehit_brick1_idx},
+        {IMAGE_fivehit_brick1_idx},
         {IMAGE_bomb_brick_idx},
         {IMAGE_offswitch_brick_idx},
         {IMAGE_onswitch_brick_idx},

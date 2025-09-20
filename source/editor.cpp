@@ -22,32 +22,32 @@ namespace ui {
     // Button heights increased from 9->11 to add 1px extra padding top & bottom around text
     constexpr int NameBtnX=28,   NameBtnY=7,   NameBtnW=22, NameBtnH=11;
     constexpr int TestBtnX=106,  TestBtnY=220, TestBtnW=40, TestBtnH=11;
-    constexpr int ClearBtnX=106, ClearBtnY=177, ClearBtnW=21, ClearBtnH=11;
-    constexpr int UndoBtnX=202,  UndoBtnY=146,  UndoBtnW=21, UndoBtnH=11; // new Undo button
-    constexpr int ExitBtnX=106,   ExitBtnY=193, ExitBtnW=18, ExitBtnH=11;
-    constexpr int LevelMinusX=201, LevelMinusY=180; constexpr int LevelPlusX=229, LevelPlusY=180; constexpr int LevelBtnW=10, LevelBtnH=9;
-    constexpr int SpeedMinusX=201, SpeedMinusY=196; constexpr int SpeedPlusX=229, SpeedPlusY=196; constexpr int SpeedBtnW=10, SpeedBtnH=9;
+    constexpr int ClearBtnX=106, ClearBtnY=184, ClearBtnW=21, ClearBtnH=11;
+    constexpr int UndoBtnX=202,  UndoBtnY=153,  UndoBtnW=21, UndoBtnH=11; // new Undo button
+    constexpr int ExitBtnX=106,   ExitBtnY=200, ExitBtnW=18, ExitBtnH=11;
+    constexpr int LevelMinusX=201, LevelMinusY=187; constexpr int LevelPlusX=229, LevelPlusY=187; constexpr int LevelBtnW=10, LevelBtnH=9;
+    constexpr int SpeedMinusX=201, SpeedMinusY=203; constexpr int SpeedPlusX=229, SpeedPlusY=203; constexpr int SpeedBtnW=10, SpeedBtnH=9;
     // Palette origin
     constexpr int PaletteX=260, PaletteY=52;
     // Labels
     constexpr int LabelNameX=70, LabelNameY=10;
     constexpr int LabelTestX=TestBtnX, LabelTestY=TestBtnY;
-    constexpr int LabelClearX=28, LabelClearY=180;
-    constexpr int LabelExitX=28, LabelExitY=196;
+    constexpr int LabelClearX=28, LabelClearY=187;
+    constexpr int LabelExitX=28, LabelExitY=203;
     constexpr int LabelLevelMinusX=146, LabelLevelMinusY=LevelMinusY+1;
     constexpr int LabelLevelPlusX=LevelPlusX+1, LabelLevelPlusY=LevelPlusY+1;
     constexpr int LabelSpeedMinusX=146, LabelSpeedMinusY=SpeedMinusY+1;
     constexpr int LabelSpeedPlusX=SpeedPlusX+1, LabelSpeedPlusY=SpeedPlusY+1;
     // HUD text/value positions (previously hard-coded literals in render())
-    constexpr int LabelLevelTextX=161, LabelLevelTextY=180;
-    constexpr int LabelSpeedTextX=161, LabelSpeedTextY=196;
-    constexpr int ValueLevelX=213, ValueLevelY=180;
-    constexpr int ValueSpeedX=213, ValueSpeedY=196;
+    constexpr int LabelLevelTextX=161, LabelLevelTextY=187;
+    constexpr int LabelSpeedTextX=161, LabelSpeedTextY=203;
+    constexpr int ValueLevelX=213, ValueLevelY=187;
+    constexpr int ValueSpeedX=213, ValueSpeedY=203;
     // Current brick/effect info
-    constexpr int CurrentBrickSpriteX=116, CurrentBrickSpriteY=146;
-    constexpr int LabelCurrentBrickX=28, LabelCurrentBrickY=148;
-    constexpr int LabelEffectX=28, LabelEffectY=164;
-    constexpr int ValueEffectX=82, ValueEffectY=164;
+    constexpr int CurrentBrickSpriteX=116, CurrentBrickSpriteY=153;
+    constexpr int LabelCurrentBrickX=28, LabelCurrentBrickY=155;
+    constexpr int LabelEffectX=28, LabelEffectY=171;
+    constexpr int ValueEffectX=82, ValueEffectY=171;
     // Exit hint footer
     // constexpr int ExitHintX=10, ExitHintY=230;
     // Fade overlay level name
