@@ -14,15 +14,22 @@ void ui_draw_button(const UIButton &btn, bool pressed) {
         if (na > 255) na = 255;
         a = (uint8_t)na;
     }
-    if (pressed) { // darken slightly
+    if (!btn.enabled) {
+        // Desaturate and dim when disabled
+        uint8_t gray = (uint8_t)((r*30 + g*59 + b*11) / 100);
+        r = g = b = gray;
+        a = (uint8_t)(a * 0.6f);
+    } else if (pressed) { // darken slightly
         r = (uint8_t)(r*0.7f); g=(uint8_t)(g*0.7f); b=(uint8_t)(b*0.7f);
     }
     C2D_DrawRectSolid(btn.x, btn.y, 0, btn.w, btn.h, C2D_Color32(r,g,b,a));
     if (btn.label)
-        hw_draw_text(btn.x + 6, btn.y + (btn.h/2 - 2), btn.label, 0xFFFFFFFF); // shifted down 1px for balanced padding
+        hw_draw_text(btn.x + 6, btn.y + (btn.h/2 - 2), btn.label, btn.enabled ? 0xFFFFFFFF : C2D_Color32(220,220,220,200)); // lighter when disabled
     // simple border
-    C2D_DrawRectSolid(btn.x, btn.y, 0, btn.w, 1, C2D_Color32(255,255,255,40));
-    C2D_DrawRectSolid(btn.x, btn.y+btn.h-1, 0, btn.w, 1, C2D_Color32(0,0,0,120));
-    C2D_DrawRectSolid(btn.x, btn.y, 0, 1, btn.h, C2D_Color32(255,255,255,40));
-    C2D_DrawRectSolid(btn.x+btn.w-1, btn.y, 0, 1, btn.h, C2D_Color32(0,0,0,120));
+    uint32_t topL = btn.enabled ? C2D_Color32(255,255,255,40) : C2D_Color32(255,255,255,20);
+    uint32_t botR = btn.enabled ? C2D_Color32(0,0,0,120) : C2D_Color32(0,0,0,60);
+    C2D_DrawRectSolid(btn.x, btn.y, 0, btn.w, 1, topL);
+    C2D_DrawRectSolid(btn.x, btn.y+btn.h-1, 0, btn.w, 1, botR);
+    C2D_DrawRectSolid(btn.x, btn.y, 0, 1, btn.h, topL);
+    C2D_DrawRectSolid(btn.x+btn.w-1, btn.y, 0, 1, btn.h, botR);
 }
