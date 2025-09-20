@@ -2284,8 +2284,7 @@ namespace game
                     int atlas = levels_atlas_index(raw);
                     if (atlas < 0)
                         continue;
-                    float y = ts + r * ch; // clear original cell to avoid ghost
-                    C2D_DrawRectSolid(ls + c * cw, y, 0, cw, ch, C2D_Color32(0, 0, 0, 255));
+                    float y = ts + r * ch;
                     // Compute world-space X and clamp within world-space bounds, then convert to draw-space
                     int offX = levels_get_draw_offset(); // should be kTopXOffset here
                     float worldLeft = (float)(ls - offX);
