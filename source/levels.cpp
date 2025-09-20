@@ -20,7 +20,7 @@
 namespace levels {
     // Geometry constants
     static const int BricksX=13;
-    static const int BricksY=11;
+    static const int BricksY=13;
     static const int NumBricks = BricksX*BricksY;    // 143 bricks
     // Gameplay grid origin (affects in-game brick rendering/collisions)
     // Center horizontally based on configured brick width and number of columns
@@ -224,8 +224,18 @@ namespace levels {
                 // starting a new level: commit previous if valid
                 int lvNum=0; if(fscanf(f, "%d", &lvNum)!=1) { hw_log("LEVEL missing number\n"); break; }
                 if(inLevel) {
-                    if((int)cur.bricks.size()==NumBricks) g_levels.push_back(cur);
-                    else {
+                    // Accept legacy 13x11 (143) by padding to 13x13 with NB rows
+                    if((int)cur.bricks.size()==NumBricks) {
+                        g_levels.push_back(cur);
+                    } else if ((int)cur.bricks.size()==13*11) {
+                        // pad with NB (and hp=0) to reach 13*13
+                        cur.bricks.resize(NumBricks, (uint8_t)BrickType::NB);
+                        cur.hp.resize(NumBricks, 0);
+                        // snapshot originals
+                        cur.origBricks = cur.bricks;
+                        cur.origHp = cur.hp;
+                        g_levels.push_back(cur);
+                    } else {
                         char dbg[64]; snprintf(dbg,sizeof dbg,"level %d incomplete (%d bricks)\n", (int)g_levels.size()+1, (int)cur.bricks.size()); hw_log(dbg);
                     }
                 }
@@ -266,7 +276,17 @@ namespace levels {
                 }
             }
         }
-        if(inLevel && (int)cur.bricks.size()==NumBricks) g_levels.push_back(cur);
+        if(inLevel) {
+            if((int)cur.bricks.size()==NumBricks) {
+                g_levels.push_back(cur);
+            } else if((int)cur.bricks.size()==13*11) {
+                cur.bricks.resize(NumBricks, (uint8_t)BrickType::NB);
+                cur.hp.resize(NumBricks, 0);
+                cur.origBricks = cur.bricks;
+                cur.origHp = cur.hp;
+                g_levels.push_back(cur);
+            }
+        }
         if(!g_levels.empty()) {
             g_loaded = true;
             char buf[64]; snprintf(buf,sizeof buf,"levels parsed:%d\n", (int)g_levels.size()); hw_log(buf);
@@ -333,9 +353,9 @@ namespace levels {
 
 bool levels_damage_brick(int c,int r) {
     if(g_levels.empty()) return false;
-    if(c<0||c>=13||r<0||r>=11) return false;
+    if(c<0||c>=BricksX||r<0||r>=BricksY) return false;
     auto &L = g_levels[g_currentLevel];
-    int idx=r*13+c;
+    int idx=r*BricksX+c;
     if(idx >= (int)L.bricks.size()) return false;
     int type = L.bricks[idx];
     if(!type) return false;
@@ -366,9 +386,9 @@ bool levels_damage_brick(int c,int r) {
 
 int levels_brick_hp(int c,int r) {
     if(g_levels.empty()) return 0;
-    if(c<0||c>=13||r<0||r>=11) return 0;
+    if(c<0||c>=BricksX||r<0||r>=BricksY) return 0;
     auto &L = g_levels[g_currentLevel];
-    int idx=r*13+c;
+    int idx=r*BricksX+c;
     if(idx >= (int)L.bricks.size()) return 0;
     if(L.hp.size()!=L.bricks.size()) {
         return (L.bricks[idx]==(int)BrickType::T5)?5: (L.bricks[idx]==0||L.bricks[idx]==(int)BrickType::ID?0:1);
@@ -378,9 +398,9 @@ int levels_brick_hp(int c,int r) {
 
 int levels_explode_bomb(int c,int r, std::vector<DestroyedBrick>* outDestroyed) {
     if(g_levels.empty()) return 0;
-    if(c<0||c>=13||r<0||r>=11) return 0;
+    if(c<0||c>=BricksX||r<0||r>=BricksY) return 0;
     auto &L = g_levels[g_currentLevel];
-    int idx=r*13+c;
+    int idx=r*BricksX+c;
     if(idx >= (int)L.bricks.size()) return 0;
     int type = L.bricks[idx];
     if(type != (int)BrickType::BO) return 0;
@@ -391,8 +411,8 @@ int levels_explode_bomb(int c,int r, std::vector<DestroyedBrick>* outDestroyed) 
         std::pair<int,int> pr = stack.back();
         stack.pop_back();
         int cc = pr.first; int rr = pr.second;
-        if(cc<0||cc>=13||rr<0||rr>=11) continue;
-        int i = rr*13+cc;
+        if(cc<0||cc>=BricksX||rr<0||rr>=BricksY) continue;
+        int i = rr*BricksX+cc;
         if(i >= (int)L.bricks.size()) continue;
         int t = L.bricks[i];
         if(!t) continue;
@@ -498,8 +518,8 @@ void levels_render() { levels::renderBricks(); }
 int levels_count() { return (int)levels::g_levels.size(); }
 int levels_current() { return levels::g_currentLevel; }
 bool levels_set_current(int idx) { if(idx>=0 && idx < (int)levels::g_levels.size()) { levels::g_currentLevel = idx; return true; } return false; }
-int levels_grid_width() { return 13; }
-int levels_grid_height() { return 11; }
+int levels_grid_width() { using namespace levels; return BricksX; }
+int levels_grid_height() { using namespace levels; return BricksY; }
 int levels_left() { return levels::left_with_offset(); }
 int levels_top() { return levels::top_with_offset(); }
 int levels_edit_left() { using namespace levels; return edit_left(); }
@@ -508,8 +528,8 @@ int levels_brick_width() { return levels::CellW; }
 int levels_brick_height() { return levels::CellH; }
 int levels_edit_brick_width() { return levels::EditCellW; }
 int levels_edit_brick_height() { return levels::EditCellH; }
-int levels_brick_at(int c,int r) { if(levels::g_levels.empty()) return -1; if(c<0||c>=13||r<0||r>=11) return -1; const auto &L = levels::g_levels[levels::g_currentLevel]; int idx=r*13+c; if(idx >= (int)L.bricks.size()) return -1; return (int)L.bricks[idx]; }
-void levels_remove_brick(int c,int r) { if(levels::g_levels.empty()) return; if(c<0||c>=13||r<0||r>=11) return; auto &L = levels::g_levels[levels::g_currentLevel]; int idx=r*13+c; if(idx >= (int)L.bricks.size()) return; L.bricks[idx]=0; if(L.hp.size()==L.bricks.size()) L.hp[idx]=0; }
+int levels_brick_at(int c,int r) { if(levels::g_levels.empty()) return -1; using namespace levels; if(c<0||c>=BricksX||r<0||r>=BricksY) return -1; const auto &L = levels::g_levels[levels::g_currentLevel]; int idx=r*BricksX+c; if(idx >= (int)L.bricks.size()) return -1; return (int)L.bricks[idx]; }
+void levels_remove_brick(int c,int r) { if(levels::g_levels.empty()) return; using namespace levels; if(c<0||c>=BricksX||r<0||r>=BricksY) return; auto &L = levels::g_levels[levels::g_currentLevel]; int idx=r*BricksX+c; if(idx >= (int)L.bricks.size()) return; L.bricks[idx]=0; if(L.hp.size()==L.bricks.size()) L.hp[idx]=0; }
 int levels_remaining_breakable() { return levels::levels_remaining_breakable(); }
 bool levels_damage_brick(int c,int r) { return levels::levels_damage_brick(c,r); }
 int levels_brick_hp(int c,int r) { return levels::levels_brick_hp(c,r); }
