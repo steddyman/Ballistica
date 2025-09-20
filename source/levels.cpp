@@ -411,8 +411,8 @@ int levels_explode_bomb(int c,int r, std::vector<DestroyedBrick>* outDestroyed) 
         std::pair<int,int> pr = stack.back();
         stack.pop_back();
         int cc = pr.first; int rr = pr.second;
-        if(cc<0||cc>=13||rr<0||rr>=11) continue;
-        int i = rr*13+cc;
+        if(cc<0||cc>=BricksX||rr<0||rr>=BricksY) continue;
+        int i = rr*BricksX+cc;
         if(i >= (int)L.bricks.size()) continue;
         int t = L.bricks[i];
         if(!t) continue;
