@@ -7,6 +7,7 @@
 #include "game.hpp"
 #include "sound.hpp"
 #include "options.hpp"
+#include "INSTRUCT.h"
 
 int main(int argc, char** argv) {
     if(!hw_init()) return -1;
@@ -57,13 +58,17 @@ int main(int argc, char** argv) {
             continue;
         }
     if(gm == GameMode::Editor) {
-            // Editor should live on the bottom screen for touch drawing
-            // Clear top (optional placeholder/instructions)
+            // Editor lives on the bottom screen for touch drawing.
+            // Top: show INSTRUCT.png (same as main menu) while the editor is open.
             hw_set_top();
             C2D_DrawRectSolid(0,0,0,400,240,C2D_Color32(0,0,0,255));
-            hw_draw_text(8,8,"Level Editor (touch to draw)",0xFFFFFFFF);
+            if (hw_sheet_loaded(HwSheet::Instruct)) {
+                C2D_Image instruct = hw_image_from(HwSheet::Instruct, INSTRUCT_idx);
+                // Draw at its natural top-screen position (image is designed for top)
+                hw_draw_sprite(instruct, 0, 0, 0, 1.0f, 1.0f);
+            }
             if(showTopLogs) hw_draw_logs(4,40,200);
-            // Render editor on bottom
+            // Bottom: editor UI
             hw_set_bottom();
             C2D_DrawRectSolid(0,0,0,320,240,C2D_Color32(0,0,0,255));
             game_render();
