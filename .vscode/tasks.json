@@ -90,6 +90,18 @@
 			"type": "shell",
 			"command": "make -s",
 			"group": "build"
+		},
+		{
+			"label": "Build (make)",
+			"type": "shell",
+			"command": "make -s",
+			"group": "build"
+		},
+		{
+			"label": "Build (make)",
+			"type": "shell",
+			"command": "make -s",
+			"group": "build"
 		}
 	]
 }
