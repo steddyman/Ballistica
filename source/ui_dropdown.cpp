@@ -18,38 +18,43 @@ UIDropdownEvent ui_dropdown_update(UIDropdown &dd, const InputState &in, bool &t
         return UIDropdownEvent::None;
     }
     if (!dd.open) return UIDropdownEvent::None;
-    // Click inside list overlay
+    // Click inside list overlay (support opening upwards if not enough space below)
     bool scrolling = items.size() > (size_t)dd.maxVisible;
-    int listY = dd.y + dd.h;
-    int overlayH = scrolling ? (dd.maxVisible + 2) * dd.itemHeight : (int)items.size() * dd.itemHeight;
+    // Use same tightened item height as renderer
+    int itemH = dd.itemHeight - 2; if (itemH < 12) itemH = dd.itemHeight;
+    int screenH = 240;
+    int rows = scrolling ? (dd.maxVisible + 2) : (int)items.size();
+    int overlayH = rows * itemH;
+    bool openUp = (dd.y + dd.h + overlayH > screenH) && (dd.y - overlayH >= 0);
+    int listY = openUp ? (dd.y - overlayH) : (dd.y + dd.h);
     if (x>=dd.x && x<dd.x+dd.w && y>=listY && y<listY+overlayH) {
         touchConsumed = true;
         if (scrolling) {
             int topArrowY = listY;
-            int itemsY0 = topArrowY + dd.itemHeight;
-            int itemsY1 = itemsY0 + dd.maxVisible * dd.itemHeight;
+            int itemsY0 = topArrowY + itemH;
+            int itemsY1 = itemsY0 + dd.maxVisible * itemH;
             int bottomArrowY = itemsY1;
-            if (y >= topArrowY && y < topArrowY + dd.itemHeight) {
+            if (y >= topArrowY && y < topArrowY + itemH) {
                 if (dd.scrollOffset>0) {
                     dd.scrollOffset--;
                 }
                 return UIDropdownEvent::None;
             }
-            if (y >= bottomArrowY && y < bottomArrowY + dd.itemHeight) {
+            if (y >= bottomArrowY && y < bottomArrowY + itemH) {
                 if (dd.scrollOffset + dd.maxVisible < (int)items.size()) {
                     dd.scrollOffset++;
                 }
                 return UIDropdownEvent::None;
             }
             if (y >= itemsY0 && y < itemsY1) {
-                int rel = (y - itemsY0) / dd.itemHeight;
+                int rel = (y - itemsY0) / itemH;
                 int idx = dd.scrollOffset + rel;
                 if (idx>=0 && idx < (int)items.size()) { dd.selectedIndex=idx; dd.open=false; if(dd.onSelect) dd.onSelect(idx); return UIDropdownEvent::SelectionChanged; }
                 dd.open=false; return UIDropdownEvent::None;
             }
             dd.open=false; return UIDropdownEvent::None;
         } else { // non scrolling
-            int rel = (y - listY) / dd.itemHeight;
+            int rel = (y - listY) / itemH;
             int idx = rel;
             if (idx>=0 && idx < (int)items.size()) { dd.selectedIndex=idx; dd.open=false; if(dd.onSelect) dd.onSelect(idx); return UIDropdownEvent::SelectionChanged; }
             dd.open=false; return UIDropdownEvent::None;
@@ -62,20 +67,27 @@ UIDropdownEvent ui_dropdown_update(UIDropdown &dd, const InputState &in, bool &t
 
 void ui_dropdown_render(const UIDropdown &dd) {
     const auto &items = dd.items? *dd.items : std::vector<std::string>{};
-    // Header
+    // Header (use dd.h for exact collapsed height)
     C2D_DrawRectSolid(dd.x, dd.y, 0, dd.w, dd.h, dd.headerColor);
     const char *label = items.empty()? "(none)" : (dd.selectedIndex >=0 && dd.selectedIndex < (int)items.size() ? items[dd.selectedIndex].c_str() : "?");
-    hw_draw_text(dd.x+8, dd.y + dd.h/2 - 4, label, 0xFFFFFFFF);
-    // Arrow box (16px)
-    int arrowBoxW=16; int arrowX=dd.x+dd.w-arrowBoxW; C2D_DrawRectSolid(arrowX, dd.y, 0, arrowBoxW, dd.h, dd.arrowColor);
+    // Vertically center text within header using dd.h
+    int textY = dd.y + dd.h/2 - 4; // 8px font height -> offset 4
+    hw_draw_text(dd.x+8, textY, label, 0xFFFFFFFF);
+    // Arrow box width scales lightly with header height; min 14px
+    int arrowBoxW = dd.h + 3; if (arrowBoxW < 14) arrowBoxW = 14; int arrowX=dd.x+dd.w-arrowBoxW; C2D_DrawRectSolid(arrowX, dd.y, 0, arrowBoxW, dd.h, dd.arrowColor);
     int triH=7; int triW=1+(triH-1)*2; if (triW>11) triW=11; int triCx = arrowX + arrowBoxW/2; int midY = dd.y + dd.h/2; uint32_t triCol = 0xC8C8E6FF;
     if (dd.open) { int apexY=midY-triH/2; for(int row=0; row<triH; ++row){ int span=1+row*2; if(span>triW) span=triW; int x0=triCx-span/2; int y=apexY+row; C2D_DrawRectSolid(x0,y,0,span,1,triCol);} }
     else { int apexY=midY+triH/2; for(int row=0; row<triH; ++row){ int span=1+row*2; if(span>triW) span=triW; int x0=triCx-span/2; int y=apexY-row; C2D_DrawRectSolid(x0,y,0,span,1,triCol);} }
     if(!dd.open) return;
     bool scrolling = items.size() > (size_t)dd.maxVisible;
-    int listY = dd.y + dd.h; int itemH = dd.itemHeight;
+    int itemH = dd.itemHeight - 2; if (itemH < 12) itemH = dd.itemHeight; // tighten but keep readable
+    int screenH = 240;
+    int rows = scrolling ? (dd.maxVisible + 2) : (int)items.size();
+    int overlayH = rows * itemH;
+    bool openUp = (dd.y + dd.h + overlayH > screenH) && (dd.y - overlayH >= 0);
+    int listY = openUp ? (dd.y - overlayH) : (dd.y + dd.h);
     if (scrolling) {
-        int h=(dd.maxVisible+2)*itemH; C2D_DrawRectSolid(dd.x, listY, 0, dd.w, h, dd.listBgColor);
+    int h=(dd.maxVisible+2)*itemH; C2D_DrawRectSolid(dd.x, listY, 0, dd.w, h, dd.listBgColor);
         // Top arrow row
         C2D_DrawRectSolid(dd.x+2, listY+2, 0, dd.w-4, itemH-4, dd.itemColor);
         hw_draw_text(dd.x+dd.w/2-12, listY+4, "UP", 0xFFFFFFFF);

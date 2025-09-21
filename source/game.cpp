@@ -1757,7 +1757,7 @@ namespace game
                 G.prevTouching = false;
                 G.mode = Mode::Playing; return; }
             if (act == editor::EditorAction::SaveAndExit) { G.mode = Mode::Title; return; }
-            if (in.selectPressed) { editor::persist_current_level(); G.mode = Mode::Title; return; }
+            if (act == editor::EditorAction::ExitNoSave) { editor::discard_unsaved_changes(); G.mode = Mode::Title; return; }
             return;
         }
 #ifdef __3DS__

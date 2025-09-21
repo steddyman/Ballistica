@@ -12,6 +12,7 @@
 #include "DESIGNER.h"
 #include "INSTRUCT.h"
 #include "ui_button.hpp"
+#include "ui_dropdown.hpp"
 // IMAGE indices include both e_* (editor) and gameplay sprites
 #include "IMAGE.h"
 #include "sound.hpp"
@@ -20,42 +21,50 @@ namespace editor {
 
 // Geometry & layout (centralized) --------------------------------------------
 namespace ui {
-    // Button rectangles
-    // Button heights increased from 9->11 to add 1px extra padding top & bottom around text
-    constexpr int NameBtnX=28,   NameBtnY=7,   NameBtnW=22, NameBtnH=11;
-    constexpr int TestBtnX=106,  TestBtnY=220, TestBtnW=40, TestBtnH=11;
-    constexpr int ClearBtnX=106, ClearBtnY=184, ClearBtnW=21, ClearBtnH=11;
-    constexpr int UndoBtnX=202,  UndoBtnY=153,  UndoBtnW=21, UndoBtnH=11; // Undo
-    // New: Copy/Paste buttons placed to the left of Undo at same Y (computed at init)
-    constexpr int PasteBtnW=28, PasteBtnH=11;
-    constexpr int CopyBtnW=24,  CopyBtnH=11;
-    constexpr int CopyPasteGap = 10; // desired gap in pixels between adjacent buttons
-    constexpr int PasteBtnY = UndoBtnY;
-    constexpr int CopyBtnY  = UndoBtnY;
-    constexpr int ExitBtnX=106,   ExitBtnY=200, ExitBtnW=18, ExitBtnH=11;
-    constexpr int LevelMinusX=201, LevelMinusY=187; constexpr int LevelPlusX=229, LevelPlusY=187; constexpr int LevelBtnW=10, LevelBtnH=9;
-    constexpr int SpeedMinusX=201, SpeedMinusY=203; constexpr int SpeedPlusX=229, SpeedPlusY=203; constexpr int SpeedBtnW=10, SpeedBtnH=9;
+    // Four-row layout on bottom screen (240px tall)
+    // Row 1 (below grid): Levels label + level-file dropdown — positioned under the grid
+    constexpr int Row1Y = 160;
+    constexpr int LevelsLabelX = 20, LevelsLabelY = Row1Y + 2;
+    constexpr int FileDD_X = LevelsLabelX + 48, FileDD_Y = Row1Y - 2, FileDD_W = 174, FileDD_H = 11;
+
+    // Row 2: Level controls then Speed controls then TEST button
+    constexpr int Row2Y = Row1Y + 20;
+    constexpr int LabelLevelTextX = 20, LabelLevelTextY = Row2Y + 2;
+    // Match previous compact spacing: labelX +40 -> '-', +12 -> value, +16 -> '+'
+    constexpr int LevelMinusX = LabelLevelTextX + 49, LevelMinusY = Row2Y + 2; constexpr int LevelPlusX = LabelLevelTextX + 77, LevelPlusY = Row2Y + 2; constexpr int LevelBtnW=10, LevelBtnH=9; // mini buttons
+    constexpr int ValueLevelX = LabelLevelTextX + 61, ValueLevelY = Row2Y + 2;
+
+    // Speed group placed after Level group with a small gap
+    constexpr int LabelSpeedTextX = LevelPlusX + 22, LabelSpeedTextY = Row2Y + 2;
+    constexpr int SpeedMinusX = LabelSpeedTextX + 42, SpeedMinusY = Row2Y + 2; constexpr int SpeedPlusX = LabelSpeedTextX + 71, SpeedPlusY = Row2Y + 2; constexpr int SpeedBtnW=10, SpeedBtnH=9;
+    constexpr int ValueSpeedX = LabelSpeedTextX + 55, ValueSpeedY = Row2Y + 2;
+    // TEST button follows Speed group with a small gap; nudge ~10px right for alignment
+    constexpr int TestBtnX = 208,  TestBtnY = Row2Y - 2, TestBtnW = 34, TestBtnH = 11;
+
+    // Row 3: Commands label + CLEAR, COPY, PASTE, UNDO
+    constexpr int Row3Y = Row2Y + 20;
+    constexpr int CommandsLabelX = 20, CommandsLabelY = Row3Y + 2;
+    constexpr int ClearBtnX= CommandsLabelX + 48, ClearBtnY=Row3Y - 2, ClearBtnW=42, ClearBtnH=11;
+    constexpr int CopyBtnY  = Row3Y - 2; constexpr int CopyBtnW=34,  CopyBtnH=11;
+    constexpr int PasteBtnY = Row3Y - 2; constexpr int PasteBtnW=40, PasteBtnH=11;
+    constexpr int UndoBtnY  = Row3Y - 2; constexpr int UndoBtnW=34,  UndoBtnH=11; // fixed width
+    constexpr int CopyPasteGap = 8; // horizontal gap between buttons
+    // Fixed X positions for Row 3 buttons (right-aligned UNDO, then PASTE, then COPY; CLEAR anchored left)
+    constexpr int UndoBtnX  = 208;
+    constexpr int CopyBtnX  = ClearBtnX + ClearBtnW + CopyPasteGap;
+    constexpr int PasteBtnX = CopyBtnX + CopyBtnW + CopyPasteGap;
+
+    // Row 4: Status label + saved/dirty indicator + SAVE + EXIT
+    constexpr int Row4Y = Row3Y + 20;
+    constexpr int StatusLabelX = 20, StatusLabelY = Row4Y + 2;
+    constexpr int StatusValueX = 80, StatusValueY = Row4Y + 2;
+    constexpr int SaveBtnX=160, SaveBtnY=Row4Y - 2, SaveBtnW=28, SaveBtnH=11;
+    constexpr int ExitBtnX=208, ExitBtnY=Row4Y - 2, ExitBtnW=28, ExitBtnH=11;
     // Palette origin
     constexpr int PaletteX=260, PaletteY=52;
     // Labels
-    constexpr int LabelNameX=70, LabelNameY=10;
-    constexpr int LabelTestX=TestBtnX, LabelTestY=TestBtnY;
-    constexpr int LabelClearX=28, LabelClearY=187;
-    constexpr int LabelExitX=28, LabelExitY=203;
-    constexpr int LabelLevelMinusX=146, LabelLevelMinusY=LevelMinusY+1;
-    constexpr int LabelLevelPlusX=LevelPlusX+1, LabelLevelPlusY=LevelPlusY+1;
-    constexpr int LabelSpeedMinusX=146, LabelSpeedMinusY=SpeedMinusY+1;
-    constexpr int LabelSpeedPlusX=SpeedPlusX+1, LabelSpeedPlusY=SpeedPlusY+1;
-    // HUD text/value positions (previously hard-coded literals in render())
-    constexpr int LabelLevelTextX=161, LabelLevelTextY=187;
-    constexpr int LabelSpeedTextX=161, LabelSpeedTextY=203;
-    constexpr int ValueLevelX=213, ValueLevelY=187;
-    constexpr int ValueSpeedX=213, ValueSpeedY=203;
-    // Current brick/effect info
-    constexpr int CurrentBrickSpriteX=66, CurrentBrickSpriteY=153;
-    constexpr int LabelCurrentBrickX=28, LabelCurrentBrickY=155;
-    constexpr int LabelEffectX=28, LabelEffectY=171;
-    constexpr int ValueEffectX=82, ValueEffectY=171;
+    // No Name footer now; labels integrated in rows above
+    // Current brick/effect info removed (using palette + INSTRUCT screen instead)
     // Exit hint footer
     // constexpr int ExitHintX=10, ExitHintY=230;
     // Fade overlay level name
@@ -67,6 +76,7 @@ struct EditorState {
     int curLevel = -1;
     int curBrick = 1;
     int speed = 10;
+    bool dirty = false;        // true if edits not saved
     std::string name;
     bool init = false;
     bool testReturn = false;   // true after hitting TEST until we return
@@ -77,11 +87,21 @@ struct EditorState {
     bool wasTouching = false;  // previous frame stylus state
     int lastPaintCol = -1;     // last painted grid column during current drag
     int lastPaintRow = -1;     // last painted grid row during current drag
+    bool paintingActive = false; // only paint when press began inside grid
 };
 static EditorState E;
 static std::vector<UIButton> g_buttons; // cached buttons built after init
 static EditorAction g_lastAction = EditorAction::None; // set by button lambdas needing a return
 static size_t g_pasteIndex = (size_t)-1; // index into g_buttons for disabled state toggling
+static size_t g_saveIndex = (size_t)-1;  // index for Save button
+static size_t g_nameBtnIndex = (size_t)-1; // index for Name button
+// Dynamic positions for Name label/button (above the grid)
+static int g_nameLabelX = 0, g_nameLabelY = 0;
+static int g_nameBtnX = 0, g_nameBtnY = 0, g_nameBtnW = 0, g_nameBtnH = 0;
+
+// File dropdown
+static UIDropdown g_fileDD;
+static int g_selectedFileIndex = -1;
 
 // Map BrickType id (0..COUNT-1) to editor atlas index (e_*). Falls back to normal if missing.
 static int editor_atlas_index(int brickId) {
@@ -245,8 +265,30 @@ static void ui_autosize_button(UIButton &btn, int padding = 12) {
     if (target > btn.w) btn.w = target;
 }
 
-// Forward decl for name edit (used in button lambda)
-static void edit_level_name();
+// No name edit UI in the new layout
+// Name edit (software keyboard)
+static void editor_prompt_name() {
+    char out[64];
+    out[0] = '\0';
+    // Initialize with current name
+    if (!E.name.empty()) {
+        size_t n = E.name.size(); if (n >= sizeof(out)) n = sizeof(out) - 1;
+        memcpy(out, E.name.c_str(), n); out[n] = '\0';
+    }
+    SwkbdState swkbd; swkbdInit(&swkbd, SWKBD_TYPE_NORMAL, 2, 32);
+    swkbdSetValidation(&swkbd, SWKBD_NOTEMPTY_NOTBLANK, 0, 0);
+    swkbdSetInitialText(&swkbd, out);
+    swkbdSetHintText(&swkbd, "Enter level name");
+    if (swkbdInputText(&swkbd, out, sizeof out) == SWKBD_BUTTON_CONFIRM) {
+        // Trim leading spaces
+        size_t p = 0; while (out[p] && (unsigned char)out[p] <= ' ') ++p;
+        if (p > 0) memmove(out, out + p, strlen(out + p) + 1);
+        // Update editor and levels
+        E.name = out[0] ? out : "Level";
+        levels_set_name(E.curLevel, E.name.c_str());
+        E.dirty = true;
+    }
+}
 // Copy/Paste helpers
 static bool editor_copy_exists();
 static bool editor_do_copy();
@@ -304,16 +346,31 @@ static void init_if_needed() {
     levels_load();
     E.curLevel = levels_current();
     E.speed = levels_get_speed(E.curLevel);
-    if (E.speed <= 0) E.speed = 10;
+    if (E.speed < 10) E.speed = 10; else if (E.speed > 40) E.speed = 40;
     const char *nm = levels_get_name(E.curLevel);
     E.name = nm ? nm : "Level";
     E.init = true;
-    // Build UI buttons (palette excluded)
+    // Build UI elements (palette excluded)
     using namespace ui;
     g_buttons.clear();
     UIButton b;
-    b = {}; b.x=NameBtnX; b.y=NameBtnY; b.w=NameBtnW; b.h=NameBtnH; b.label="Name"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){ sound::play_sfx("menu-click", 4, 1.0f, true); edit_level_name(); }; g_buttons.push_back(b);
-    b = {}; b.x=TestBtnX; b.y=TestBtnY; b.w=TestBtnW; b.h=TestBtnH; b.label="Test Level"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){
+    // Compute Name UI positions relative to the editor grid: place just above the grid
+    {
+        int ls = levels_edit_left();
+        int ts = levels_edit_top();
+        g_nameLabelX = ls;
+        g_nameLabelY = ts - 18; // label baseline just above grid
+        if (g_nameLabelY < 2) g_nameLabelY = 2;
+        g_nameBtnX = g_nameLabelX + 32;
+        g_nameBtnY = g_nameLabelY - 2; // button 4px above label baseline
+        g_nameBtnW = 178; g_nameBtnH = 11;
+        // NAME button – empty label, drawn as a box; we overlay text in render
+        b = {}; b.x=g_nameBtnX; b.y=g_nameBtnY; b.w=g_nameBtnW; b.h=g_nameBtnH; b.label=""; b.color=C2D_Color32(40,40,60,255);
+        b.onTap=[](){ sound::play_sfx("menu-click", 4, 1.0f, true); editor_prompt_name(); };
+        g_buttons.push_back(b); g_nameBtnIndex = g_buttons.size()-1;
+    }
+    // TEST button (Row 2)
+    b = {}; b.x=TestBtnX; b.y=TestBtnY; b.w=TestBtnW; b.h=TestBtnH; b.label="TEST"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){
         sound::play_sfx("menu-click", 4, 1.0f, true);
         levels_set_current(E.curLevel);
         levels_snapshot_level(E.curLevel); // capture current edits as pristine for test run
@@ -325,33 +382,72 @@ static void init_if_needed() {
     hw_log("TEST start\n");
         g_lastAction = EditorAction::StartTest;
     }; g_buttons.push_back(b);
-    b = {}; b.x=ClearBtnX; b.y=ClearBtnY; b.w=ClearBtnW; b.h=ClearBtnH; b.label="Clear"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){
+    // CLEAR (Row 3)
+    b = {}; b.x=ClearBtnX; b.y=ClearBtnY; b.w=ClearBtnW; b.h=ClearBtnH; b.label="CLEAR"; b.color=C2D_Color32(80,80,120,180); b.onTap=[](){
         sound::play_sfx("menu-click", 4, 1.0f, true);
         push_undo_clear(E.curLevel);
         int gw = levels_grid_width(); int gh = levels_grid_height();
         for (int r = 0; r < gh; ++r) for (int c = 0; c < gw; ++c) levels_edit_set_brick(E.curLevel, c, r, 0);
+        E.dirty = true;
     }; g_buttons.push_back(b);
-    // Undo button (placed first so we can compute relative positions for Paste/Copy)
-    b = {}; b.x=UndoBtnX; b.y=UndoBtnY; b.w=UndoBtnW; b.h=UndoBtnH; b.label="Undo"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){ sound::play_sfx("menu-click", 4, 1.0f, true); perform_undo(); }; g_buttons.push_back(b);
-    int nextX = g_buttons.back().x - CopyPasteGap; // start gap to the left of Undo
-    // Place Paste to the left of Undo
-    b = {}; b.w=PasteBtnW; b.h=PasteBtnH; b.label="Paste"; b.color=C2D_Color32(95,75,135,180); ui_autosize_button(b);
-    b.y = PasteBtnY; b.x = nextX - b.w; // align to the left of the gap
+    // UNDO (Row 3)
+    b = {}; b.x=UndoBtnX; b.y=UndoBtnY; b.w=UndoBtnW; b.h=UndoBtnH; b.label="UNDO"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){ sound::play_sfx("menu-click", 4, 1.0f, true); perform_undo(); E.dirty = true; }; g_buttons.push_back(b);
+    // PASTE (Row 3)
+    b = {}; b.w=PasteBtnW; b.h=PasteBtnH; b.label="PASTE"; b.color=C2D_Color32(95,75,135,180);
+    b.y = PasteBtnY; b.x = PasteBtnX;
     b.enabled = editor_copy_exists();
-    b.onTap=[](){ if(editor_copy_exists()) { if(editor_do_paste()) { sound::play_sfx("menu-click", 4, 1.0f, true); } } };
+    b.onTap=[](){ if(editor_copy_exists()) { if(editor_do_paste()) { sound::play_sfx("menu-click", 4, 1.0f, true); E.dirty = true; } } };
     g_buttons.push_back(b);
     g_pasteIndex = g_buttons.size() - 1;
-    // Place Copy to the left of Paste
-    nextX = g_buttons.back().x - CopyPasteGap;
-    b = {}; b.w=CopyBtnW; b.h=CopyBtnH; b.label="Copy"; b.color=C2D_Color32(95,75,135,180); ui_autosize_button(b);
-    b.y = CopyBtnY; b.x = nextX - b.w;
+    // COPY (Row 3)
+    b = {}; b.w=CopyBtnW; b.h=CopyBtnH; b.label="COPY"; b.color=C2D_Color32(95,75,135,180);
+    b.y = CopyBtnY; b.x = CopyBtnX;
     b.onTap=[](){ if(editor_do_copy()) { sound::play_sfx("menu-click", 4, 1.0f, true); } };
     g_buttons.push_back(b);
-    b = {}; b.x=ExitBtnX; b.y=ExitBtnY; b.w=ExitBtnW; b.h=ExitBtnH; b.label="Exit"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){
-        sound::play_sfx("menu-click", 4, 1.0f, true);
-        persist_current_level();
-        g_lastAction = EditorAction::SaveAndExit;
-    }; g_buttons.push_back(b);
+    // SAVE (Row 4)
+    b = {}; b.x=SaveBtnX; b.y=SaveBtnY; b.w=SaveBtnW; b.h=SaveBtnH; b.label="SAVE"; b.color=C2D_Color32(80,100,140,200); ui_autosize_button(b); b.onTap=[](){ sound::play_sfx("menu-click", 4, 1.0f, true); persist_current_level(); E.dirty=false; }; g_buttons.push_back(b); g_saveIndex = g_buttons.size()-1;
+    // EXIT (no save) (Row 4)
+    b = {}; b.x=ExitBtnX; b.y=ExitBtnY; b.w=ExitBtnW; b.h=ExitBtnH; b.label="EXIT"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){ sound::play_sfx("menu-click", 4, 1.0f, true); g_lastAction = EditorAction::ExitNoSave; }; g_buttons.push_back(b);
+
+    // Row 3 buttons now use fixed positions; no dynamic relayout needed
+
+    // Initialize file dropdown (Row 1)
+    auto &files = const_cast<std::vector<std::string>&>(levels_available_files());
+    g_fileDD = {};
+    g_fileDD.x=FileDD_X; g_fileDD.y=FileDD_Y; g_fileDD.w=FileDD_W; g_fileDD.h=FileDD_H;
+    g_fileDD.itemHeight=14; g_fileDD.maxVisible=6; g_fileDD.headerColor=C2D_Color32(40,40,60,255); g_fileDD.arrowColor=C2D_Color32(55,55,85,255);
+    g_fileDD.listBgColor=C2D_Color32(30,30,50,255); g_fileDD.itemColor=C2D_Color32(50,50,80,255); g_fileDD.itemSelColor=C2D_Color32(70,70,110,255);
+    ui_dropdown_set_items(g_fileDD, files);
+    // Select active; default to 0 if not found
+    g_selectedFileIndex = 0;
+    g_fileDD.selectedIndex = files.empty() ? -1 : 0;
+    const char* active = levels_get_active_file();
+    for(size_t i=0;i<files.size();++i){ if(files[i]==active){ g_fileDD.selectedIndex=(int)i; g_selectedFileIndex=(int)i; break; } }
+    g_fileDD.onSelect = [](int idx){
+        const auto &fl = levels_available_files();
+        if(idx>=0 && idx<(int)fl.size()){
+            levels_set_active_file(fl[idx].c_str());
+            levels_reload_active();
+            levels_set_current(0);
+            E.curLevel = 0;
+            E.speed = levels_get_speed(0);
+            if (E.speed < 10) E.speed = 10; else if (E.speed > 40) E.speed = 40;
+            const char *nm = levels_get_name(0); E.name = nm?nm:"Level";
+            g_undo.clear();
+            E.dirty=false;
+            // Rebind items and selection in case vector pointer moved during reload
+            auto &files2 = const_cast<std::vector<std::string>&>(levels_available_files());
+            ui_dropdown_set_items(g_fileDD, files2);
+            // Clamp selection to the chosen idx if still valid; otherwise reset to 0
+            if (idx >= 0 && idx < (int)files2.size()) {
+                g_fileDD.selectedIndex = idx;
+            } else if (!files2.empty()) {
+                g_fileDD.selectedIndex = 0;
+            } else {
+                g_fileDD.selectedIndex = -1;
+            }
+        }
+    };
 }
 
 void persist_current_level() {
@@ -361,26 +457,26 @@ void persist_current_level() {
     levels_save_active();
 }
 
-// Software keyboard for renaming current level (16 chars)
-static void edit_level_name() {
-    SwkbdState sw;
-    swkbdInit(&sw, SWKBD_TYPE_NORMAL, 2, 16);
-    swkbdSetValidation(&sw, SWKBD_NOTEMPTY_NOTBLANK, 0, 0);
-    swkbdSetInitialText(&sw, E.name.c_str());
-    static char out[33];
-    memset(out, 0, sizeof out);
-    if (swkbdInputText(&sw, out, sizeof out) == SWKBD_BUTTON_CONFIRM) {
-        E.name = out;
-        levels_set_name(E.curLevel, E.name.c_str());
-    }
+void discard_unsaved_changes() {
+    // Reload active file from disk to discard any unsaved in-memory edits
+    levels_reload_active();
+    // Reset current to first level to re-sync state; next init will restore correct current when needed
+    levels_set_current(0);
+    // Clear editor-local state so UI gets rebuilt on next entry
+    g_undo.clear();
+    E.dirty = false;
+    E.init = false;
 }
+
+// (name editing removed)
 
 EditorAction update(const InputState &in) {
     init_if_needed();
     // Keep Paste button enabled state synced to presence of copy file
     if (g_pasteIndex != (size_t)-1 && g_pasteIndex < g_buttons.size()) g_buttons[g_pasteIndex].enabled = editor_copy_exists();
-    // Support drag-paint across the grid while touching.
-    // Only trigger palette/buttons on press to avoid repeat firing while dragging.
+    // Update dropdown interactions first so it can consume touches
+    bool consumed=false; ui_dropdown_update(g_fileDD, in, consumed); if(consumed) return EditorAction::None;
+    // Support drag-paint across the grid only if the press started inside the grid.
     int x = in.stylusX, y = in.stylusY;
     // Grid region (use editor design cell size)
     int left = levels_edit_left();
@@ -389,31 +485,34 @@ EditorAction update(const InputState &in) {
     int ch = levels_edit_brick_height();
     int gw = levels_grid_width();
     int gh = levels_grid_height();
-    if (in.touching) {
-        if (x >= left && x < left + gw * cw && y >= top && y < top + gh * ch) {
-            int col = (x - left) / cw;
-            int row = (y - top) / ch;
-            // Paint only when entering a new cell or the cell differs from current value
+
+    auto within_grid = [&](int px, int py){
+        return px >= left && px < left + gw * cw && py >= top && py < top + gh * ch;
+    };
+
+    // Simple painting: only when physically touching inside the grid
+    if (in.touching && within_grid(x, y)) {
+        int col = (x - left) / cw;
+        int row = (y - top) / ch;
+        if (col >= 0 && col < gw && row >= 0 && row < gh) {
             if (col != E.lastPaintCol || row != E.lastPaintRow) {
                 int prev = levels_edit_get_brick(E.curLevel, col, row);
                 if (prev != E.curBrick) {
                     push_undo_set(E.curLevel, col, row, (uint8_t)prev);
                     levels_edit_set_brick(E.curLevel, col, row, E.curBrick);
+                    E.dirty = true;
                 }
                 E.lastPaintCol = col;
                 E.lastPaintRow = row;
             }
-            // While painting, don't also trigger button/palette actions
-            // Return early so we keep painting smoothly
-            E.wasTouching = in.touching;
-            return EditorAction::None;
         }
+        // While painting, don't also trigger button/palette actions
+        return EditorAction::None;
     }
-    // On release, reset drag tracking so a new stroke can start cleanly
-    if (E.wasTouching && !in.touching) { E.lastPaintCol = E.lastPaintRow = -1; }
-
-    // If this wasn't a grid drag, only proceed on fresh press for palette/buttons
-    if (!in.touchPressed) { E.wasTouching = in.touching; return EditorAction::None; }
+    // Not touching: reset stroke tracking so next contact starts a new stroke
+    if (!in.touching) { E.lastPaintCol = E.lastPaintRow = -1; }
+    // Handle UI only on fresh press
+    if (!in.touchPressed) { return EditorAction::None; }
     // Arrow hitboxes around grid (mirror render positions)
     {
         int ls = levels_edit_left();
@@ -436,7 +535,7 @@ EditorAction update(const InputState &in) {
                 int h = (int)im.subtex->height;
                 int rx = gridLeft - 1 - w;
                 int ry = midRowY - h / 2;
-                if (x >= rx && x < rx + w && y >= ry && y < ry + h) { sound::play_sfx("menu-click", 4, 1.0f, true); shift_grid_left(E.curLevel); return EditorAction::None; }
+                if (x >= rx && x < rx + w && y >= ry && y < ry + h) { sound::play_sfx("menu-click", 4, 1.0f, true); shift_grid_left(E.curLevel); E.dirty = true; return EditorAction::None; }
             }
         }
         // Right arrow rect
@@ -447,7 +546,7 @@ EditorAction update(const InputState &in) {
                 int h = (int)im.subtex->height;
                 int rx = gridRight + 1;
                 int ry = midRowY - h / 2;
-                if (x >= rx && x < rx + w && y >= ry && y < ry + h) { sound::play_sfx("menu-click", 4, 1.0f, true); shift_grid_right(E.curLevel); return EditorAction::None; }
+                if (x >= rx && x < rx + w && y >= ry && y < ry + h) { sound::play_sfx("menu-click", 4, 1.0f, true); shift_grid_right(E.curLevel); E.dirty = true; return EditorAction::None; }
             }
         }
         // Up arrow rect
@@ -458,7 +557,7 @@ EditorAction update(const InputState &in) {
                 int h = (int)im.subtex->height;
                 int rx = midColX - w / 2;
                 int ry = gridTop - 1 - h;
-                if (x >= rx && x < rx + w && y >= ry && y < ry + h) { sound::play_sfx("menu-click", 4, 1.0f, true); shift_grid_up(E.curLevel); return EditorAction::None; }
+                if (x >= rx && x < rx + w && y >= ry && y < ry + h) { sound::play_sfx("menu-click", 4, 1.0f, true); shift_grid_up(E.curLevel); E.dirty = true; return EditorAction::None; }
             }
         }
         // Down arrow rect
@@ -469,7 +568,7 @@ EditorAction update(const InputState &in) {
                 int h = (int)im.subtex->height;
                 int rx = midColX - w / 2;
                 int ry = gridBottom + 1;
-                if (x >= rx && x < rx + w && y >= ry && y < ry + h) { sound::play_sfx("menu-click", 4, 1.0f, true); shift_grid_down(E.curLevel); return EditorAction::None; }
+                if (x >= rx && x < rx + w && y >= ry && y < ry + h) { sound::play_sfx("menu-click", 4, 1.0f, true); shift_grid_down(E.curLevel); E.dirty = true; return EditorAction::None; }
             }
         }
     }
@@ -485,27 +584,31 @@ EditorAction update(const InputState &in) {
     if (x >= bx && x < bx + itemW && y >= by && y < by + itemH) { E.curBrick = b; sound::play_sfx("menu-click", 4, 1.0f, true); return EditorAction::None; }
         by += itemH + pad;
     }
-    // Speed -
+    // Speed - (step 5, clamp to [10,40])
     if (x >= ui::SpeedMinusX && x < ui::SpeedMinusX + ui::SpeedBtnW && y >= ui::SpeedMinusY && y < ui::SpeedMinusY + ui::SpeedBtnH) {
-        if (E.speed > 1) { E.speed--; levels_set_speed(E.curLevel, E.speed); sound::play_sfx("menu-click", 4, 1.0f, true); }
+        int s = E.speed - 5; if (s < 10) s = 10; if (s != E.speed) {
+            E.speed = s; levels_set_speed(E.curLevel, E.speed); E.dirty = true; sound::play_sfx("menu-click", 4, 1.0f, true);
+        }
         return EditorAction::None;
     }
-    // Speed +
+    // Speed + (step 5, clamp to [10,40])
     if (x >= ui::SpeedPlusX && x < ui::SpeedPlusX + ui::SpeedBtnW && y >= ui::SpeedPlusY && y < ui::SpeedPlusY + ui::SpeedBtnH) {
-        if (E.speed < 99) { E.speed++; levels_set_speed(E.curLevel, E.speed); sound::play_sfx("menu-click", 4, 1.0f, true); }
+        int s = E.speed + 5; if (s > 40) s = 40; if (s != E.speed) {
+            E.speed = s; levels_set_speed(E.curLevel, E.speed); E.dirty = true; sound::play_sfx("menu-click", 4, 1.0f, true);
+        }
         return EditorAction::None;
     }
     // Level -
     if (x >= ui::LevelMinusX && x < ui::LevelMinusX + ui::LevelBtnW && y >= ui::LevelMinusY && y < ui::LevelMinusY + ui::LevelBtnH) {
-        if (E.curLevel > 0) { E.curLevel--; levels_set_current(E.curLevel); E.speed = levels_get_speed(E.curLevel); E.name = levels_get_name(E.curLevel); g_undo.clear(); sound::play_sfx("menu-click", 4, 1.0f, true); }
+    if (E.curLevel > 0) { E.curLevel--; levels_set_current(E.curLevel); E.speed = levels_get_speed(E.curLevel); if (E.speed < 10) E.speed = 10; else if (E.speed > 40) E.speed = 40; E.name = levels_get_name(E.curLevel); g_undo.clear(); sound::play_sfx("menu-click", 4, 1.0f, true); }
         return EditorAction::None;
     }
     // Level +
     if (x >= ui::LevelPlusX && x < ui::LevelPlusX + ui::LevelBtnW && y >= ui::LevelPlusY && y < ui::LevelPlusY + ui::LevelBtnH) {
-        if (E.curLevel + 1 < levels_count()) { E.curLevel++; levels_set_current(E.curLevel); E.speed = levels_get_speed(E.curLevel); E.name = levels_get_name(E.curLevel); g_undo.clear(); sound::play_sfx("menu-click", 4, 1.0f, true); }
+    if (E.curLevel + 1 < levels_count()) { E.curLevel++; levels_set_current(E.curLevel); E.speed = levels_get_speed(E.curLevel); if (E.speed < 10) E.speed = 10; else if (E.speed > 40) E.speed = 40; E.name = levels_get_name(E.curLevel); g_undo.clear(); sound::play_sfx("menu-click", 4, 1.0f, true); }
         return EditorAction::None;
     }
-    // Dispatch UIButton interactions (Name, Test, Clear, Exit) via onTap
+    // Dispatch UIButton interactions via onTap
     for (auto &btn : g_buttons) {
         if (btn.contains(x,y)) {
             btn.trigger();
@@ -514,7 +617,6 @@ EditorAction update(const InputState &in) {
             return act; // may be None
         }
     }
-    E.wasTouching = in.touching;
     return EditorAction::None;
 }
 
@@ -625,7 +727,12 @@ void render() {
         if (by + ch > 230 - ch) { by = ui::PaletteY; bx += cw + pad; }
         else by += ch + pad;
     }
-    // UI overlay text
+    // Above grid: Name label
+    hw_draw_text(g_nameLabelX, g_nameLabelY, "Name:", 0xFFFFFFFF);
+    // Row 1 (below grid): Levels + dropdown (render header later to allow overlay on top of buttons)
+    hw_draw_text(ui::LevelsLabelX, ui::LevelsLabelY, "Levels:", 0xFFFFFFFF);
+
+    // UI overlay text for Row 2 (Level/Speed values)
     char buf[32];
     hw_draw_text(ui::LabelLevelTextX, ui::LabelLevelTextY, "Level:", 0xFFFFFFFF);
     hw_draw_text(ui::LabelSpeedTextX, ui::LabelSpeedTextY, "Speed:", 0xFFFFFFFF);
@@ -648,24 +755,32 @@ void render() {
         C2D_DrawRectSolid(boxX, boxY, 0, w, h, col);
     };
     using namespace ui;
-    // Draw standard buttons
+    // Row 3: Commands label
+    hw_draw_text(ui::CommandsLabelX, ui::CommandsLabelY, "Action:", 0xFFFFFFFF);
+    // Draw standard buttons (includes the Name button box placed above the grid)
     for (const auto &b : g_buttons) ui_draw_button(b, false);
+    // Overlay current level name text in the Name button box
+    if (g_nameBtnIndex != (size_t)-1 && g_nameBtnIndex < g_buttons.size()) {
+        const UIButton &nb = g_buttons[g_nameBtnIndex];
+        const char* nameTxt = E.name.empty()? "TAP" : E.name.c_str();
+        // Slight inset for text legibility
+        hw_draw_text(nb.x + 4, nb.y + 2, nameTxt, 0xFFFFFFFF);
+    }
     // Minus/plus small buttons (rendered as mini labels)
     label_bg(LevelMinusX, LevelMinusY, "-", true); hw_draw_text(LevelMinusX, LevelMinusY, "-", 0xFFFFFFFF);
     label_bg(LevelPlusX, LevelPlusY, "+", true);  hw_draw_text(LevelPlusX, LevelPlusY, "+", 0xFFFFFFFF);
     label_bg(SpeedMinusX, SpeedMinusY, "-", true); hw_draw_text(SpeedMinusX, SpeedMinusY, "-", 0xFFFFFFFF);
     label_bg(SpeedPlusX, SpeedPlusY, "+", true);  hw_draw_text(SpeedPlusX, SpeedPlusY, "+", 0xFFFFFFFF);
-    int atlas = editor_atlas_index(E.curBrick);
-    if (atlas >= 0) hw_draw_sprite(hw_image(atlas), ui::CurrentBrickSpriteX, ui::CurrentBrickSpriteY);
-    hw_draw_text(ui::LabelCurrentBrickX, ui::LabelCurrentBrickY, "Brick:", 0xFFFFFFFF);
-    hw_draw_text(ui::LabelEffectX, ui::LabelEffectY, "Effect:", 0xFFFFFFFF);
-    hw_draw_text(ui::LabelClearX, ui::LabelClearY, "Clear Level:", 0xFFFFFFFF);
-    hw_draw_text(ui::LabelExitX, ui::LabelExitY, "Save / Exit:", 0xFFFFFFFF);
-    static const char *effectNames[] = {"Empty","10 Points","20 Points","30 Points","40 Points","50 Points","100 Points","Extra Life","Slow Ball","Fast Ball","Skull Slow","Skull Fast","Bonus B","Bonus O","Bonus N","Bonus U","Bonus S","Bat Small","Bat Big","Indestructible Brick","Level Rewind","Reverse Controls","Slow Now","Fast Now","Add Ball","Level Forward","Laser","MurderBall","Bonus","Five Hits","Bomb","Lights Off","Lights On","Moving Brick","Hard Moving Brick"};
-    if (E.curBrick >=0 && E.curBrick < (int)(sizeof(effectNames)/sizeof(effectNames[0]))) hw_draw_text(ui::ValueEffectX, ui::ValueEffectY, effectNames[E.curBrick], 0xFFFFFFFF);
-    // hw_draw_text(LabelNameX, LabelNameY, "Name", 0xFFFFFFFF);
-    hw_draw_text(LabelNameX, LabelNameY, E.name.c_str(), 0xFFFFFFFF);
-    // hw_draw_text(ui::ExitHintX, ui::ExitHintY, "Tap Exit to Save", 0xFFFFFFFF);
+    // Row 4: Status label + indicator
+    hw_draw_text(ui::StatusLabelX, ui::StatusLabelY, "Status:", 0xFFFFFFFF);
+    // hw_draw_text expects RGBA literals; avoid C2D_Color32 (ABGR) here to prevent channel swap
+    uint32_t indCol = E.dirty ? 0xDC3C3CFF /* red */ : 0x3CDC50FF /* green */;
+    const char* indTxt = E.dirty? "DIRTY" : "SAVED";
+    hw_draw_text(ui::StatusValueX, ui::StatusValueY, indTxt, indCol);
+    // No Exit hint
+
+    // Render dropdown last so its overlay can appear above buttons when open
+    ui_dropdown_render(g_fileDD);
 }
 
 // Fade overlay (rendered by game.cpp while in Playing) ------------------------
