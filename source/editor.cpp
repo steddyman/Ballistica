@@ -40,7 +40,6 @@ namespace ui {
     // Labels
     constexpr int LabelNameX=70, LabelNameY=10;
     constexpr int LabelTestX=TestBtnX, LabelTestY=TestBtnY;
-    constexpr int LabelClearX=28, LabelClearY=187;
     constexpr int LabelExitX=28, LabelExitY=203;
     constexpr int LabelLevelMinusX=146, LabelLevelMinusY=LevelMinusY+1;
     constexpr int LabelLevelPlusX=LevelPlusX+1, LabelLevelPlusY=LevelPlusY+1;
@@ -51,11 +50,7 @@ namespace ui {
     constexpr int LabelSpeedTextX=161, LabelSpeedTextY=203;
     constexpr int ValueLevelX=213, ValueLevelY=187;
     constexpr int ValueSpeedX=213, ValueSpeedY=203;
-    // Current brick/effect info
-    constexpr int CurrentBrickSpriteX=66, CurrentBrickSpriteY=153;
-    constexpr int LabelCurrentBrickX=28, LabelCurrentBrickY=155;
-    constexpr int LabelEffectX=28, LabelEffectY=171;
-    constexpr int ValueEffectX=82, ValueEffectY=171;
+    // Current brick/effect info removed (using palette + INSTRUCT screen instead)
     // Exit hint footer
     // constexpr int ExitHintX=10, ExitHintY=230;
     // Fade overlay level name
@@ -655,14 +650,9 @@ void render() {
     label_bg(LevelPlusX, LevelPlusY, "+", true);  hw_draw_text(LevelPlusX, LevelPlusY, "+", 0xFFFFFFFF);
     label_bg(SpeedMinusX, SpeedMinusY, "-", true); hw_draw_text(SpeedMinusX, SpeedMinusY, "-", 0xFFFFFFFF);
     label_bg(SpeedPlusX, SpeedPlusY, "+", true);  hw_draw_text(SpeedPlusX, SpeedPlusY, "+", 0xFFFFFFFF);
-    int atlas = editor_atlas_index(E.curBrick);
-    if (atlas >= 0) hw_draw_sprite(hw_image(atlas), ui::CurrentBrickSpriteX, ui::CurrentBrickSpriteY);
-    hw_draw_text(ui::LabelCurrentBrickX, ui::LabelCurrentBrickY, "Brick:", 0xFFFFFFFF);
-    hw_draw_text(ui::LabelEffectX, ui::LabelEffectY, "Effect:", 0xFFFFFFFF);
-    hw_draw_text(ui::LabelClearX, ui::LabelClearY, "Clear Level:", 0xFFFFFFFF);
+    // Removed current brick sprite and labels to simplify UI.
     hw_draw_text(ui::LabelExitX, ui::LabelExitY, "Save / Exit:", 0xFFFFFFFF);
-    static const char *effectNames[] = {"Empty","10 Points","20 Points","30 Points","40 Points","50 Points","100 Points","Extra Life","Slow Ball","Fast Ball","Skull Slow","Skull Fast","Bonus B","Bonus O","Bonus N","Bonus U","Bonus S","Bat Small","Bat Big","Indestructible Brick","Level Rewind","Reverse Controls","Slow Now","Fast Now","Add Ball","Level Forward","Laser","MurderBall","Bonus","Five Hits","Bomb","Lights Off","Lights On","Moving Brick","Hard Moving Brick"};
-    if (E.curBrick >=0 && E.curBrick < (int)(sizeof(effectNames)/sizeof(effectNames[0]))) hw_draw_text(ui::ValueEffectX, ui::ValueEffectY, effectNames[E.curBrick], 0xFFFFFFFF);
+    // Removed Effect text; palette + INSTRUCT screen provide context.
     // hw_draw_text(LabelNameX, LabelNameY, "Name", 0xFFFFFFFF);
     hw_draw_text(LabelNameX, LabelNameY, E.name.c_str(), 0xFFFFFFFF);
     // hw_draw_text(ui::ExitHintX, ui::ExitHintY, "Tap Exit to Save", 0xFFFFFFFF);
