@@ -18,38 +18,43 @@ UIDropdownEvent ui_dropdown_update(UIDropdown &dd, const InputState &in, bool &t
         return UIDropdownEvent::None;
     }
     if (!dd.open) return UIDropdownEvent::None;
-    // Click inside list overlay
+    // Click inside list overlay (support opening upwards if not enough space below)
     bool scrolling = items.size() > (size_t)dd.maxVisible;
-    int listY = dd.y + dd.h;
-    int overlayH = scrolling ? (dd.maxVisible + 2) * dd.itemHeight : (int)items.size() * dd.itemHeight;
+    // Use same tightened item height as renderer
+    int itemH = dd.itemHeight - 2; if (itemH < 12) itemH = dd.itemHeight;
+    int screenH = 240;
+    int rows = scrolling ? (dd.maxVisible + 2) : (int)items.size();
+    int overlayH = rows * itemH;
+    bool openUp = (dd.y + dd.h + overlayH > screenH) && (dd.y - overlayH >= 0);
+    int listY = openUp ? (dd.y - overlayH) : (dd.y + dd.h);
     if (x>=dd.x && x<dd.x+dd.w && y>=listY && y<listY+overlayH) {
         touchConsumed = true;
         if (scrolling) {
             int topArrowY = listY;
-            int itemsY0 = topArrowY + dd.itemHeight;
-            int itemsY1 = itemsY0 + dd.maxVisible * dd.itemHeight;
+            int itemsY0 = topArrowY + itemH;
+            int itemsY1 = itemsY0 + dd.maxVisible * itemH;
             int bottomArrowY = itemsY1;
-            if (y >= topArrowY && y < topArrowY + dd.itemHeight) {
+            if (y >= topArrowY && y < topArrowY + itemH) {
                 if (dd.scrollOffset>0) {
                     dd.scrollOffset--;
                 }
                 return UIDropdownEvent::None;
             }
-            if (y >= bottomArrowY && y < bottomArrowY + dd.itemHeight) {
+            if (y >= bottomArrowY && y < bottomArrowY + itemH) {
                 if (dd.scrollOffset + dd.maxVisible < (int)items.size()) {
                     dd.scrollOffset++;
                 }
                 return UIDropdownEvent::None;
             }
             if (y >= itemsY0 && y < itemsY1) {
-                int rel = (y - itemsY0) / dd.itemHeight;
+                int rel = (y - itemsY0) / itemH;
                 int idx = dd.scrollOffset + rel;
                 if (idx>=0 && idx < (int)items.size()) { dd.selectedIndex=idx; dd.open=false; if(dd.onSelect) dd.onSelect(idx); return UIDropdownEvent::SelectionChanged; }
                 dd.open=false; return UIDropdownEvent::None;
             }
             dd.open=false; return UIDropdownEvent::None;
         } else { // non scrolling
-            int rel = (y - listY) / dd.itemHeight;
+            int rel = (y - listY) / itemH;
             int idx = rel;
             if (idx>=0 && idx < (int)items.size()) { dd.selectedIndex=idx; dd.open=false; if(dd.onSelect) dd.onSelect(idx); return UIDropdownEvent::SelectionChanged; }
             dd.open=false; return UIDropdownEvent::None;
@@ -75,9 +80,14 @@ void ui_dropdown_render(const UIDropdown &dd) {
     else { int apexY=midY+triH/2; for(int row=0; row<triH; ++row){ int span=1+row*2; if(span>triW) span=triW; int x0=triCx-span/2; int y=apexY-row; C2D_DrawRectSolid(x0,y,0,span,1,triCol);} }
     if(!dd.open) return;
     bool scrolling = items.size() > (size_t)dd.maxVisible;
-    int listY = dd.y + dd.h; int itemH = dd.itemHeight - 2; if (itemH < 12) itemH = dd.itemHeight; // tighten but keep readable
+    int itemH = dd.itemHeight - 2; if (itemH < 12) itemH = dd.itemHeight; // tighten but keep readable
+    int screenH = 240;
+    int rows = scrolling ? (dd.maxVisible + 2) : (int)items.size();
+    int overlayH = rows * itemH;
+    bool openUp = (dd.y + dd.h + overlayH > screenH) && (dd.y - overlayH >= 0);
+    int listY = openUp ? (dd.y - overlayH) : (dd.y + dd.h);
     if (scrolling) {
-        int h=(dd.maxVisible+2)*itemH; C2D_DrawRectSolid(dd.x, listY, 0, dd.w, h, dd.listBgColor);
+    int h=(dd.maxVisible+2)*itemH; C2D_DrawRectSolid(dd.x, listY, 0, dd.w, h, dd.listBgColor);
         // Top arrow row
         C2D_DrawRectSolid(dd.x+2, listY+2, 0, dd.w-4, itemH-4, dd.itemColor);
         hw_draw_text(dd.x+dd.w/2-12, listY+4, "UP", 0xFFFFFFFF);
