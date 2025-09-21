@@ -43,4 +43,7 @@ void persist_current_level();
 
 bool test_grace_active();
 void tick_test_grace();
+
+// Discard unsaved changes and reset editor init so next entry reloads from disk.
+void discard_unsaved_changes();
 } // namespace editor

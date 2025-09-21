@@ -25,7 +25,7 @@ namespace ui {
     // Row 1: Levels label + level-file dropdown (from Options) — positioned under the grid
     constexpr int Row1Y = 154;
     constexpr int LevelsLabelX = 20, LevelsLabelY = Row1Y + 2;
-    constexpr int FileDD_X = LevelsLabelX + 48, FileDD_Y = Row1Y - 2, FileDD_W = 160, FileDD_H = 11;
+    constexpr int FileDD_X = LevelsLabelX + 48, FileDD_Y = Row1Y - 2, FileDD_W = 174, FileDD_H = 11;
 
     // Row 2: Level controls then Speed controls then TEST button
     constexpr int Row2Y = Row1Y + 20;
@@ -36,8 +36,8 @@ namespace ui {
 
     // Speed group placed after Level group with a small gap
     constexpr int LabelSpeedTextX = LevelPlusX + 22, LabelSpeedTextY = Row2Y + 2;
-    constexpr int SpeedMinusX = LabelSpeedTextX + 40, SpeedMinusY = Row2Y + 2; constexpr int SpeedPlusX = LabelSpeedTextX + 66, SpeedPlusY = Row2Y + 2; constexpr int SpeedBtnW=10, SpeedBtnH=9;
-    constexpr int ValueSpeedX = LabelSpeedTextX + 50, ValueSpeedY = Row2Y + 2;
+    constexpr int SpeedMinusX = LabelSpeedTextX + 42, SpeedMinusY = Row2Y + 2; constexpr int SpeedPlusX = LabelSpeedTextX + 71, SpeedPlusY = Row2Y + 2; constexpr int SpeedBtnW=10, SpeedBtnH=9;
+    constexpr int ValueSpeedX = LabelSpeedTextX + 55, ValueSpeedY = Row2Y + 2;
     // TEST button follows Speed group with a small gap; nudge ~10px right for alignment
     constexpr int TestBtnX = 208,  TestBtnY = Row2Y - 2, TestBtnW = 34, TestBtnH = 11;
 
@@ -87,6 +87,7 @@ struct EditorState {
     bool wasTouching = false;  // previous frame stylus state
     int lastPaintCol = -1;     // last painted grid column during current drag
     int lastPaintRow = -1;     // last painted grid row during current drag
+    bool paintingActive = false; // only paint when press began inside grid
 };
 static EditorState E;
 static std::vector<UIButton> g_buttons; // cached buttons built after init
@@ -318,7 +319,7 @@ static void init_if_needed() {
     levels_load();
     E.curLevel = levels_current();
     E.speed = levels_get_speed(E.curLevel);
-    if (E.speed <= 0) E.speed = 10;
+    if (E.speed < 10) E.speed = 10; else if (E.speed > 40) E.speed = 40;
     const char *nm = levels_get_name(E.curLevel);
     E.name = nm ? nm : "Level";
     E.init = true;
@@ -375,8 +376,9 @@ static void init_if_needed() {
     g_fileDD.itemHeight=14; g_fileDD.maxVisible=6; g_fileDD.headerColor=C2D_Color32(40,40,60,255); g_fileDD.arrowColor=C2D_Color32(55,55,85,255);
     g_fileDD.listBgColor=C2D_Color32(30,30,50,255); g_fileDD.itemColor=C2D_Color32(50,50,80,255); g_fileDD.itemSelColor=C2D_Color32(70,70,110,255);
     ui_dropdown_set_items(g_fileDD, files);
-    // Select active
+    // Select active; default to 0 if not found
     g_selectedFileIndex = 0;
+    g_fileDD.selectedIndex = files.empty() ? -1 : 0;
     const char* active = levels_get_active_file();
     for(size_t i=0;i<files.size();++i){ if(files[i]==active){ g_fileDD.selectedIndex=(int)i; g_selectedFileIndex=(int)i; break; } }
     g_fileDD.onSelect = [](int idx){
@@ -386,10 +388,22 @@ static void init_if_needed() {
             levels_reload_active();
             levels_set_current(0);
             E.curLevel = 0;
-            E.speed = levels_get_speed(0); if(E.speed<=0) E.speed=10;
+            E.speed = levels_get_speed(0);
+            if (E.speed < 10) E.speed = 10; else if (E.speed > 40) E.speed = 40;
             const char *nm = levels_get_name(0); E.name = nm?nm:"Level";
             g_undo.clear();
             E.dirty=false;
+            // Rebind items and selection in case vector pointer moved during reload
+            auto &files2 = const_cast<std::vector<std::string>&>(levels_available_files());
+            ui_dropdown_set_items(g_fileDD, files2);
+            // Clamp selection to the chosen idx if still valid; otherwise reset to 0
+            if (idx >= 0 && idx < (int)files2.size()) {
+                g_fileDD.selectedIndex = idx;
+            } else if (!files2.empty()) {
+                g_fileDD.selectedIndex = 0;
+            } else {
+                g_fileDD.selectedIndex = -1;
+            }
         }
     };
 }
@@ -401,6 +415,17 @@ void persist_current_level() {
     levels_save_active();
 }
 
+void discard_unsaved_changes() {
+    // Reload active file from disk to discard any unsaved in-memory edits
+    levels_reload_active();
+    // Reset current to first level to re-sync state; next init will restore correct current when needed
+    levels_set_current(0);
+    // Clear editor-local state so UI gets rebuilt on next entry
+    g_undo.clear();
+    E.dirty = false;
+    E.init = false;
+}
+
 // (name editing removed)
 
 EditorAction update(const InputState &in) {
@@ -409,8 +434,7 @@ EditorAction update(const InputState &in) {
     if (g_pasteIndex != (size_t)-1 && g_pasteIndex < g_buttons.size()) g_buttons[g_pasteIndex].enabled = editor_copy_exists();
     // Update dropdown interactions first so it can consume touches
     bool consumed=false; ui_dropdown_update(g_fileDD, in, consumed); if(consumed) return EditorAction::None;
-    // Support drag-paint across the grid while touching.
-    // Only trigger palette/buttons on press to avoid repeat firing while dragging.
+    // Support drag-paint across the grid only if the press started inside the grid.
     int x = in.stylusX, y = in.stylusY;
     // Grid region (use editor design cell size)
     int left = levels_edit_left();
@@ -419,10 +443,26 @@ EditorAction update(const InputState &in) {
     int ch = levels_edit_brick_height();
     int gw = levels_grid_width();
     int gh = levels_grid_height();
-    if (in.touching) {
-        if (x >= left && x < left + gw * cw && y >= top && y < top + gh * ch) {
-            int col = (x - left) / cw;
-            int row = (y - top) / ch;
+
+    auto within_grid = [&](int px, int py){
+        return px >= left && px < left + gw * cw && py >= top && py < top + gh * ch;
+    };
+
+    // Start painting only on a fresh press that begins inside the grid
+    if (in.touchPressed) {
+        if (within_grid(x,y)) {
+            E.paintingActive = true;
+            E.lastPaintCol = E.lastPaintRow = -1; // reset stroke
+        } else {
+            E.paintingActive = false; // press outside grid: don't paint
+        }
+    }
+
+    // Continue painting only while touching and paintingActive
+    if (in.touching && E.paintingActive) {
+        int col = (x - left) / cw;
+        int row = (y - top) / ch;
+        if (col >= 0 && col < gw && row >= 0 && row < gh) {
             // Paint only when entering a new cell or the cell differs from current value
             if (col != E.lastPaintCol || row != E.lastPaintRow) {
                 int prev = levels_edit_get_brick(E.curLevel, col, row);
@@ -434,16 +474,15 @@ EditorAction update(const InputState &in) {
                 E.lastPaintCol = col;
                 E.lastPaintRow = row;
             }
-            // While painting, don't also trigger button/palette actions
-            // Return early so we keep painting smoothly
-            E.wasTouching = in.touching;
-            return EditorAction::None;
         }
+        // While painting, don't also trigger button/palette actions
+        E.wasTouching = in.touching;
+        return EditorAction::None;
     }
-    // On release, reset drag tracking so a new stroke can start cleanly
-    if (E.wasTouching && !in.touching) { E.lastPaintCol = E.lastPaintRow = -1; }
+    // On release, reset drag tracking so a new stroke can start cleanly and stop painting
+    if (E.wasTouching && !in.touching) { E.lastPaintCol = E.lastPaintRow = -1; E.paintingActive = false; }
 
-    // If this wasn't a grid drag, only proceed on fresh press for palette/buttons
+    // If not painting, only proceed on fresh press for palette/buttons
     if (!in.touchPressed) { E.wasTouching = in.touching; return EditorAction::None; }
     // Arrow hitboxes around grid (mirror render positions)
     {
@@ -516,24 +555,28 @@ EditorAction update(const InputState &in) {
     if (x >= bx && x < bx + itemW && y >= by && y < by + itemH) { E.curBrick = b; sound::play_sfx("menu-click", 4, 1.0f, true); return EditorAction::None; }
         by += itemH + pad;
     }
-    // Speed -
+    // Speed - (step 5, clamp to [10,40])
     if (x >= ui::SpeedMinusX && x < ui::SpeedMinusX + ui::SpeedBtnW && y >= ui::SpeedMinusY && y < ui::SpeedMinusY + ui::SpeedBtnH) {
-    if (E.speed > 1) { E.speed--; levels_set_speed(E.curLevel, E.speed); E.dirty = true; sound::play_sfx("menu-click", 4, 1.0f, true); }
+        int s = E.speed - 5; if (s < 10) s = 10; if (s != E.speed) {
+            E.speed = s; levels_set_speed(E.curLevel, E.speed); E.dirty = true; sound::play_sfx("menu-click", 4, 1.0f, true);
+        }
         return EditorAction::None;
     }
-    // Speed +
+    // Speed + (step 5, clamp to [10,40])
     if (x >= ui::SpeedPlusX && x < ui::SpeedPlusX + ui::SpeedBtnW && y >= ui::SpeedPlusY && y < ui::SpeedPlusY + ui::SpeedBtnH) {
-    if (E.speed < 99) { E.speed++; levels_set_speed(E.curLevel, E.speed); E.dirty = true; sound::play_sfx("menu-click", 4, 1.0f, true); }
+        int s = E.speed + 5; if (s > 40) s = 40; if (s != E.speed) {
+            E.speed = s; levels_set_speed(E.curLevel, E.speed); E.dirty = true; sound::play_sfx("menu-click", 4, 1.0f, true);
+        }
         return EditorAction::None;
     }
     // Level -
     if (x >= ui::LevelMinusX && x < ui::LevelMinusX + ui::LevelBtnW && y >= ui::LevelMinusY && y < ui::LevelMinusY + ui::LevelBtnH) {
-    if (E.curLevel > 0) { E.curLevel--; levels_set_current(E.curLevel); E.speed = levels_get_speed(E.curLevel); E.name = levels_get_name(E.curLevel); g_undo.clear(); sound::play_sfx("menu-click", 4, 1.0f, true); }
+    if (E.curLevel > 0) { E.curLevel--; levels_set_current(E.curLevel); E.speed = levels_get_speed(E.curLevel); if (E.speed < 10) E.speed = 10; else if (E.speed > 40) E.speed = 40; E.name = levels_get_name(E.curLevel); g_undo.clear(); sound::play_sfx("menu-click", 4, 1.0f, true); }
         return EditorAction::None;
     }
     // Level +
     if (x >= ui::LevelPlusX && x < ui::LevelPlusX + ui::LevelBtnW && y >= ui::LevelPlusY && y < ui::LevelPlusY + ui::LevelBtnH) {
-    if (E.curLevel + 1 < levels_count()) { E.curLevel++; levels_set_current(E.curLevel); E.speed = levels_get_speed(E.curLevel); E.name = levels_get_name(E.curLevel); g_undo.clear(); sound::play_sfx("menu-click", 4, 1.0f, true); }
+    if (E.curLevel + 1 < levels_count()) { E.curLevel++; levels_set_current(E.curLevel); E.speed = levels_get_speed(E.curLevel); if (E.speed < 10) E.speed = 10; else if (E.speed > 40) E.speed = 40; E.name = levels_get_name(E.curLevel); g_undo.clear(); sound::play_sfx("menu-click", 4, 1.0f, true); }
         return EditorAction::None;
     }
     // Dispatch UIButton interactions via onTap
@@ -693,7 +736,8 @@ void render() {
     label_bg(SpeedPlusX, SpeedPlusY, "+", true);  hw_draw_text(SpeedPlusX, SpeedPlusY, "+", 0xFFFFFFFF);
     // Row 4: Status label + indicator
     hw_draw_text(ui::StatusLabelX, ui::StatusLabelY, "Status:", 0xFFFFFFFF);
-    uint32_t indCol = E.dirty? C2D_Color32(220,60,60,255) : C2D_Color32(60,200,80,255);
+    // hw_draw_text expects RGBA literals; avoid C2D_Color32 (ABGR) here to prevent channel swap
+    uint32_t indCol = E.dirty ? 0xDC3C3CFF /* red */ : 0x3CDC50FF /* green */;
     const char* indTxt = E.dirty? "DIRTY" : "SAVED";
     hw_draw_text(ui::StatusValueX, ui::StatusValueY, indTxt, indCol);
     // No Exit hint
