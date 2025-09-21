@@ -490,22 +490,11 @@ EditorAction update(const InputState &in) {
         return px >= left && px < left + gw * cw && py >= top && py < top + gh * ch;
     };
 
-    // Start painting only on a fresh press that begins inside the grid
-    if (in.touchPressed) {
-        if (within_grid(x,y)) {
-            E.paintingActive = true;
-            E.lastPaintCol = E.lastPaintRow = -1; // reset stroke
-        } else {
-            E.paintingActive = false; // press outside grid: don't paint
-        }
-    }
-
-    // Continue painting only while touching and paintingActive
-    if (in.touching && E.paintingActive) {
+    // Simple painting: only when physically touching inside the grid
+    if (in.touching && within_grid(x, y)) {
         int col = (x - left) / cw;
         int row = (y - top) / ch;
         if (col >= 0 && col < gw && row >= 0 && row < gh) {
-            // Paint only when entering a new cell or the cell differs from current value
             if (col != E.lastPaintCol || row != E.lastPaintRow) {
                 int prev = levels_edit_get_brick(E.curLevel, col, row);
                 if (prev != E.curBrick) {
@@ -518,14 +507,12 @@ EditorAction update(const InputState &in) {
             }
         }
         // While painting, don't also trigger button/palette actions
-        E.wasTouching = in.touching;
         return EditorAction::None;
     }
-    // On release, reset drag tracking so a new stroke can start cleanly and stop painting
-    if (E.wasTouching && !in.touching) { E.lastPaintCol = E.lastPaintRow = -1; E.paintingActive = false; }
-
-    // If not painting, only proceed on fresh press for palette/buttons
-    if (!in.touchPressed) { E.wasTouching = in.touching; return EditorAction::None; }
+    // Not touching: reset stroke tracking so next contact starts a new stroke
+    if (!in.touching) { E.lastPaintCol = E.lastPaintRow = -1; }
+    // Handle UI only on fresh press
+    if (!in.touchPressed) { return EditorAction::None; }
     // Arrow hitboxes around grid (mirror render positions)
     {
         int ls = levels_edit_left();
@@ -630,7 +617,6 @@ EditorAction update(const InputState &in) {
             return act; // may be None
         }
     }
-    E.wasTouching = in.touching;
     return EditorAction::None;
 }
 
