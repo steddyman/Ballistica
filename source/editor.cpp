@@ -22,8 +22,8 @@ namespace editor {
 // Geometry & layout (centralized) --------------------------------------------
 namespace ui {
     // Four-row layout on bottom screen (240px tall)
-    // Row 1: Levels label + level-file dropdown (from Options) — positioned under the grid
-    constexpr int Row1Y = 154;
+    // Row 1 (below grid): Levels label + level-file dropdown — positioned under the grid
+    constexpr int Row1Y = 160;
     constexpr int LevelsLabelX = 20, LevelsLabelY = Row1Y + 2;
     constexpr int FileDD_X = LevelsLabelX + 48, FileDD_Y = Row1Y - 2, FileDD_W = 174, FileDD_H = 11;
 
@@ -94,6 +94,10 @@ static std::vector<UIButton> g_buttons; // cached buttons built after init
 static EditorAction g_lastAction = EditorAction::None; // set by button lambdas needing a return
 static size_t g_pasteIndex = (size_t)-1; // index into g_buttons for disabled state toggling
 static size_t g_saveIndex = (size_t)-1;  // index for Save button
+static size_t g_nameBtnIndex = (size_t)-1; // index for Name button
+// Dynamic positions for Name label/button (above the grid)
+static int g_nameLabelX = 0, g_nameLabelY = 0;
+static int g_nameBtnX = 0, g_nameBtnY = 0, g_nameBtnW = 0, g_nameBtnH = 0;
 
 // File dropdown
 static UIDropdown g_fileDD;
@@ -262,6 +266,29 @@ static void ui_autosize_button(UIButton &btn, int padding = 12) {
 }
 
 // No name edit UI in the new layout
+// Name edit (software keyboard)
+static void editor_prompt_name() {
+    char out[64];
+    out[0] = '\0';
+    // Initialize with current name
+    if (!E.name.empty()) {
+        size_t n = E.name.size(); if (n >= sizeof(out)) n = sizeof(out) - 1;
+        memcpy(out, E.name.c_str(), n); out[n] = '\0';
+    }
+    SwkbdState swkbd; swkbdInit(&swkbd, SWKBD_TYPE_NORMAL, 2, 32);
+    swkbdSetValidation(&swkbd, SWKBD_NOTEMPTY_NOTBLANK, 0, 0);
+    swkbdSetInitialText(&swkbd, out);
+    swkbdSetHintText(&swkbd, "Enter level name");
+    if (swkbdInputText(&swkbd, out, sizeof out) == SWKBD_BUTTON_CONFIRM) {
+        // Trim leading spaces
+        size_t p = 0; while (out[p] && (unsigned char)out[p] <= ' ') ++p;
+        if (p > 0) memmove(out, out + p, strlen(out + p) + 1);
+        // Update editor and levels
+        E.name = out[0] ? out : "Level";
+        levels_set_name(E.curLevel, E.name.c_str());
+        E.dirty = true;
+    }
+}
 // Copy/Paste helpers
 static bool editor_copy_exists();
 static bool editor_do_copy();
@@ -327,6 +354,21 @@ static void init_if_needed() {
     using namespace ui;
     g_buttons.clear();
     UIButton b;
+    // Compute Name UI positions relative to the editor grid: place just above the grid
+    {
+        int ls = levels_edit_left();
+        int ts = levels_edit_top();
+        g_nameLabelX = ls;
+        g_nameLabelY = ts - 18; // label baseline just above grid
+        if (g_nameLabelY < 2) g_nameLabelY = 2;
+        g_nameBtnX = g_nameLabelX + 32;
+        g_nameBtnY = g_nameLabelY - 2; // button 4px above label baseline
+        g_nameBtnW = 178; g_nameBtnH = 11;
+        // NAME button – empty label, drawn as a box; we overlay text in render
+        b = {}; b.x=g_nameBtnX; b.y=g_nameBtnY; b.w=g_nameBtnW; b.h=g_nameBtnH; b.label=""; b.color=C2D_Color32(40,40,60,255);
+        b.onTap=[](){ sound::play_sfx("menu-click", 4, 1.0f, true); editor_prompt_name(); };
+        g_buttons.push_back(b); g_nameBtnIndex = g_buttons.size()-1;
+    }
     // TEST button (Row 2)
     b = {}; b.x=TestBtnX; b.y=TestBtnY; b.w=TestBtnW; b.h=TestBtnH; b.label="TEST"; b.color=C2D_Color32(80,80,120,180); ui_autosize_button(b); b.onTap=[](){
         sound::play_sfx("menu-click", 4, 1.0f, true);
@@ -699,7 +741,9 @@ void render() {
         if (by + ch > 230 - ch) { by = ui::PaletteY; bx += cw + pad; }
         else by += ch + pad;
     }
-    // Row 1: Levels + dropdown (render header later to allow overlay on top of buttons)
+    // Above grid: Name label
+    hw_draw_text(g_nameLabelX, g_nameLabelY, "Name:", 0xFFFFFFFF);
+    // Row 1 (below grid): Levels + dropdown (render header later to allow overlay on top of buttons)
     hw_draw_text(ui::LevelsLabelX, ui::LevelsLabelY, "Levels:", 0xFFFFFFFF);
 
     // UI overlay text for Row 2 (Level/Speed values)
@@ -727,8 +771,15 @@ void render() {
     using namespace ui;
     // Row 3: Commands label
     hw_draw_text(ui::CommandsLabelX, ui::CommandsLabelY, "Action:", 0xFFFFFFFF);
-    // Draw standard buttons
+    // Draw standard buttons (includes the Name button box placed above the grid)
     for (const auto &b : g_buttons) ui_draw_button(b, false);
+    // Overlay current level name text in the Name button box
+    if (g_nameBtnIndex != (size_t)-1 && g_nameBtnIndex < g_buttons.size()) {
+        const UIButton &nb = g_buttons[g_nameBtnIndex];
+        const char* nameTxt = E.name.empty()? "TAP" : E.name.c_str();
+        // Slight inset for text legibility
+        hw_draw_text(nb.x + 4, nb.y + 2, nameTxt, 0xFFFFFFFF);
+    }
     // Minus/plus small buttons (rendered as mini labels)
     label_bg(LevelMinusX, LevelMinusY, "-", true); hw_draw_text(LevelMinusX, LevelMinusY, "-", 0xFFFFFFFF);
     label_bg(LevelPlusX, LevelPlusY, "+", true);  hw_draw_text(LevelPlusX, LevelPlusY, "+", 0xFFFFFFFF);
