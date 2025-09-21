@@ -62,18 +62,20 @@ UIDropdownEvent ui_dropdown_update(UIDropdown &dd, const InputState &in, bool &t
 
 void ui_dropdown_render(const UIDropdown &dd) {
     const auto &items = dd.items? *dd.items : std::vector<std::string>{};
-    // Header
+    // Header (use dd.h for exact collapsed height)
     C2D_DrawRectSolid(dd.x, dd.y, 0, dd.w, dd.h, dd.headerColor);
     const char *label = items.empty()? "(none)" : (dd.selectedIndex >=0 && dd.selectedIndex < (int)items.size() ? items[dd.selectedIndex].c_str() : "?");
-    hw_draw_text(dd.x+8, dd.y + dd.h/2 - 4, label, 0xFFFFFFFF);
-    // Arrow box (16px)
-    int arrowBoxW=16; int arrowX=dd.x+dd.w-arrowBoxW; C2D_DrawRectSolid(arrowX, dd.y, 0, arrowBoxW, dd.h, dd.arrowColor);
+    // Vertically center text within header using dd.h
+    int textY = dd.y + dd.h/2 - 4; // 8px font height -> offset 4
+    hw_draw_text(dd.x+8, textY, label, 0xFFFFFFFF);
+    // Arrow box width scales lightly with header height; min 14px
+    int arrowBoxW = dd.h + 3; if (arrowBoxW < 14) arrowBoxW = 14; int arrowX=dd.x+dd.w-arrowBoxW; C2D_DrawRectSolid(arrowX, dd.y, 0, arrowBoxW, dd.h, dd.arrowColor);
     int triH=7; int triW=1+(triH-1)*2; if (triW>11) triW=11; int triCx = arrowX + arrowBoxW/2; int midY = dd.y + dd.h/2; uint32_t triCol = 0xC8C8E6FF;
     if (dd.open) { int apexY=midY-triH/2; for(int row=0; row<triH; ++row){ int span=1+row*2; if(span>triW) span=triW; int x0=triCx-span/2; int y=apexY+row; C2D_DrawRectSolid(x0,y,0,span,1,triCol);} }
     else { int apexY=midY+triH/2; for(int row=0; row<triH; ++row){ int span=1+row*2; if(span>triW) span=triW; int x0=triCx-span/2; int y=apexY-row; C2D_DrawRectSolid(x0,y,0,span,1,triCol);} }
     if(!dd.open) return;
     bool scrolling = items.size() > (size_t)dd.maxVisible;
-    int listY = dd.y + dd.h; int itemH = dd.itemHeight;
+    int listY = dd.y + dd.h; int itemH = dd.itemHeight - 2; if (itemH < 12) itemH = dd.itemHeight; // tighten but keep readable
     if (scrolling) {
         int h=(dd.maxVisible+2)*itemH; C2D_DrawRectSolid(dd.x, listY, 0, dd.w, h, dd.listBgColor);
         // Top arrow row

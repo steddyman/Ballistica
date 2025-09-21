@@ -9,7 +9,8 @@ namespace editor {
 enum class EditorAction {
     None,
     StartTest,      // switch to Playing mode (test run)
-    SaveAndExit     // save + switch to Title
+    SaveAndExit,    // save + switch to Title (legacy; not used by Exit button anymore)
+    ExitNoSave      // exit editor without saving
 };
 
 // Advance editor logic for one frame when in Editor game mode.
