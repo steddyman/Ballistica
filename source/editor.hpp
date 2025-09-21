@@ -9,7 +9,8 @@ namespace editor {
 enum class EditorAction {
     None,
     StartTest,      // switch to Playing mode (test run)
-    SaveAndExit     // save + switch to Title
+    SaveAndExit,    // save + switch to Title (legacy; not used by Exit button anymore)
+    ExitNoSave      // exit editor without saving
 };
 
 // Advance editor logic for one frame when in Editor game mode.
@@ -42,4 +43,7 @@ void persist_current_level();
 
 bool test_grace_active();
 void tick_test_grace();
+
+// Discard unsaved changes and reset editor init so next entry reloads from disk.
+void discard_unsaved_changes();
 } // namespace editor

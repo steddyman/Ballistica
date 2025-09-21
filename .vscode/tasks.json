@@ -102,6 +102,54 @@
 			"type": "shell",
 			"command": "make -s",
 			"group": "build"
+		},
+		{
+			"label": "Build Ballistica",
+			"type": "shell",
+			"command": "make -s",
+			"group": "build"
+		},
+		{
+			"label": "Build Ballistica",
+			"type": "shell",
+			"command": "make -s",
+			"group": "build"
+		},
+		{
+			"label": "Build Ballistica (pack)",
+			"type": "shell",
+			"command": "make -s",
+			"group": "build"
+		},
+		{
+			"label": "Build Ballistica",
+			"type": "shell",
+			"command": "make -s",
+			"group": "build"
+		},
+		{
+			"label": "Build Ballistica",
+			"type": "shell",
+			"command": "make -s",
+			"group": "build"
+		},
+		{
+			"label": "Build Ballistica",
+			"type": "shell",
+			"command": "make -s",
+			"group": "build"
+		},
+		{
+			"label": "Build Ballistica",
+			"type": "shell",
+			"command": "make -s",
+			"group": "build"
+		},
+		{
+			"label": "Build Ballistica",
+			"type": "shell",
+			"command": "make -s",
+			"group": "build"
 		}
 	]
 }

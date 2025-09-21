@@ -22,6 +22,8 @@ namespace levels {
     static const int BricksX=13;
     static const int BricksY=13;
     static const int NumBricks = BricksX*BricksY;    // 143 bricks
+    // Default values
+    static constexpr int kDefaultSpeed = 20; // default speed when missing in .DAT
     // Gameplay grid origin (affects in-game brick rendering/collisions)
     // Center horizontally based on configured brick width and number of columns
     static constexpr int LEFTSTART = (layout::SCREEN_WIDTH - layout::BRICK_CELL_W * BricksX) / 2;
@@ -37,7 +39,7 @@ namespace levels {
     static const int EditCellH = 9;
     // Editor grid origin (independent from gameplay). Default to horizontal centering for 16x9 cells.
     static constexpr int EDIT_LEFTSTART = 28; // Based on background art grid
-    static const int EDIT_TOPSTART = 25; // align with background art baseline
+    static const int EDIT_TOPSTART = 30; // align with background art baseline
 
     static const char* kSdDir = "sdmc:/ballistica";
     static const char* kLevelsSubDir = "sdmc:/ballistica/levels";
@@ -203,7 +205,7 @@ namespace levels {
 
     // ---------- Fallback -----------------------------------------------------
     static void buildFallback() {
-        Level L; L.name = "Fallback"; L.speed = 10; L.bricks.assign(NumBricks,0);
+        Level L; L.name = "Fallback"; L.speed = kDefaultSpeed; L.bricks.assign(NumBricks,0);
         for(int r=0;r<BricksY;++r) {
             int base = 1 + (r % 6); // cycle simple colored bricks
             for(int c=0;c<BricksX;++c) L.bricks[r*BricksX+c] = (uint8_t)base;
@@ -265,7 +267,7 @@ namespace levels {
                         cur.hp.push_back(hpv);
                         if(bricks==NumBricks) {
                             if(cur.name.empty()) cur.name = "Level";
-                            if(cur.speed==0) cur.speed = 10;
+                            if(cur.speed==0) cur.speed = kDefaultSpeed;
                             // snapshot originals
                             cur.origBricks = cur.bricks;
                             cur.origHp = cur.hp;
@@ -278,10 +280,12 @@ namespace levels {
         }
         if(inLevel) {
             if((int)cur.bricks.size()==NumBricks) {
+                if(cur.speed==0) cur.speed = kDefaultSpeed;
                 g_levels.push_back(cur);
             } else if((int)cur.bricks.size()==13*11) {
                 cur.bricks.resize(NumBricks, (uint8_t)BrickType::NB);
                 cur.hp.resize(NumBricks, 0);
+                if(cur.speed==0) cur.speed = kDefaultSpeed;
                 cur.origBricks = cur.bricks;
                 cur.origHp = cur.hp;
                 g_levels.push_back(cur);
