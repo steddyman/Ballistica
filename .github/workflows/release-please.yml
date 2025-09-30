@@ -14,6 +14,9 @@ jobs:
     concurrency:
       group: release-please-${{ github.ref }}
       cancel-in-progress: true
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - name: Release Please
         id: release
@@ -27,4 +30,11 @@ jobs:
         if: steps.release.outputs.release_created == 'true'
         run: |
           echo "A new release was created: ${{ steps.release.outputs.tag_name }}"
+
+  build-release-artifacts:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: ./.github/workflows/release-build.yml
+    with:
+      tag: ${{ needs.release-please.outputs.tag_name }}
 
