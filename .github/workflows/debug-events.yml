@@ -1,0 +1,24 @@
+name: Debug Events
+
+on:
+  push:
+    tags:
+      - '*'
+  release:
+    types: [created, published]
+
+jobs:
+  log:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print event info
+        run: |
+          echo "event_name=${{ github.event_name }}"
+          echo "event_action=${{ github.event.action }}"
+          echo "ref=${{ github.ref }}"
+          echo "ref_name=${{ github.ref_name }}"
+          echo "sha=${{ github.sha }}"
+          echo "actor=${{ github.actor }}"
+          echo "event_path=$GITHUB_EVENT_PATH"
+          echo "--- EVENT PAYLOAD ---"
+          cat $GITHUB_EVENT_PATH
