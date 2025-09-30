@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/steddyman/Ballistica/compare/v0.1.6...v0.1.7) (2025-09-30)
+
+
+### Bug Fixes
+
+* Add running on tags ([e7ed561](https://github.com/steddyman/Ballistica/commit/e7ed5611c64d4afec93ae4549c505f1cba681a83))
+
 ## [0.1.6](https://github.com/steddyman/Ballistica/compare/v0.1.5...v0.1.6) (2025-09-30)
 
 
