@@ -2,7 +2,7 @@ name: Release Build
 
 on:
   release:
-    types: [created]
+    types: [published]
 
 permissions:
   contents: write
@@ -16,7 +16,7 @@ jobs:
       - name: Checkout tag
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.event.release.tag_name }}
 
       - name: Install ffmpeg (audio conversion)
         run: |
@@ -39,13 +39,12 @@ jobs:
         run: |
           mkdir -p artifacts
           cp -f Ballistica.3dsx artifacts/
-          cd artifacts && sha256sum * > SHA256SUMS.txt
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            artifacts/Ballistica.3dsx
-            artifacts/SHA256SUMS.txt
+          tag_name: ${{ github.event.release.tag_name }}
+          files: artifacts/Ballistica.3dsx
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
