@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.9](https://github.com/steddyman/Ballistica/compare/v0.1.8...v0.1.9) (2025-09-30)
+
+
+### Bug Fixes
+
+* Tweaks to release please settings ([36251b3](https://github.com/steddyman/Ballistica/commit/36251b30959a189171096e8dde687edd9f38e6cf))
+
 ## [0.1.8](https://github.com/steddyman/Ballistica/compare/v0.1.7...v0.1.8) (2025-09-30)
 
 
