@@ -3,6 +3,11 @@ name: Release Build
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to build and upload (e.g., v0.1.4)"
+        required: true
 
 permissions:
   contents: write
@@ -10,13 +15,27 @@ permissions:
 jobs:
   build-and-upload:
     runs-on: ubuntu-latest
+    concurrency:
+      group: release-build-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.event.release.tag_name }}
+      cancel-in-progress: true
     container:
       image: devkitpro/devkitarm:latest
     steps:
+      - name: Determine tag name
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${{ github.event.release.tag_name }}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Using tag: $TAG"
+
       - name: Checkout tag
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ steps.tag.outputs.tag }}
 
       - name: Install ffmpeg (audio conversion)
         run: |
@@ -40,10 +59,10 @@ jobs:
           mkdir -p artifacts
           cp -f Ballistica.3dsx artifacts/
 
-      - name: Upload release assets
+      - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.release.tag_name }}
+          tag_name: ${{ steps.tag.outputs.tag }}
           files: artifacts/Ballistica.3dsx
           fail_on_unmatched_files: true
         env:

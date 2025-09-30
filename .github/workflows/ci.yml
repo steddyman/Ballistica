@@ -12,6 +12,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: github.event_name != 'push' || github.actor != 'release-please[bot]'
     container:
       image: devkitpro/devkitarm:latest
 
