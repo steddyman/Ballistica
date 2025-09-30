@@ -8,6 +8,9 @@ on:
       tag:
         description: "Release tag to build and upload (e.g., v0.1.4)"
         required: true
+  push:
+    tags:
+      - 'v*'
 
 permissions:
   contents: write
@@ -16,7 +19,7 @@ jobs:
   build-and-upload:
     runs-on: ubuntu-latest
     concurrency:
-      group: release-build-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.event.release.tag_name }}
+      group: release-build-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.event_name == 'release' && github.event.release.tag_name || github.ref_name }}
       cancel-in-progress: true
     container:
       image: devkitpro/devkitarm:latest
@@ -24,11 +27,16 @@ jobs:
       - name: Determine tag name
         id: tag
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TAG="${{ inputs.tag }}"
-          else
-            TAG="${{ github.event.release.tag_name }}"
-          fi
+          case "${{ github.event_name }}" in
+            workflow_dispatch)
+              TAG="${{ inputs.tag }}" ;;
+            release)
+              TAG="${{ github.event.release.tag_name }}" ;;
+            push)
+              TAG="${GITHUB_REF_NAME}" ;;
+            *)
+              echo "Unsupported event: ${{ github.event_name }}" >&2; exit 1 ;;
+          esac
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Using tag: $TAG"
 
