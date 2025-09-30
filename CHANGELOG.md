@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.13](https://github.com/steddyman/Ballistica/compare/v0.1.12...v0.1.13) (2025-09-30)
+
+
+### Bug Fixes
+
+* Test runner again ([#60](https://github.com/steddyman/Ballistica/issues/60)) ([7eca450](https://github.com/steddyman/Ballistica/commit/7eca4503d6710a7708eea1f2783b96eb227b682c))
+
 ## [0.1.12](https://github.com/steddyman/Ballistica/compare/v0.1.11...v0.1.12) (2025-09-30)
 
 
