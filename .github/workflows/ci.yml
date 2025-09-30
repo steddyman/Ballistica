@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install devkitPro pacman
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget ca-certificates
+          wget https://apt.devkitpro.org/install-devkitpro-pacman
+          echo "Installing devkitPro pacman..."
+          sudo bash install-devkitpro-pacman
+          echo "Updating dkp-pacman databases..."
+          sudo dkp-pacman -Sy --noconfirm
+
+      - name: Install ffmpeg (audio conversion)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+      
+      - name: Install 3DS toolchain & libraries
+        run: |
+          sudo dkp-pacman -S --needed --noconfirm 3ds-dev
+
+      - name: Build (make)
+        env:
+          DEVKITPRO: /opt/devkitpro
+          DEVKITARM: /opt/devkitpro/devkitARM
+        run: |
+          make -s
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ballistica-3dsx
+          path: |
+            Ballistica.3dsx
+            Ballistica.smdh
+            Ballistica.elf
+          if-no-files-found: warn

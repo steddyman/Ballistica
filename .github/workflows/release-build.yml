@@ -1,0 +1,58 @@
+name: Release Build
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install devkitPro pacman
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget ca-certificates
+          wget https://apt.devkitpro.org/install-devkitpro-pacman
+          sudo bash install-devkitpro-pacman
+          sudo dkp-pacman -Sy --noconfirm
+
+      - name: Install ffmpeg (audio conversion)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install 3DS toolchain & libraries
+        run: |
+          sudo dkp-pacman -S --needed --noconfirm 3ds-dev
+
+      - name: Build (make)
+        env:
+          DEVKITPRO: /opt/devkitpro
+          DEVKITARM: /opt/devkitpro/devkitARM
+        run: |
+          make -s
+
+      - name: Archive artifacts
+        run: |
+          mkdir -p artifacts
+          cp -f Ballistica.3dsx artifacts/
+          cp -f Ballistica.smdh artifacts/ || true
+          cp -f Ballistica.elf artifacts/ || true
+          cd artifacts && sha256sum * > SHA256SUMS.txt
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/Ballistica.3dsx
+            artifacts/Ballistica.smdh
+            artifacts/Ballistica.elf
+            artifacts/SHA256SUMS.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
