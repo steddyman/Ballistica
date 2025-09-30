@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.10](https://github.com/steddyman/Ballistica/compare/v0.1.9...v0.1.10) (2025-09-30)
+
+
+### Bug Fixes
+
+* Update to using release triggers ([e07e3b1](https://github.com/steddyman/Ballistica/commit/e07e3b1e4b156e1d1e77eb8fa41495b3ab0ba63c))
+
 ## [0.1.9](https://github.com/steddyman/Ballistica/compare/v0.1.8...v0.1.9) (2025-09-30)
 
 
