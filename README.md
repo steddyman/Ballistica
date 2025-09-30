@@ -26,3 +26,5 @@ The levels are stored in the `levels` folder.  You can create your own levels us
 I encourage you to create your own levels and share them with others, by raising a PR against this repository with a description of your levels.
 
 If this repo is useful to you, please consider starring it to help others find it and tell your friends about the game.
+
+- test force release build
