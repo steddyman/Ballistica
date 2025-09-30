@@ -1,5 +1,6 @@
 #pragma once
 
+// Force PR
 namespace options {
 // Returns whether music should play (default true). Implemented in options.cpp
 bool is_music_enabled();
