@@ -27,4 +27,3 @@ I encourage you to create your own levels and share them with others, by raising
 
 If this repo is useful to you, please consider starring it to help others find it and tell your friends about the game.
 
-- test force release build
