@@ -42,7 +42,7 @@ jobs:
           make -s
 
       - name: Upload build artifacts
-        if: always()
+        if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: ballistica-3dsx
