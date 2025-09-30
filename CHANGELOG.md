@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/steddyman/Ballistica/compare/v0.1.3...v0.1.4) (2025-09-30)
+
+
+### Bug Fixes
+
+* Fix duplicate artifacts ([6a4b6f4](https://github.com/steddyman/Ballistica/commit/6a4b6f4d2f9bd623346749e502cbc58ba6f7772e))
+
 ## [0.1.3](https://github.com/steddyman/Ballistica/compare/v0.1.2...v0.1.3) (2025-09-30)
 
 
