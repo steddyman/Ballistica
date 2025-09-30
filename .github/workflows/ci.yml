@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: devkitpro/devkitarm:latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ffmpeg (audio conversion)
+        run: |
+          apt-get update
+          apt-get install -y ffmpeg
+
+      - name: Toolchain diagnostics (non-fatal)
+        run: |
+          echo "DEVKITPRO=$DEVKITPRO"
+          echo "DEVKITARM=$DEVKITARM"
+          which arm-none-eabi-gcc || true
+          arm-none-eabi-gcc --version || true
+          ls -la /opt/devkitpro || true
+          ls -la /opt/devkitpro/libctru || true
+
+      - name: Build (make)
+        env:
+          DEVKITPRO: /opt/devkitpro
+          DEVKITARM: /opt/devkitpro/devkitARM
+        run: |
+          make -s
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ballistica-3dsx
+          path: |
+            Ballistica.3dsx
+            Ballistica.smdh
+            Ballistica.elf
+          if-no-files-found: warn
