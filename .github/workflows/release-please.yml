@@ -24,3 +24,4 @@ jobs:
         if: steps.release.outputs.release_created == 'true'
         run: |
           echo "A new release was created: ${{ steps.release.outputs.tag_name }}"
+
