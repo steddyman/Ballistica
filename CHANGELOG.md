@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.8](https://github.com/steddyman/Ballistica/compare/v0.1.7...v0.1.8) (2025-09-30)
+
+
+### Bug Fixes
+
+* Fix draft issue for PRs ([90ba451](https://github.com/steddyman/Ballistica/commit/90ba451b3c39bd2d82eb7042e4b74c3596e1aec0))
+
 ## [0.1.7](https://github.com/steddyman/Ballistica/compare/v0.1.6...v0.1.7) (2025-09-30)
 
 
