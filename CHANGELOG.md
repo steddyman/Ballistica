@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/steddyman/Ballistica/compare/v0.1.4...v0.1.5) (2025-09-30)
+
+
+### Bug Fixes
+
+* Update release scripts ([a7db4c0](https://github.com/steddyman/Ballistica/commit/a7db4c098392799908b73162ead5355400484765))
+
 ## [0.1.4](https://github.com/steddyman/Ballistica/compare/v0.1.3...v0.1.4) (2025-09-30)
 
 
