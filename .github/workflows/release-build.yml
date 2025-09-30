@@ -13,17 +13,20 @@ jobs:
     container:
       image: devkitpro/devkitarm:latest
     steps:
-      - name: Checkout
+      - name: Checkout tag
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
 
       - name: Install ffmpeg (audio conversion)
         run: |
           apt-get update
           apt-get install -y ffmpeg
 
-      - name: Install 3DS toolchain & libraries
+      # devkitpro/devkitarm image already includes the toolchain; install extra libs only if needed
+      - name: Install 3DS dependencies (if needed)
         run: |
-          sudo dkp-pacman -S --needed --noconfirm 3ds-dev
+          true
 
       - name: Build (make)
         env:
@@ -32,12 +35,10 @@ jobs:
         run: |
           make -s
 
-      - name: Archive artifacts
+      - name: Archive artifact
         run: |
           mkdir -p artifacts
           cp -f Ballistica.3dsx artifacts/
-          cp -f Ballistica.smdh artifacts/ || true
-          cp -f Ballistica.elf artifacts/ || true
           cd artifacts && sha256sum * > SHA256SUMS.txt
 
       - name: Upload release assets
@@ -45,8 +46,6 @@ jobs:
         with:
           files: |
             artifacts/Ballistica.3dsx
-            artifacts/Ballistica.smdh
-            artifacts/Ballistica.elf
             artifacts/SHA256SUMS.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
