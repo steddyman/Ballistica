@@ -8,7 +8,7 @@ on:
         type: string
 permissions:
   contents: write
-ß
+
 jobs:
   build-and-upload:
     runs-on: ubuntu-latest
