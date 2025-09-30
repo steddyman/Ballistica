@@ -1,16 +1,7 @@
 {
     "folders": [
 		{
-			"path": "../3ds-examples"
-		},
-		{
 			"path": "."
-		},
-		{
-			"path": "../../../../../opt/devkitpro"
-		},
-		{
-			"path": "../_OG_MurderBall"
 		}
 	],
 	"settings": {
