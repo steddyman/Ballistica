@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.11](https://github.com/steddyman/Ballistica/compare/v0.1.10...v0.1.11) (2025-09-30)
+
+
+### Bug Fixes
+
+* Add new debug workflow ([d7eeebf](https://github.com/steddyman/Ballistica/commit/d7eeebf65c8fdfac24e768f32e5b4da6fb32cf70))
+
 ## [0.1.10](https://github.com/steddyman/Ballistica/compare/v0.1.9...v0.1.10) (2025-09-30)
 
 
