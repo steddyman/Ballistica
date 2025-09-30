@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.14](https://github.com/steddyman/Ballistica/compare/v0.1.13...v0.1.14) (2025-09-30)
+
+
+### Bug Fixes
+
+* Remove workflow_dispatch ([#63](https://github.com/steddyman/Ballistica/issues/63)) ([4d7da28](https://github.com/steddyman/Ballistica/commit/4d7da28db142ced5aa82ea2682aa2281e28805db))
+
 ## [0.1.13](https://github.com/steddyman/Ballistica/compare/v0.1.12...v0.1.13) (2025-09-30)
 
 
