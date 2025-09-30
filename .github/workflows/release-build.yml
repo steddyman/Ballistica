@@ -16,11 +16,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install 3DS toolchain libraries
-        run: |
-          dkp-pacman -Sy --noconfirm
-          dkp-pacman -S --needed --noconfirm 3ds-dev
-
       - name: Install ffmpeg (audio conversion)
         run: |
           apt-get update

@@ -19,19 +19,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install 3DS toolchain libraries
-        run: |
-          dkp-pacman -Sy --noconfirm
-          dkp-pacman -S --needed --noconfirm 3ds-dev
-
       - name: Install ffmpeg (audio conversion)
         run: |
           apt-get update
           apt-get install -y ffmpeg
-      
-      - name: Install 3DS toolchain & libraries
+
+      - name: Toolchain diagnostics (non-fatal)
         run: |
-          sudo dkp-pacman -S --needed --noconfirm 3ds-dev
+          echo "DEVKITPRO=$DEVKITPRO"
+          echo "DEVKITARM=$DEVKITARM"
+          which arm-none-eabi-gcc || true
+          arm-none-eabi-gcc --version || true
+          ls -la /opt/devkitpro || true
+          ls -la /opt/devkitpro/libctru || true
 
       - name: Build (make)
         env:
