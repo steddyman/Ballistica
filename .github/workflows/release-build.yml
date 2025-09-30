@@ -10,22 +10,21 @@ permissions:
 jobs:
   build-and-upload:
     runs-on: ubuntu-latest
+    container:
+      image: devkitpro/devkitarm:latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install devkitPro pacman
+      - name: Install 3DS toolchain libraries
         run: |
-          sudo apt-get update
-          sudo apt-get install -y wget ca-certificates
-          wget https://apt.devkitpro.org/install-devkitpro-pacman
-          sudo bash install-devkitpro-pacman
-          sudo dkp-pacman -Sy --noconfirm
+          dkp-pacman -Sy --noconfirm
+          dkp-pacman -S --needed --noconfirm 3ds-dev
 
       - name: Install ffmpeg (audio conversion)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          apt-get update
+          apt-get install -y ffmpeg
 
       - name: Install 3DS toolchain & libraries
         run: |
