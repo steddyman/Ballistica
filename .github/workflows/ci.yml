@@ -3,6 +3,7 @@ name: CI
 on:
   pull_request:
     branches: [ main ]
+    types: [opened, synchronize, reopened, ready_for_review, edited]
   push:
     branches: [ main ]
 
@@ -10,9 +11,36 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  pr-title:
+    name: PR title (Conventional Commits)
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    if: github.event_name != 'push' || github.actor != 'release-please[bot]'
+    permissions:
+      pull-requests: read
+    steps:
+      - name: Validate PR title follows Conventional Commits
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            build
+            chore
+            ci
+            docs
+            feat
+            fix
+            perf
+            refactor
+            revert
+            style
+            test
+
+  build-pr:
+    name: Build (PR)
+    if: github.event_name == 'pull_request'
+    needs: pr-title
+    runs-on: ubuntu-latest
     container:
       image: devkitpro/devkitarm:latest
 
@@ -42,7 +70,6 @@ jobs:
           make -s
 
       - name: Upload build artifacts
-        if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: ballistica-3dsx
@@ -51,3 +78,35 @@ jobs:
             Ballistica.smdh
             Ballistica.elf
           if-no-files-found: warn
+
+  build-push:
+    name: Build (push)
+    if: github.event_name == 'push' && github.actor != 'release-please[bot]'
+    runs-on: ubuntu-latest
+    container:
+      image: devkitpro/devkitarm:latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ffmpeg (audio conversion)
+        run: |
+          apt-get update
+          apt-get install -y ffmpeg
+
+      - name: Toolchain diagnostics (non-fatal)
+        run: |
+          echo "DEVKITPRO=$DEVKITPRO"
+          echo "DEVKITARM=$DEVKITARM"
+          which arm-none-eabi-gcc || true
+          arm-none-eabi-gcc --version || true
+          ls -la /opt/devkitpro || true
+          ls -la /opt/devkitpro/libctru || true
+
+      - name: Build (make)
+        env:
+          DEVKITPRO: /opt/devkitpro
+          DEVKITARM: /opt/devkitpro/devkitARM
+        run: |
+          make -s
