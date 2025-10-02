@@ -35,9 +35,11 @@ jobs:
             style
             test
 
-  build:
+  build-pr:
+    name: Build (PR)
+    if: github.event_name == 'pull_request'
+    needs: pr-title
     runs-on: ubuntu-latest
-    if: github.event_name != 'push' || github.actor != 'release-please[bot]'
     container:
       image: devkitpro/devkitarm:latest
 
@@ -67,7 +69,6 @@ jobs:
           make -s
 
       - name: Upload build artifacts
-        if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: ballistica-3dsx
@@ -76,3 +77,35 @@ jobs:
             Ballistica.smdh
             Ballistica.elf
           if-no-files-found: warn
+
+  build-push:
+    name: Build (push)
+    if: github.event_name == 'push' && github.actor != 'release-please[bot]'
+    runs-on: ubuntu-latest
+    container:
+      image: devkitpro/devkitarm:latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ffmpeg (audio conversion)
+        run: |
+          apt-get update
+          apt-get install -y ffmpeg
+
+      - name: Toolchain diagnostics (non-fatal)
+        run: |
+          echo "DEVKITPRO=$DEVKITPRO"
+          echo "DEVKITARM=$DEVKITARM"
+          which arm-none-eabi-gcc || true
+          arm-none-eabi-gcc --version || true
+          ls -la /opt/devkitpro || true
+          ls -la /opt/devkitpro/libctru || true
+
+      - name: Build (make)
+        env:
+          DEVKITPRO: /opt/devkitpro
+          DEVKITARM: /opt/devkitpro/devkitARM
+        run: |
+          make -s
