@@ -38,7 +38,7 @@ jobs:
 
   build-pr:
     name: Build (PR)
-    if: github.event_name == 'pull_request' && github.event.action != 'edited'
+    if: github.event_name == 'pull_request'
     needs: pr-title
     runs-on: ubuntu-latest
     container:
