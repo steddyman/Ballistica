@@ -6,6 +6,40 @@ This game was originally developed by [Stephen Eddy](https://x.com/steddyman) fo
 
 It makes use of both 3DS screens and the 3DS controls.  It contains a full level editor, so you can create your own levels and play them on the 3DS.
 
+## Screenshots
+
+<table>
+	<tr>
+		<td align="center">
+			<a href="screenshots/main-menu.png">
+				<img src="screenshots/main-menu.png" alt="Main menu" width="410"/>
+			</a>
+			<br/><sub>Main Menu</sub>
+		</td>
+		<td align="center">
+			<a href="screenshots/playing1.png">
+				<img src="screenshots/playing1.png" alt="Playing (1)" width="410"/>
+			</a>
+			<br/><sub>Gameplay</sub>
+		</td>
+	</tr>
+	<tr>
+		<td align="center">
+			<a href="screenshots/level-editor1.png">
+				<img src="screenshots/level-editor1.png" alt="Level editor" width="410"/>
+			</a>
+			<br/><sub>Level Editor</sub>
+		</td>
+		<td align="center">
+			<a href="screenshots/playing2.png">
+				<img src="screenshots/playing2.png" alt="Playing (2)" width="410"/>
+			</a>
+			<br/><sub>More Gameplay</sub>
+		</td>
+	</tr>
+  
+</table>
+
 # Using the Release Build
 
 You can download the latest release build from the Releases section of this repository.  Look for a file named `ballistica.3dsx`.  Copy this file to the **/3ds/ballistica** folder of your 3DS SD card and run it using the homebrew launcher.
