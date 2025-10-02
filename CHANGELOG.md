@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.15](https://github.com/steddyman/Ballistica/compare/v0.1.14...v0.1.15) (2025-10-02)
+
+
+### Features
+
+* Add CI Title checks ([#66](https://github.com/steddyman/Ballistica/issues/66)) ([14e8c0f](https://github.com/steddyman/Ballistica/commit/14e8c0ff2a215017fdc97a9288a8e0de9c586a52))
+
 ## [0.1.14](https://github.com/steddyman/Ballistica/compare/v0.1.13...v0.1.14) (2025-09-30)
 
 
