@@ -27,5 +27,9 @@ AccessControlInfo:
   EnableForceDebug        : false
 
 SystemControlInfo:
-  SaveDataSize            : 0
+  # SaveDataSize must be hex with 0x prefix or decimal ending in K/M; 0x0 means no internal save archive.
+  # For user-created levels persistence, prefer extdata (not coded yet) or keep using SD card files from the .3dsx logic.
+  SaveDataSize            : 0x00000000
+  StackSize               : 0x00004000
   RemasterVersion         : 0
+  # ExtSaveDataId         : 0x00000000    # Uncomment and set if converting to extdata later
