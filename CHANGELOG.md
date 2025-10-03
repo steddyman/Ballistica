@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.17](https://github.com/steddyman/Ballistica/compare/v0.1.16...v0.1.17) (2025-10-03)
+
+
+### Bug Fixes
+
+* Force update ([#72](https://github.com/steddyman/Ballistica/issues/72)) ([fcc6216](https://github.com/steddyman/Ballistica/commit/fcc62164569d39d0553a23a6f29d18046e4f1015))
+
 ## [0.1.16](https://github.com/steddyman/Ballistica/compare/v0.1.15...v0.1.16) (2025-10-03)
 
 
