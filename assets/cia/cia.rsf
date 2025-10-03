@@ -2,34 +2,121 @@ BasicInfo:
   Title                   : "Ballistica"
   ProductCode             : "CTR-P-BALL"
   CompanyCode             : "00"
+  Logo                    : Nintendo
 
 TitleInfo:
-  UniqueId                : 0x12345        # Change only if you must; keep stable for users
   Category                : Application
+  UniqueId                : 0x12345           # TODO: choose stable unique ID before public distribution
+  Variation               : 0
 
 Option:
   UseOnSD                 : true
   FreeProductCode         : true
-  MediaFootPadding        : true
+  MediaFootPadding        : false
   EnableCrypt             : false
   EnableCompress          : true
 
-# AccessControlInfo / SystemControlInfo blocks trimmed to only what makerom needs for a basic homebrew CIA.
+RomFs:
+  RootPath                : romfs
+
 AccessControlInfo:
-  IdealProcessor          : 0
-  AffinityMask            : 1
-  Priority                : 16
-  MemoryType              : Application
-  SystemMode              : 64MB
-  MaxCpu                  : 0
-  HandleTableSize         : 512
-  DisableDebug            : false
-  EnableForceDebug        : false
+  CoreVersion                   : 2
+  DescVersion                   : 2
+  ReleaseKernelMajor            : "02"
+  ReleaseKernelMinor            : "33"
+
+  # --- ExtData / Save (not using internal or ext save archive yet) ---
+  UseExtSaveData               : false
+  #ExtSaveDataId               : 0x000 # set if different from UniqueId if enabling
+
+  # File system access (allow SD + optional categories if needed later)
+  FileSystemAccess:
+    - DirectSdmc
+
+  MemoryType                    : Application
+  SystemMode                    : 64MB
+  IdealProcessor                : 0
+  AffinityMask                  : 1
+  Priority                      : 16
+  MaxCpu                        : 0
+  HandleTableSize               : 0x200
+  DisableDebug                  : false
+  EnableForceDebug              : false
+  CanWriteSharedPage            : true
+  CanUsePrivilegedPriority      : false
+  CanUseNonAlphabetAndNumber    : true
+  PermitMainFunctionArgument    : true
+  CanShareDeviceMemory          : true
+  RunnableOnSleep               : false
+  SpecialMemoryArrange          : true
+
+  # Old3DS vs New3DS settings (keep conservative; game not New3DS-only)
+  SystemModeExt                 : Legacy
+  CpuSpeed                      : 268MHz
+  EnableL2Cache                 : false
+  CanAccessCore2                : false
+
+  IORegisterMapping:
+    - 1ff00000-1ff7ffff
+  MemoryMapping:
+    - 1f000000-1f5fffff:r
+
+  # Minimal syscall list needed for typical homebrew (trimmed from full reference)
+  SystemCallAccess:
+    ControlMemory: 1
+    QueryMemory: 2
+    ExitProcess: 3
+    GetProcessIdealProcessor: 6
+    CreateThread: 8
+    ExitThread: 9
+    SleepThread: 10
+    SetThreadPriority: 12
+    GetThreadPriority: 11
+    CreateMutex: 19
+    ReleaseMutex: 20
+    CreateSemaphore: 21
+    ReleaseSemaphore: 22
+    CreateEvent: 23
+    SignalEvent: 24
+    ClearEvent: 25
+    CreateTimer: 26
+    SetTimer: 27
+    CancelTimer: 28
+    ClearTimer: 29
+    CreateMemoryBlock: 30
+    MapMemoryBlock: 31
+    UnmapMemoryBlock: 32
+    CreateAddressArbiter: 33
+    ArbitrateAddress: 34
+    CloseHandle: 35
+    WaitSynchronization1: 36
+    WaitSynchronizationN: 37
+    GetSystemTick: 40
+    GetHandleInfo: 41
+    GetSystemInfo: 42
+    GetProcessInfo: 43
+    GetThreadInfo: 44
+    ConnectToPort: 45
+    SendSyncRequest: 50
+    DuplicateHandle: 39
+    GetResourceLimit: 56
+    GetResourceLimitLimitValues: 57
+    GetResourceLimitCurrentValues: 58
+    OutputDebugString: 61
+
+  # Services actually required by Ballistica (graphics, input, fs, audio, system, config, network socket)
+  ServiceAccessControl:
+    - APT:U
+    - gsp::Gpu
+    - hid:USER
+    - fs:USER
+    - dsp::DSP
+    - cfg:u
+    - soc:U
 
 SystemControlInfo:
-  # SaveDataSize must be hex with 0x prefix or decimal ending in K/M; 0x0 means no internal save archive.
-  # For user-created levels persistence, prefer extdata (not coded yet) or keep using SD card files from the .3dsx logic.
-  SaveDataSize            : 0x00000000
-  StackSize               : 0x00004000
-  RemasterVersion         : 0
-  # ExtSaveDataId         : 0x00000000    # Uncomment and set if converting to extdata later
+  SaveDataSize                 : 0KB
+  RemasterVersion              : 0
+  StackSize                    : 0x40000
+  #Dependency:
+  #  gsp: 0x0004013000001c02   # If adding explicit module dependencies becomes necessary
