@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.19](https://github.com/steddyman/Ballistica/compare/v0.1.18...v0.1.19) (2025-10-03)
+
+
+### Bug Fixes
+
+* Update rsf ([#76](https://github.com/steddyman/Ballistica/issues/76)) ([1423651](https://github.com/steddyman/Ballistica/commit/1423651774f8cf4d27b54195d99dac36cfdb4a77))
+
 ## [0.1.18](https://github.com/steddyman/Ballistica/compare/v0.1.17...v0.1.18) (2025-10-03)
 
 
