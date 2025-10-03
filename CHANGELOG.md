@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.20](https://github.com/steddyman/Ballistica/compare/v0.1.19...v0.1.20) (2025-10-03)
+
+
+### Bug Fixes
+
+* Working makerom ([#78](https://github.com/steddyman/Ballistica/issues/78)) ([71920ac](https://github.com/steddyman/Ballistica/commit/71920ac48c87f17120d27e011ecc15d1a8eddb9d))
+
 ## [0.1.19](https://github.com/steddyman/Ballistica/compare/v0.1.18...v0.1.19) (2025-10-03)
 
 
