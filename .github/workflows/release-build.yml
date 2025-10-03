@@ -36,9 +36,9 @@ jobs:
           apt-get install -y ffmpeg
 
       # devkitpro/devkitarm image already includes the toolchain; install extra libs only if needed
-      - name: Install 3DS dependencies (if needed)
-        run: |
-          true
+      # - name: Install 3DS dependencies (if needed)
+      #   run: |
+      #     sudo dkp-pacman -S --needed --noconfirm 3ds-dev
 
       - name: Build (make)
         env:
@@ -51,12 +51,85 @@ jobs:
         run: |
           mkdir -p artifacts
           cp -f Ballistica.3dsx artifacts/
+          # Build CIA assets
+          mkdir -p build_cia
+          # Ensure local bannertool (repo bin/ directory) is executable
+          if [ -f bin/bannertool ]; then
+            chmod +x bin/bannertool
+            BANNERTOOL="$PWD/bin/bannertool"
+          else
+            echo "ERROR: bin/bannertool not found in repository. Add it or adjust path." >&2
+            exit 1
+          fi
+          # Generate banner (with audio) using provided assets
+          "$BANNERTOOL" makebanner \
+            -i assets/cia/banner.png \
+            -a assets/cia/banner.wav \
+            -o build_cia/banner.bnr
+          # (Re)use existing SMDH if present; else build from icon
+          if [ ! -f Ballistica.smdh ]; then
+            "$BANNERTOOL" makesmdh \
+              -s "Ballistica" \
+              -l "Ballistica 3DS" \
+              -p "Steddyman" \
+              -i assets/cia/icon.png \
+              -o build_cia/Ballistica.smdh
+          else
+            cp Ballistica.smdh build_cia/Ballistica.smdh
+          fi
+          # Create RSF on the fly (could be committed instead)
+          cat <<'RSF' > build_cia/cia.rsf
+          BasicInfo:
+            Title                   : "Ballistica"
+            ProductCode             : "CTR-P-BALL"
+            CompanyCode             : "00"
+
+          TitleInfo:
+            UniqueId                : 0x12345
+            Category                : Application
+
+          Option:
+            UseOnSD                 : true
+            FreeProductCode         : true
+            MediaFootPadding        : true
+            EnableCrypt             : false
+            EnableCompress          : true
+
+          SystemControlInfo:
+            SaveSize                : 0
+            RemasterVersion         : 0
+
+          AccessControlInfo:
+            FileSystemAccess:
+              - CategorySystemApplication
+            IdealProcessor          : 0
+            AffinityMask            : 1
+            Priority                : 16
+            MemoryType              : Application
+            SystemMode              : 64MB
+            MaxCpu                  : 0
+            HandleTableSize         : 512
+            DisableDebug            : false
+            EnableForceDebug        : false
+            UseOtherVariationSaveData : false
+          RSF
+          # Build CIA
+          makerom -f cia \
+            -o build_cia/Ballistica.cia \
+            -elf Ballistica.elf \
+            -rsf build_cia/cia.rsf \
+            -icon build_cia/Ballistica.smdh \
+            -banner build_cia/banner.bnr \
+            -ckeyid 0 -target t
+          cp build_cia/Ballistica.cia artifacts/
 
       - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
-          files: artifacts/Ballistica.3dsx
+          files: |
+            artifacts/Ballistica.3dsx
+            artifacts/Ballistica.cia
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
