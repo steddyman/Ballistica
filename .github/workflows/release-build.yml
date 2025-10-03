@@ -77,42 +77,8 @@ jobs:
           else
             cp Ballistica.smdh build_cia/Ballistica.smdh
           fi
-          # Create RSF on the fly (could be committed instead)
-          cat <<'RSF' > build_cia/cia.rsf
-          BasicInfo:
-            Title                   : "Ballistica"
-            ProductCode             : "CTR-P-BALL"
-            CompanyCode             : "00"
-
-          TitleInfo:
-            UniqueId                : 0x12345
-            Category                : Application
-
-          Option:
-            UseOnSD                 : true
-            FreeProductCode         : true
-            MediaFootPadding        : true
-            EnableCrypt             : false
-            EnableCompress          : true
-
-          SystemControlInfo:
-            SaveSize                : 0
-            RemasterVersion         : 0
-
-          AccessControlInfo:
-            FileSystemAccess:
-              - CategorySystemApplication
-            IdealProcessor          : 0
-            AffinityMask            : 1
-            Priority                : 16
-            MemoryType              : Application
-            SystemMode              : 64MB
-            MaxCpu                  : 0
-            HandleTableSize         : 512
-            DisableDebug            : false
-            EnableForceDebug        : false
-            UseOtherVariationSaveData : false
-          RSF
+          # Copy committed RSF template (kept in repo)
+          cp assets/cia/cia.rsf build_cia/cia.rsf
           # Build CIA
           if [ -f bin/makerom ]; then
             chmod +x bin/makerom

@@ -1,0 +1,31 @@
+BasicInfo:
+  Title                   : "Ballistica"
+  ProductCode             : "CTR-P-BALL"
+  CompanyCode             : "00"
+
+TitleInfo:
+  UniqueId                : 0x12345        # Change only if you must; keep stable for users
+  Category                : Application
+
+Option:
+  UseOnSD                 : true
+  FreeProductCode         : true
+  MediaFootPadding        : true
+  EnableCrypt             : false
+  EnableCompress          : true
+
+# AccessControlInfo / SystemControlInfo blocks trimmed to only what makerom needs for a basic homebrew CIA.
+AccessControlInfo:
+  IdealProcessor          : 0
+  AffinityMask            : 1
+  Priority                : 16
+  MemoryType              : Application
+  SystemMode              : 64MB
+  MaxCpu                  : 0
+  HandleTableSize         : 512
+  DisableDebug            : false
+  EnableForceDebug        : false
+
+SystemControlInfo:
+  SaveDataSize            : 0
+  RemasterVersion         : 0
