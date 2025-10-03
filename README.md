@@ -61,3 +61,31 @@ I encourage you to create your own levels and share them with others, by raising
 
 If this repo is useful to you, please consider starring it to help others find it and tell your friends about the game.
 ** **
+
+## Local CIA Build (Testing Without GitHub Actions)
+
+You can build the CIA locally to iterate on `assets/cia/cia.rsf` without waiting for the release pipeline.
+
+Prerequisites:
+1. devkitPro / devkitARM installed (environment variables `DEVKITPRO` and `DEVKITARM` set or available via your shell profile) so that `make` produces `Ballistica.3dsx` / `Ballistica.elf`.
+2. Platform tools included in this repo:
+	- macOS (Apple Silicon): `bin/mac-arm64/bannertool`, `bin/mac-arm64/makerom`
+	- macOS (Intel / Rosetta): `bin/mac-x86_64/bannertool`, `bin/mac-x86_64/makerom`
+	- Linux (x86_64): `bin/linux-x86_64/bannertool`, `bin/linux-x86_64/makerom`
+3. Assets present:
+	- `assets/cia/icon.png`
+	- `assets/cia/banner.png`
+	- `assets/cia/banner.wav` (e.g. generated with: `ffmpeg -i music.wav -ss 0 -t 3 -ar 32000 -ac 2 -acodec pcm_s16le banner.wav`)
+	- `assets/cia/cia.rsf`
+
+Run:
+```bash
+chmod +x scripts/build_cia_local.sh
+./scripts/build_cia_local.sh
+```
+
+Artifacts will appear in `dist/` (`Ballistica.cia`, plus `banner.bnr` and `Ballistica.smdh`).
+
+If makerom fails with an ExHeader save size error, the script auto-retries by injecting a small `SaveDataSize` (256KB) into a temporary RSF so you can decide whether to add it permanently.
+
+Current `UniqueId` in `cia.rsf` is a placeholder (`0x12345`). Replace with a stable unique value before public distribution to avoid collisions with other homebrew titles installed on the same system.

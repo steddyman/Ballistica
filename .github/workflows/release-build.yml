@@ -53,12 +53,12 @@ jobs:
           cp -f Ballistica.3dsx artifacts/
           # Build CIA assets
           mkdir -p build_cia
-          # Ensure local bannertool (repo bin/ directory) is executable
-          if [ -f bin/bannertool ]; then
-            chmod +x bin/bannertool
-            BANNERTOOL="$PWD/bin/bannertool"
+          # Use Linux build of bannertool (repository path fixed for CI)
+          if [ -f bin/linux-x86_64/bannertool ]; then
+            chmod +x bin/linux-x86_64/bannertool
+            BANNERTOOL="$PWD/bin/linux-x86_64/bannertool"
           else
-            echo "ERROR: bin/bannertool not found in repository. Add it or adjust path." >&2
+            echo "ERROR: bannertool not found at bin/linux-x86_64/bannertool" >&2
             exit 1
           fi
           # Generate banner (with audio) using provided assets
@@ -80,11 +80,11 @@ jobs:
           # Copy committed RSF template (kept in repo)
           cp assets/cia/cia.rsf build_cia/cia.rsf
           # Build CIA
-          if [ -f bin/makerom ]; then
-            chmod +x bin/makerom
-            MAKEROM="$PWD/bin/makerom"
+          if [ -f bin/linux-x86_64/makerom ]; then
+            chmod +x bin/linux-x86_64/makerom
+            MAKEROM="$PWD/bin/linux-x86_64/makerom"
           else
-            echo "ERROR: bin/makerom not found in repository." >&2
+            echo "ERROR: makerom not found at bin/linux-x86_64/makerom" >&2
             exit 1
           fi
           "$MAKEROM" -f cia \

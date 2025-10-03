@@ -11,6 +11,13 @@ build/
 *.map
 *.lst
 
+# Local / CI packaging outputs
+dist/
+build_cia/
+artifacts/
+*.cia
+*.bnr
+
 # Generated/intermediate assets
 *.gmo
 *.bin
