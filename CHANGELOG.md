@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.16](https://github.com/steddyman/Ballistica/compare/v0.1.15...v0.1.16) (2025-10-03)
+
+
+### Features
+
+* Perform CIA build and release ([#69](https://github.com/steddyman/Ballistica/issues/69)) ([b7dde67](https://github.com/steddyman/Ballistica/commit/b7dde67a75c2ab850732fda87448cea0329b711c))
+
 ## [0.1.15](https://github.com/steddyman/Ballistica/compare/v0.1.14...v0.1.15) (2025-10-02)
 
 
