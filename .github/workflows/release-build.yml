@@ -36,7 +36,7 @@ jobs:
           apt-get install -y ffmpeg
 
       # devkitpro/devkitarm image already includes the toolchain; install extra libs only if needed
-      # - name: Install 3DS dependencies (if needed)
+      # - name: Install 3DS dependencies (if needed) - make build
       #   run: |
       #     sudo dkp-pacman -S --needed --noconfirm 3ds-dev
 
