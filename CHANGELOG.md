@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.18](https://github.com/steddyman/Ballistica/compare/v0.1.17...v0.1.18) (2025-10-03)
+
+
+### Bug Fixes
+
+* Move CIA external and fix syntax ([#74](https://github.com/steddyman/Ballistica/issues/74)) ([dd3a53f](https://github.com/steddyman/Ballistica/commit/dd3a53fbdbccc1d5e1e46f5f95d90bca11c6310e))
+
 ## [0.1.17](https://github.com/steddyman/Ballistica/compare/v0.1.16...v0.1.17) (2025-10-03)
 
 
