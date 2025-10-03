@@ -114,7 +114,14 @@ jobs:
             UseOtherVariationSaveData : false
           RSF
           # Build CIA
-          makerom -f cia \
+          if [ -f bin/makerom ]; then
+            chmod +x bin/makerom
+            MAKEROM="$PWD/bin/makerom"
+          else
+            echo "ERROR: bin/makerom not found in repository." >&2
+            exit 1
+          fi
+          "$MAKEROM" -f cia \
             -o build_cia/Ballistica.cia \
             -elf Ballistica.elf \
             -rsf build_cia/cia.rsf \
